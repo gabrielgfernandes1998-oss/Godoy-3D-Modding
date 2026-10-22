@@ -4,6 +4,8 @@ Studio local de roupas, malhas e pinturas de veículos para GTA V Legacy/FiveM. 
 
 ## Windows 10/11 x64 portable
 
+Os downloads são publicados em [GitHub Releases](https://github.com/gabrielgfernandes1998-oss/Godoy-3D-Modding/releases). O workflow [Windows portable release](https://github.com/gabrielgfernandes1998-oss/Godoy-3D-Modding/actions/workflows/portable-release.yml) compila e publica o ZIP e o SHA-256 quando uma tag `v` correspondente à versão do `package.json` é enviada.
+
 Extraia **todo o ZIP** `Godoy-3D-Modding-0.2.0-Windows-x64-Portable.zip` e execute `Godoy3DModding.exe`. Não precisa instalar Node.js, Python ou .NET no computador de uso. Requer driver com suporte a WebGL. O executável não é assinado digitalmente.
 
 Os arquivos são processados localmente. Salve seus projetos em uma pasta escolhida por você; não há salvamento automático. O pacote não inclui arquivos originais GTA, ped base ou modelos comerciais.
