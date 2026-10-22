@@ -1,0 +1,64 @@
+name: Windows portable release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: portable-release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  portable:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+          cache: npm
+      - name: Install locked dependencies
+        run: npm ci --ignore-scripts
+      - name: Run JavaScript and Python tests
+        run: |
+          set -euo pipefail
+          npm test
+          python3 -m unittest discover -s tests -v
+      - name: Build Windows x64 portable
+        run: npm run package:windows
+      - name: Retain portable artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: Godoy-3D-Modding-Windows-x64-Portable
+          path: |
+            release/*.zip
+            release/*.sha256
+          if-no-files-found: error
+      - name: Publish beta release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          VERSION="$(node -p "require('./package.json').version")"
+          TAG="v${VERSION}"
+          if [ "$GITHUB_REF_TYPE" = tag ] && [ "$GITHUB_REF_NAME" != "$TAG" ]; then
+            echo 'Tag must match package.json version.' >&2
+            exit 1
+          fi
+          git rev-parse --verify "refs/tags/$TAG"
+          if gh release view "$TAG" > /dev/null 2>&1; then
+            gh release upload "$TAG" release/*.zip release/*.sha256 --clobber
+          else
+            gh release create "$TAG" release/*.zip release/*.sha256 \
+              --verify-tag --prerelease --title "Godoy 3D Modding ${VERSION} beta" \
+              --notes-file docs/release-notes.md
+          fi
