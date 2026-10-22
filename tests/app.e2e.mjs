@@ -1,0 +1,67 @@
+import {chromium} from 'playwright';
+import assert from 'node:assert/strict';
+import {spawn} from 'node:child_process';
+import {mkdtemp,readFile,mkdir,writeFile} from 'node:fs/promises';
+import path from 'node:path';
+import os from 'node:os';
+import {unzipSync} from 'fflate';
+import {makeYdd,makeYtd,makeYft} from '../modules/vehicles/tests/fixtures.js';
+import {parseYtd} from '../modules/vehicles/src/formats/ytd.js';
+const output=await mkdtemp(path.join(os.tmpdir(),'godoy-app-e2e-'));
+const port=4211,server=spawn(process.execPath,['node_modules/vite/bin/vite.js','preview','--host','127.0.0.1','--port',String(port),'--strictPort'],{stdio:['ignore','pipe','pipe']});
+let logs='',browser;server.stdout.on('data',d=>logs+=d);server.stderr.on('data',d=>logs+=d);
+try {
+  let ready=false;
+  for(let i=0;i<80;i++) {
+    if(server.exitCode!==null)throw Error(logs);
+    try{if((await fetch(`http://127.0.0.1:${port}`)).ok){ready=true;break;}}catch{}
+    await new Promise(r=>setTimeout(r,150));
+  }
+  assert.ok(ready,logs);
+  browser=await chromium.launch({executablePath:process.env.CHROMIUM_PATH||'/usr/bin/chromium',headless:true,args:['--no-sandbox','--enable-unsafe-swiftshader','--use-gl=angle','--use-angle=swiftshader']});
+  const page=await browser.newPage({viewport:{width:1600,height:1100},acceptDownloads:true});
+  const errors=[],requests=[];page.on('pageerror',e=>errors.push(e.message));page.on('dialog',d=>d.accept());page.on('requestfailed',r=>requests.push(r.url()));
+  await page.goto(`http://127.0.0.1:${port}`);
+  await page.locator('#pack-files').setInputFiles([{name:'jbib_000_u.ydd',mimeType:'application/octet-stream',buffer:Buffer.from(makeYdd())},{name:'jbib_diff_000_a_uni.ytd',mimeType:'application/octet-stream',buffer:Buffer.from(makeYtd())}]);
+  await page.selectOption('#gender','female');await page.fill('#pack-name','browser_test');
+  const packDownload=page.waitForEvent('download');await page.click('#build-pack');const pack=await packDownload;
+  const packPath=path.join(output,'pack.zip');await pack.saveAs(packPath);
+  const archive=unzipSync(await readFile(packPath));assert.ok(archive['stream/mp_f_freemode_01_browser_test.ymt']);assert.ok(archive['fxmanifest.lua']);
+  await page.click('[data-tab=clothing]');
+  const clothing=page.frameLocator('#clothing iframe');await clothing.locator('#batch-files').setInputFiles([{name:'jbib_000_u.ydd',mimeType:'application/octet-stream',buffer:Buffer.from(makeYdd())},{name:'jbib_diff_000_a_uni.ytd',mimeType:'application/octet-stream',buffer:Buffer.from(makeYtd())}]);
+  await clothing.locator('#asset-type').filter({hasText:'YDD NATIVO'}).waitFor();
+  await clothing.locator('#batch-status').filter({hasText:'YTD associado'}).waitFor();
+  await clothing.locator('#texture-name').filter({hasText:'cloth_diffuse'}).waitFor();
+  const before=await clothing.locator('#map').evaluate(c=>c.toDataURL());
+  const box=await clothing.locator('#scene').boundingBox();await page.mouse.click(box.x+box.width/2,box.y+box.height/2);
+  const after=await clothing.locator('#map').evaluate(c=>c.toDataURL());assert.notEqual(after,before,'Clothing 3D painting must modify pixels');
+  const textureDownload=page.waitForEvent('download');await clothing.locator('#export-native').click();const texture=await textureDownload;
+  const texturePath=path.join(output,'edited.ytd');await texture.saveAs(texturePath);
+  assert.notDeepEqual(parseYtd(await readFile(texturePath)).textures[0].decode(),parseYtd(makeYtd()).textures[0].decode());
+  await page.locator('#pack-status').filter({hasText:'Arquivos atualizados pelo editor'}).waitFor({state:'attached'});
+  await page.click('[data-tab=vehicles]');const vehicles=page.frameLocator('#vehicles iframe');
+  await vehicles.locator('#batch-files').setInputFiles([{name:'test.yft',mimeType:'application/octet-stream',buffer:Buffer.from(makeYft())},{name:'test.ytd',mimeType:'application/octet-stream',buffer:Buffer.from(makeYtd())}]);
+  await vehicles.locator('#asset-type').filter({hasText:'YFT NATIVO'}).waitFor();
+  await vehicles.locator('#batch-status').filter({hasText:'YTD associado'}).waitFor();
+  await vehicles.locator('#texture-select option').first().waitFor({state:'attached'});
+  const carBefore=await vehicles.locator('#map').evaluate(c=>c.toDataURL());
+  const carBox=await vehicles.locator('#scene').boundingBox();await page.mouse.click(carBox.x+carBox.width/2,carBox.y+carBox.height/2);
+  assert.notEqual(await vehicles.locator('#map').evaluate(c=>c.toDataURL()),carBefore,'Vehicle painting must modify pixels');
+  const carDownload=page.waitForEvent('download');await vehicles.locator('#export-native').click();const car=await carDownload;await car.saveAs(path.join(output,'vehicle.ytd'));
+  assert.ok(parseYtd(await readFile(path.join(output,'vehicle.ytd'))).textures.length);
+  await page.click('[data-tab=mesh]');const mesh=page.frameLocator('#mesh iframe');
+  await mesh.locator('#mesh-file').setInputFiles({name:'jbib_000_u.ydd',mimeType:'application/octet-stream',buffer:Buffer.from(makeYdd())});
+  await mesh.locator('#status').filter({hasText:'carregado'}).waitFor();
+  await mesh.locator('#obj-file').setInputFiles({name:'accessory.obj',mimeType:'text/plain',buffer:Buffer.from('o Accessory\nv 0 0 0\nv 1 0 0\nv 0 1 0\nvt 0 0\nvt 1 0\nvt 0 1\nf 1/1 2/2 3/3\n')});
+  await mesh.locator('#status').filter({hasText:'OBJ adicionado'}).waitFor();
+  await mesh.locator('#tree button').filter({hasText:'mesh_0'}).first().click();
+  await mesh.locator('#merge-source').selectOption({label:'accessory.obj'});await mesh.locator('#merge').click();
+  await mesh.locator('#status').filter({hasText:'Geometria unida'}).waitFor();
+  const glbDownload=page.waitForEvent('download');await mesh.locator('#export-glb').click();const glb=await glbDownload;const glbPath=path.join(output,'scene.glb');await glb.saveAs(glbPath);
+  const bytes=await readFile(glbPath);assert.equal(bytes.readUInt32LE(0),0x46546c67);
+  await mesh.locator('#mesh-file').setInputFiles(glbPath);await mesh.locator('#status').filter({hasText:'scene.glb carregado'}).waitFor();
+  assert.deepEqual(errors,[]);assert.deepEqual(requests,[]);
+  await mkdir('.test-output',{recursive:true});await page.click('[data-tab=pack]');await page.screenshot({path:'.test-output/studio.png',fullPage:true});
+  await writeFile('.test-output/browser-results.json',JSON.stringify({status:'passed',checks:['pack ZIP with generated YMT','clothing YDD import / 3D paint / YTD round-trip','vehicle YFT import / 3D paint / YTD round-trip','OBJ geometry union / GLB export / reopen'],output},null,2));
+  console.log('Browser E2E: pack, clothing, vehicles, OBJ union and GLB round-trip PASS');
+} finally {await browser?.close();server.kill();}

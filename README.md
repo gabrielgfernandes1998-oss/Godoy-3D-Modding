@@ -1,0 +1,75 @@
+# Godoy 3D Modding · 0.2.0 beta
+
+Studio local de roupas, malhas e pinturas de veículos para GTA V Legacy/FiveM. Developed by Gabriel Godoy.
+
+## Windows 10/11 x64 portable
+
+Extraia **todo o ZIP** `Godoy-3D-Modding-0.2.0-Windows-x64-Portable.zip` e execute `Godoy3DModding.exe`. Não precisa instalar Node.js, Python ou .NET no computador de uso. Requer driver com suporte a WebGL. O executável não é assinado digitalmente.
+
+Os arquivos são processados localmente. Salve seus projetos em uma pasta escolhida por você; não há salvamento automático. O pacote não inclui arquivos originais GTA, ped base ou modelos comerciais.
+
+## Recursos desta versão
+
+| Módulo | Disponível | Limites |
+| --- | --- | --- |
+| Pack de roupas | Nome, gênero, associação por componente/índice, geração YMT binário e SHOP_PED_APPAREL_META_FILE, fxmanifest, ZIP com stream/[male ou female]/componente | Geração YMT experimental; exige índices contínuos desde 000, variantes _u/uni ou _r/whi. Sem props ou variantes de primeira pessoa. |
+| Pintura de roupas | YDD/YTD, seleção de drawables/LODs, pintura 3D/UV, camadas, texto, imagem, exportação YTD e texturas embutidas | Baseada no PAINTFIVE; não recompila alterações de geometria. |
+| Associação de arquivos | Importação de conjunto, busca por nome e referências de materiais; escolha manual em caso de empate | Só acessa arquivos selecionados pelo usuário. |
+| Integração editor/pack | Exportar YTD no editor atualiza o conjunto do pack com o nome original e o YDD aberto | O nome precisa seguir a convenção de componentes para gerar o recurso. |
+| Malhas e objetos | Importação YDD/YFT/GLB/OBJ, ped de referência importado pelo usuário, gizmos e campos de posição/rotação/escala, união estática de geometria e UV, exportação/reabertura GLB | Não gera YDD/YFT com novas geometrias, skinning, UV atlas ou pesos. O GLB não substitui um recurso FiveM. |
+| Pintura de veículos | YFT e _hi.yft visualizáveis, seleção de drawables/LODs, materiais e pintura YTD | Baseada no Godoy-Paint-Car. Não reconstrói bones/fragment physics/damage nem gera novo _hi.yft. |
+
+Não é a implementação completa dos três módulos originais. A exportação nativa de geometria e a validação em FiveM/Windows real continuam pendentes. Consulte [estado da versão](docs/release-status.md).
+
+## Criar um pack
+
+1. Na aba **Pack de roupas**, escolha o nome e o gênero.
+2. Selecione YDD e YTD juntos ou selecione uma pasta. Exemplo:
+
+```text
+jbib_000_u.ydd
+jbib_diff_000_a_uni.ytd
+jbib_diff_000_b_uni.ytd
+feet_000_r.ydd
+feet_diff_000_a_whi.ytd
+```
+
+3. Os índices de cada componente começam em 000, sem lacunas, e as texturas começam em `a`. Arquivos com prefixo `colecao^` também são aceitos. O índice é preservado; não há renumeração arbitrária de nomes internos.
+4. Gere o ZIP. Ele inclui `fxmanifest.lua`, `mp_m_freemode_01_nome.meta` (ou feminino), YMT e os YDD/YTD organizados em `stream/[male]/jbib/`, etc. O `dlcName` no META e o hash interno do YMT usam o nome da coleção; `fullDlcName` inclui o ped.
+5. Extraia como um recurso na base, adicione `ensure nome_do_recurso` e confira **no servidor FiveM Legacy** antes de distribuir. O `export-report.json` registra componentes e referências externas de textura; referências não resolvidas precisam ser conferidas.
+
+O gerador de YMT cria um recurso RSC7 v2 CPedVariationInfo. Sua estrutura foi lida por um leitor independente CodeWalker; isso não substitui testar os arquivos no jogo. YDD/YTD são analisados e copiados, sem alterar seus bytes. Limites: 80 MB por arquivo, 256 MB por pack, 1–128 drawables e no máximo 255 texturas por componente, até 26 variações por drawable.
+
+## Desenvolvimento
+
+Node.js 24.19.0 e npm 11 foram usados neste ambiente. Use essa versão de Node para o comando portable, que ativa o proxy de download pelo runtime. Python 3.12+ é necessário apenas para a CLI legada.
+
+```bash
+npm ci --ignore-scripts --cache /tmp/godoy-npm-cache
+npm test
+npm run build
+npm run dev
+```
+
+O app web serve apenas como ambiente de desenvolvimento. O portable incorpora o runtime Electron 45.0.0. Para compilar o ZIP Windows x64:
+
+```bash
+npm run package:windows
+```
+
+A compilação requer os utilitários zip/unzip no host (presentes neste ambiente Linux). O processo baixa o Electron com verificação de checksum e gera o ZIP em `release/`, junto com SHA-256. Compilar em Linux é suportado; executar o EXE exige Windows. Para o teste de navegador, instale Chromium com `npx playwright install chromium` ou informe `CHROMIUM_PATH`, depois execute `npm run test:browser` com o build pronto.
+
+## CLI Python legada
+
+O empacotador original continua disponível para arquivos **já preparados**, com YMT e META fornecidos externamente. Ele não é usado pelo portable:
+
+```bash
+python3 -m unittest discover -s tests -v
+python3 -m godoy.clothing.exporter /caminho/preparados --pack demo --gender male --output /tmp/godoy-demo
+```
+
+A CLI legada aceita apenas `_u/uni` e o contrato antigo de META (`dlcName` igual ao prefixo completo). Prefira o gerador web/desktop para novos packs. A evolução desse contrato fica separada para preservar a compatibilidade da primeira versão.
+
+## Créditos
+
+Integra os projetos do autor [PAINTFIVE](https://github.com/gabrielgfernandes1998-oss/PAINTFIVE) e [Godoy-Paint-Car](https://github.com/gabrielgfernandes1998-oss/Godoy-Paint-Car), conforme solicitado. Commits de origem e avisos preservados em `modules/*/UPSTREAM.md` e `THIRD_PARTY_NOTICES.txt`. CodeWalker não é incluído no aplicativo.

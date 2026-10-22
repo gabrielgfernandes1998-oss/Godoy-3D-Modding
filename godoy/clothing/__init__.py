@@ -1,0 +1,1 @@
+"""FiveM clothing packaging."""
