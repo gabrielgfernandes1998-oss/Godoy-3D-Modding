@@ -61,6 +61,10 @@ npm run package:windows
 
 A compilação requer os utilitários zip/unzip no host (presentes neste ambiente Linux). O processo baixa o Electron com verificação de checksum e gera o ZIP em `release/`, junto com SHA-256. Compilar em Linux é suportado; executar o EXE exige Windows. Para o teste de navegador, instale Chromium com `npx playwright install chromium` ou informe `CHROMIUM_PATH`, depois execute `npm run test:browser` com o build pronto.
 
+## Publicar um portable já compilado
+
+Com o ZIP e o SHA-256 presentes em `release/`, `npm run release:check` confere o arquivo local. `npm run release:publish` cria a pré-release se necessário, envia os anexos e confirma tamanho e SHA-256 retornados pelo GitHub. Exige GitHub CLI autenticado e acesso a `api.github.com` e `uploads.github.com`. Falhas de rede ou autenticação interrompem a publicação; elas não são tratadas como sucesso. Um anexo existente diferente não é sobrescrito automaticamente.
+
 ## CLI Python legada
 
 O empacotador original continua disponível para arquivos **já preparados**, com YMT e META fornecidos externamente. Ele não é usado pelo portable:
