@@ -1,4 +1,4 @@
-# Arquitetura da versão 0.2.0
+# Arquitetura da versão 0.2.1
 
 ## Implementado
 

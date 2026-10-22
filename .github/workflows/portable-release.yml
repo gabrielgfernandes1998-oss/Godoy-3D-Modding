@@ -42,7 +42,57 @@ jobs:
             release/*.zip
             release/*.sha256
           if-no-files-found: error
-      - name: Publish beta release
+
+  windows-smoke:
+    needs: portable
+    runs-on: windows-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - uses: actions/download-artifact@v4
+        with:
+          name: Godoy-3D-Modding-Windows-x64-Portable
+          path: portable-artifacts
+      - name: Launch and test actual packaged Windows executable
+        shell: pwsh
+        run: |
+          $archive = Get-ChildItem portable-artifacts/*.zip | Select-Object -First 1
+          $destination = Join-Path $env:RUNNER_TEMP 'godoy-portable'
+          Expand-Archive -LiteralPath $archive.FullName -DestinationPath $destination
+          $executable = Get-ChildItem $destination -Filter Godoy3DModding.exe -Recurse | Select-Object -First 1
+          if (-not $executable) { throw 'Portable executable missing' }
+          $env:GODOY_DESKTOP_EXE = $executable.FullName
+          npm run test:desktop
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Retain Windows runtime evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Windows-desktop-test-evidence
+          path: .test-output/desktop-win32.*
+          if-no-files-found: warn
+
+  publish:
+    needs: [portable, windows-smoke]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+      - uses: actions/download-artifact@v4
+        with:
+          name: Godoy-3D-Modding-Windows-x64-Portable
+          path: release
+      - name: Publish beta release only after Windows smoke passes
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GH_REPO: ${{ github.repository }}

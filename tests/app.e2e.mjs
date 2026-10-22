@@ -50,6 +50,12 @@ try {
   const carDownload=page.waitForEvent('download');await vehicles.locator('#export-native').click();const car=await carDownload;await car.saveAs(path.join(output,'vehicle.ytd'));
   assert.ok(parseYtd(await readFile(path.join(output,'vehicle.ytd'))).textures.length);
   await page.click('[data-tab=mesh]');const mesh=page.frameLocator('#mesh iframe');
+  await mesh.locator('#ped-file').setInputFiles({name:'mp_m_freemode_01.ydd',mimeType:'application/octet-stream',buffer:Buffer.from(makeYdd())});
+  await mesh.locator('#ped-status').filter({hasText:'Ped salvo e carregado'}).waitFor();
+  await mesh.locator('#ped-gender').selectOption('female');
+  await mesh.locator('#ped-status').filter({hasText:'Nenhum ped salvo'}).waitFor();
+  await mesh.locator('#ped-gender').selectOption('male');
+  await mesh.locator('#ped-status').filter({hasText:'Ped carregado'}).waitFor();
   await mesh.locator('#mesh-file').setInputFiles({name:'jbib_000_u.ydd',mimeType:'application/octet-stream',buffer:Buffer.from(makeYdd())});
   await mesh.locator('#status').filter({hasText:'carregado'}).waitFor();
   await mesh.locator('#obj-file').setInputFiles({name:'accessory.obj',mimeType:'text/plain',buffer:Buffer.from('o Accessory\nv 0 0 0\nv 1 0 0\nv 0 1 0\nvt 0 0\nvt 1 0\nvt 0 1\nf 1/1 2/2 3/3\n')});
@@ -59,6 +65,11 @@ try {
   await mesh.locator('#status').filter({hasText:'Geometria unida'}).waitFor();
   const glbDownload=page.waitForEvent('download');await mesh.locator('#export-glb').click();const glb=await glbDownload;const glbPath=path.join(output,'scene.glb');await glb.saveAs(glbPath);
   const bytes=await readFile(glbPath);assert.equal(bytes.readUInt32LE(0),0x46546c67);
+  const sceneJson=JSON.parse(bytes.subarray(20,20+bytes.readUInt32LE(12)).toString());
+  assert.ok(sceneJson.nodes.every(n=>!n.name?.startsWith('Ped ·')),'Ped reference must not be exported');
+  const meshFrame=page.frames().find(f=>f.url().endsWith('/mesh.html'));
+  await meshFrame.goto(meshFrame.url());
+  await mesh.locator('#ped-status').filter({hasText:'Ped carregado: mp_m_freemode_01.ydd'}).waitFor();
   await mesh.locator('#mesh-file').setInputFiles(glbPath);await mesh.locator('#status').filter({hasText:'scene.glb carregado'}).waitFor();
   assert.deepEqual(errors,[]);assert.deepEqual(requests,[]);
   await mkdir('.test-output',{recursive:true});await page.click('[data-tab=pack]');await page.screenshot({path:'.test-output/studio.png',fullPage:true});

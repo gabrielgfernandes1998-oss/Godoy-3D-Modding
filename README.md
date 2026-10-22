@@ -1,4 +1,4 @@
-# Godoy 3D Modding · 0.2.0 beta
+# Godoy 3D Modding · 0.2.1 beta
 
 Studio local de roupas, malhas e pinturas de veículos para GTA V Legacy/FiveM. Developed by Gabriel Godoy.
 
@@ -6,7 +6,7 @@ Studio local de roupas, malhas e pinturas de veículos para GTA V Legacy/FiveM. 
 
 Os downloads são publicados em [GitHub Releases](https://github.com/gabrielgfernandes1998-oss/Godoy-3D-Modding/releases). O workflow [Windows portable release](https://github.com/gabrielgfernandes1998-oss/Godoy-3D-Modding/actions/workflows/portable-release.yml) compila e publica o ZIP e o SHA-256 quando uma tag `v` correspondente à versão do `package.json` é enviada.
 
-Extraia **todo o ZIP** `Godoy-3D-Modding-0.2.0-Windows-x64-Portable.zip` e execute `Godoy3DModding.exe`. Não precisa instalar Node.js, Python ou .NET no computador de uso. Requer driver com suporte a WebGL. O executável não é assinado digitalmente.
+Extraia **todo o ZIP** `Godoy-3D-Modding-0.2.1-Windows-x64-Portable.zip` e execute `Godoy3DModding.exe`. Não precisa instalar Node.js, Python ou .NET no computador de uso. Requer driver com suporte a WebGL. O executável não é assinado digitalmente.
 
 Os arquivos são processados localmente. Salve seus projetos em uma pasta escolhida por você; não há salvamento automático. O pacote não inclui arquivos originais GTA, ped base ou modelos comerciais.
 
@@ -18,10 +18,10 @@ Os arquivos são processados localmente. Salve seus projetos em uma pasta escolh
 | Pintura de roupas | YDD/YTD, seleção de drawables/LODs, pintura 3D/UV, camadas, texto, imagem, exportação YTD e texturas embutidas | Baseada no PAINTFIVE; não recompila alterações de geometria. |
 | Associação de arquivos | Importação de conjunto, busca por nome e referências de materiais; escolha manual em caso de empate | Só acessa arquivos selecionados pelo usuário. |
 | Integração editor/pack | Exportar YTD no editor atualiza o conjunto do pack com o nome original e o YDD aberto | O nome precisa seguir a convenção de componentes para gerar o recurso. |
-| Malhas e objetos | Importação YDD/YFT/GLB/OBJ, ped de referência importado pelo usuário, gizmos e campos de posição/rotação/escala, união estática de geometria e UV, exportação/reabertura GLB | Não gera YDD/YFT com novas geometrias, skinning, UV atlas ou pesos. O GLB não substitui um recurso FiveM. |
+| Malhas e objetos | Importação YDD/YFT/GLB/OBJ, biblioteca local de peds por gênero importados pelo usuário, gizmos e campos de posição/rotação/escala, união estática de geometria e UV, exportação/reabertura GLB | Não gera YDD/YFT com novas geometrias, skinning, UV atlas ou pesos. O GLB não substitui um recurso FiveM. |
 | Pintura de veículos | YFT e _hi.yft visualizáveis, seleção de drawables/LODs, materiais e pintura YTD | Baseada no Godoy-Paint-Car. Não reconstrói bones/fragment physics/damage nem gera novo _hi.yft. |
 
-Não é a implementação completa dos três módulos originais. A exportação nativa de geometria e a validação em FiveM/Windows real continuam pendentes. Consulte [estado da versão](docs/release-status.md).
+Não é a implementação completa dos três módulos originais. A exportação nativa de geometria e a validação em FiveM continuam pendentes. O workflow exige um teste do executável em Windows antes de publicar. Consulte [estado da versão](docs/release-status.md).
 
 ## Criar um pack
 
@@ -79,3 +79,11 @@ A CLI legada aceita apenas `_u/uni` e o contrato antigo de META (`dlcName` igual
 ## Créditos
 
 Integra os projetos do autor [PAINTFIVE](https://github.com/gabrielgfernandes1998-oss/PAINTFIVE) e [Godoy-Paint-Car](https://github.com/gabrielgfernandes1998-oss/Godoy-Paint-Car), conforme solicitado. Commits de origem e avisos preservados em `modules/*/UPSTREAM.md` e `THIRD_PARTY_NOTICES.txt`. CodeWalker não é incluído no aplicativo.
+
+## Correção da tela vazia (0.2.1)
+
+O carregador desktop anterior chamava `net.fetch(file://...)`, que era bloqueado pelo próprio filtro de rede. O protocolo local agora lê os assets diretamente do ASAR e serve seus tipos MIME corretos, mantendo sandbox, CSP e bloqueio de arquivos arbitrários. Falhas de carregamento registram `startup.log` na pasta de logs do aplicativo.
+
+A aba Malhas agora mantém um ped de referência por gênero em uma biblioteca local (IndexedDB). Importe um YDD/GLB autorizado uma vez; alterne masculino/feminino e mostre ou oculte a referência. O ped é excluído da exportação GLB. Não há extração automática de arquivos RPF.
+
+O repositório grzyClothTool foi examinado como referência. Seus peds vêm da instalação local do GTA V; não são modelos completos incluídos no repositório. Veja [análise da referência](docs/grzyClothTool-reference.md).

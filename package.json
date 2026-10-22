@@ -1,6 +1,6 @@
 {
   "name": "godoy-3d-modding",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "private": true,
   "type": "module",
   "main": "electron.cjs",
@@ -14,7 +14,8 @@
     "test:browser": "node tests/app.e2e.mjs",
     "package:windows": "npm run build && node --use-env-proxy scripts/portable.mjs",
     "release:check": "node scripts/publish-release.mjs --check",
-    "release:publish": "node scripts/publish-release.mjs"
+    "release:publish": "node scripts/publish-release.mjs",
+    "test:desktop": "node tests/desktop.e2e.mjs"
   },
   "dependencies": {
     "three": "0.180.0",
