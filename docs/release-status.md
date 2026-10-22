@@ -6,12 +6,14 @@ Os testes desktop verificam protocolo, sandbox, abas, pintura 3D, exportação Y
 
 A análise do grzyClothTool está em [grzyClothTool-reference.md](grzyClothTool-reference.md).
 
+Validação confirmada da 0.2.1: 37 testes JS e 7 Python passaram localmente, assim como o teste de navegador e o teste do ASAR no runtime Electron Linux. O teste do executável Windows e a publicação passaram no [run 39874849585](https://github.com/gabrielgfernandes1998-oss/Godoy-3D-Modding/actions/runs/39874849585). Isso não equivale a testar recursos em um servidor FiveM.
+
 ## Histórico da validação 0.2.0
 
 ## Validado neste ambiente Linux
 
 - Node.js 24.19.0; dependências fixadas no package-lock.json.
-- 37 testes JavaScript de codecs, pixels, UV, câmera, associação, YMT, pack e união de malhas.
+- 35 testes JavaScript de codecs, pixels, UV, câmera, associação, YMT, pack e união de malhas (37 na 0.2.1, com os testes de assets desktop).
 - 7 testes da CLI Python legada.
 - Build Vite das quatro entradas.
 - Navegador Chromium: importação de conjunto/associação automática, pintura 3D em roupa YDD e veículo YFT, YTD exportado e reaberto com pixels modificados; ZIP FiveM; união OBJ, GLB exportado e reaberto.

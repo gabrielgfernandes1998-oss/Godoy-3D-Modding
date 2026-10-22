@@ -75,6 +75,7 @@ jobs:
         with:
           name: Windows-desktop-test-evidence
           path: .test-output/desktop-win32.*
+          include-hidden-files: true
           if-no-files-found: warn
 
   publish:
