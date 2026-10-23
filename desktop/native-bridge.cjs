@@ -77,6 +77,20 @@ function registerNativeBridge({app,ipcMain,dialog,getWindow}) {
       return new Uint8Array(Buffer.from(result.data,'base64'));
     } finally {busy=false;}
   });
+  ipcMain.handle('godoy:native-create-ydd',async(event,request)=> {
+    allowed(event);if(busy)throw Error('Aguarde a operação nativa atual.');
+    if(!request||!Number.isInteger(request.boneTag)||request.boneTag<0||request.boneTag>65535||!['head','berd','hair','uppr','lowr','hand','feet','teef','accs','task','decl','jbib'].some(c=>new RegExp('^'+c+'_[0-9]{3}_u$').test(request.name)))throw Error('Nome ou osso inválido.');
+    if(![512,1024,2048,4096].includes(request.textureSize)||!(request.pixels instanceof Uint8Array)||request.pixels.length!==request.textureSize**2*4)throw Error('Pixels inválidos.');
+    if(!(request.pedBytes instanceof Uint8Array)||!request.pedBytes.length||request.pedBytes.length>80*1024*1024)throw Error('Carregue um ped YDD com esqueleto.');
+    if(!Array.isArray(request.parts)||!request.parts.length||request.parts.length>32||Buffer.byteLength(JSON.stringify(request.parts))>10*1024*1024)throw Error('Partes OBJ acima do limite.');
+    busy=true;
+    try {
+      const config=await resolveConfig();
+      const result=await runBridge(executable,{command:'create-ydd',codewalkerDirectory:config.codewalkerDirectory,pedData:Buffer.from(request.pedBytes).toString('base64'),name:request.name,boneTag:request.boneTag,parts:request.parts,textureSize:request.textureSize,pixels:Buffer.from(request.pixels).toString('base64')});
+      if(typeof result.data!=='string'||result.data.length>112*1024*1024||typeof result.ytdData!=='string'||result.ytdData.length>112*1024*1024)throw Error('Arquivos convertidos acima do limite.');
+      return {ydd:new Uint8Array(Buffer.from(result.data,'base64')),ytd:new Uint8Array(Buffer.from(result.ytdData,'base64'))};
+    } finally {busy=false;}
+  });
   ipcMain.handle('godoy:native-ped',async(event,gender)=> {
     allowed(event);if(!['male','female'].includes(gender))throw Error('Gênero inválido.');if(busy)throw Error('Aguarde a operação nativa atual.');busy=true;
     try {

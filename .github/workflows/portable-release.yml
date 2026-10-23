@@ -95,7 +95,9 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: Windows-desktop-test-evidence
-          path: .test-output/desktop-win32.*
+          path: |
+            .test-output/desktop-win32.*
+            .test-output/converter.png
           include-hidden-files: true
           if-no-files-found: warn
 

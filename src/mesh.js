@@ -16,6 +16,7 @@ import {parseYtd} from '../modules/vehicles/src/formats/ytd.js';
 import {zipSync,strToU8} from 'fflate';
 import './mesh.css';
 import {previewDiffuse,previewTexture} from './preview-textures.js';
+import {startObjConverter} from './obj-converter.js';
 import {editAtlasLayout} from './atlas-layout.js';
 const $=s=>document.querySelector(s);
 $('#app').innerHTML=`<aside><h1>Malhas e objetos</h1><p>Roupa inteira sobre o ped · exportação YDD</p><button id="open-mesh">Importar YDD / YFT / GLB</button><button id="open-ped">Importar ped de referência</button><button id="open-obj">Adicionar objeto OBJ</button><input id="mesh-file" type="file" accept=".ydd,.yft,.glb" hidden><input id="ped-file" type="file" accept=".ydd,.glb" hidden><input id="obj-file" type="file" accept=".obj" hidden><div class="history-actions"><button id="undo" disabled>Desfazer · Ctrl+Z</button><button id="redo" disabled>Refazer · Ctrl+Y</button></div><button id="fit-scene">Enquadrar cena inteira</button><h2>Peças na cena</h2><div id="tree"></div><h2>Transformação</h2><div class="modes"><button data-mode="translate" class="active">Mover</button><button data-mode="rotate">Girar</button><button data-mode="scale">Escala</button></div><label>Espaço<select id="space"><option value="local">Local</option><option value="world">Global</option></select></label><div id="fields"></div><button id="apply-transform">Aplicar valores</button><button id="focus">Enquadrar peça + referência</button><button id="align-selection">Trazer seleção para a referência</button><label>Vínculo ao ped<select id="attachment-bone"><option value="preserve">Manter pesos e ossos originais</option><option value="pelvis">Cintura · SKEL_Pelvis (acessório rígido)</option><option value="head">Cabeça · SKEL_Head (acessório rígido)</option><option value="spine">Tronco · SKEL_Spine0 (acessório rígido)</option></select></label><h2>Incorporar objeto à peça</h2><label>Peça de destino<select id="merge-target"></select></label><label>Objeto a incorporar<select id="merge-source"><option value="">Selecione um OBJ</option></select></label><button id="merge">Unir OBJ à peça</button><p class="hint">A união mantém a posição e herda os pesos da região mais próxima. Com o YTD associado, a exportação reúne a textura original e os UVs do OBJ em um atlas único. Ctrl+Z desfaz.</p><button id="open-ytd">Associar YTD original para gerar UV</button><input id="ytd-file" type="file" accept=".ytd" hidden><p id="ytd-status" class="hint">Associe o YTD da peça antes de exportar um OBJ com textura própria.</p><label>Resolução do atlas<select id="atlas-resolution"><option value="4096">Ajustar até 4096 · pode reduzir detalhes</option><option value="2048">Ajustar até 2048 · menor arquivo</option><option value="1024">Ajustar até 1024 · menor resolução</option><option value="0">Preservar resolução original</option></select></label><button id="plan-atlas">Calcular atlas automático</button><p id="atlas-plan" class="hint" role="status">Exportar abre o posicionamento manual de UV. O cálculo automático abaixo usa a distribuição anterior.</p><button id="export-ydd" class="accent">Exportar peça YDD</button><p class="hint">Mova, gire e ajuste a peça inteira sobre o ped. Para prender um boné ao cinto, escolha Cintura antes de exportar. Com OBJ incorporado, use o YTD atualizado que acompanha o YDD no ZIP.</p><details id="advanced-mesh"><summary>OBJ e cópia GLB</summary><button id="export-glb" >Exportar cópia GLB</button><p class="hint">O GLB é uma cópia estática da cena. Para usar a peça com os objetos incorporados no FiveM, use Exportar peça YDD.</p><p class="hint">Sem OBJ, a edição YDD mantém materiais, UVs e LODs originais; com OBJ, os UVs são reorganizados no atlas. O OBJ incorporado acompanha a exportação YDD. O UV automático separa os triângulos do OBJ na área extra do atlas. Essa área começa cinza; materiais MTL e imagens do OBJ não são importados.</p></details></aside><main><div id="viewport"></div><div id="status" role="status">Importe um modelo para começar.</div></main>`;
@@ -45,7 +46,7 @@ const pivot=new THREE.Group();pivot.name='SelectionPivot';scene.add(pivot);
 const transform=new TransformControls(camera,renderer.domElement);scene.add(transform.getHelper());
 transform.addEventListener('dragging-changed',e=>orbit.enabled=!e.value);
 transform.addEventListener('objectChange',()=>{if(dragStart){pivotDelta(dragStart.object,pivot,dragStart.anchor,dragStart.world);dirty=true;sync();}});
-let selection=null,dirty=false,dragStart=null;
+let selection=null,dirty=false,dragStart=null,converter=null;
 const resources=new Set();
 const sourceFiles=new WeakMap();
 const history=new SceneHistory({onChange:()=> {
@@ -112,7 +113,7 @@ function sync() {
   $('#attachment-bone').value=selection.userData.attachmentBone??'preserve';
   for(const type of ['position','rotation','scale']) for(const axis of ['x','y','z']) $(`#${type}-${axis}`).value=(selection[type][axis]*(type==='rotation'?180/Math.PI:1)).toFixed(4);
 }
-function select(object) {while(object.parent&&object.parent!==content)object=object.parent;const changedSelection=selection!==object;selection=object;if(changedSelection)$('#atlas-plan').textContent='A exportação abre o ajuste manual de UV. Calcular mostra a distribuição automática anterior.';$('#export-ydd').textContent=sourceFiles.get(object)?.additions?.length?'Exportar YDD + ajustar UV':'Exportar peça YDD';const ytd=sourceFiles.get(object)?.ytd;$('#ytd-status').textContent=ytd?`YTD associado à peça: ${ytd.name}`:'Associe o YTD da peça antes de exportar um OBJ com textura própria.';if(placePivot(pivot,object))transform.attach(pivot);else transform.detach();sync();refreshTree();}
+function select(object) {while(object.parent&&object.parent!==content)object=object.parent;const changedSelection=selection!==object;selection=object;if(changedSelection)$('#atlas-plan').textContent='A exportação abre o ajuste manual de UV. Calcular mostra a distribuição automática anterior.';$('#export-ydd').textContent=sourceFiles.get(object)?.additions?.length?'Exportar YDD + ajustar UV':'Exportar peça YDD';const ytd=sourceFiles.get(object)?.ytd;$('#ytd-status').textContent=ytd?`YTD associado à peça: ${ytd.name}`:'Associe o YTD da peça antes de exportar um OBJ com textura própria.';if(placePivot(pivot,object))transform.attach(pivot);else transform.detach();sync();refreshTree();converter?.selectionChanged(object);}
 function refreshTree() {
   $('#tree').replaceChildren();
   for(const object of content.children) {
@@ -212,7 +213,7 @@ $('#ped-file').onchange=e=>guard(async()=> {
   const file=e.target.files[0];if(!file)return;
   const sequence=++restoreSequence,gender=$('#ped-gender').value;
   if(!await load(file,true,sequence))return;
-  try {await rememberPed(gender,file);if(/\.ydd$/i.test(file.name))await rememberPedSkeleton(gender,new Uint8Array(await file.arrayBuffer()));else await forgetPedSkeleton(gender);$('#ped-status').textContent=`Ped salvo e carregado: ${file.name}`;}
+  try {await rememberPed(gender,file);if(/\.ydd$/i.test(file.name))await rememberPedSkeleton(gender,new Uint8Array(await file.arrayBuffer()));else await forgetPedSkeleton(gender);$('#ped-status').textContent=`Ped salvo e carregado: ${file.name}`;await converter?.refreshBones();}
   catch(error) {$('#ped-status').textContent=`Ped carregado, mas não salvo: ${error.message}`;}
   finally {e.target.value='';}
 })();
@@ -223,10 +224,11 @@ $('#forget-ped').onclick=guard(async()=> {++restoreSequence;await forgetPed($('#
 restorePed().catch(error=>$('#ped-status').textContent=`Biblioteca local indisponível: ${error.message}`);
 $('#obj-file').onchange=e=>guard(async()=> {
   const file=e.target.files[0];if(!file)return;if(file.size>20*1024*1024)throw Error('OBJ acima de 20 MB.');
-  const object=new OBJLoader().parse(await file.text());let vertices=0;
+  const objText=await file.text(),object=new OBJLoader().parse(objText);let vertices=0;
+  if(converter)object.userData.converterMissingUv=objText.split(/\r?\n/).filter(line=>/^\s*f\s/.test(line)).some(line=>line.trim().split(/\s+/).slice(1).some(vertex=>!vertex.split('/')[1]));
   object.traverse(m=>{if(m.isMesh){vertices+=m.geometry.attributes.position.count;m.material=new THREE.MeshStandardMaterial({color:0xdca05c,side:THREE.DoubleSide});}});
   if(!vertices||vertices>1000000)throw Error('OBJ vazio ou acima de 1 milhão de vértices.');
-  object.name=file.name;const placement=placeImportedObj(object,contextBounds());addObject(object,{isObj:true});if(placement.adjusted)focus(object);e.target.value='';
+  object.name=file.name;converter?.prepareObject(object);const placement=placeImportedObj(object,contextBounds());addObject(object,{isObj:true});if(placement.adjusted)focus(object);e.target.value='';
   status(placement.adjusted?`OBJ adicionado perto da referência; origem distante/unidades ajustadas (escala ×${placement.factor.toPrecision(4)}). O arquivo original foi preservado. Ctrl+Z desfaz a importação.`:'OBJ adicionado. O gizmo acompanha o centro da peça. Enquadrar peça + referência mantém o YDD e o ped na vista.');
 })();
 document.querySelectorAll('[data-mode]').forEach(button=>button.onclick=()=> {
@@ -389,7 +391,7 @@ if(!native) {
       group.name=`Ped · ${result.ped}`;
       if(sequence!==restoreSequence){disposeGroup(group);return;}
       await rememberPedSkeleton(gender,result.assets[0].bytes);
-      installPed(group);$('#ped-status').textContent=`Ped do GTA carregado: ${result.ped}`;
+      installPed(group);await converter?.refreshBones();$('#ped-status').textContent=`Ped do GTA carregado: ${result.ped}`;
       $('#native-status').textContent='Ped base carregado via CodeWalker. Pose estática; roupas da cena preservadas.'+(result.missing.length?' Componentes ausentes: '+result.missing.join(', '):'');
       try {
         const data=await new GLTFExporter().parseAsync(group,{binary:true,onlyVisible:false});
@@ -398,4 +400,9 @@ if(!native) {
     } catch(error) {if(!group.parent)disposeGroup(group);$('#native-status').textContent=error.message;}
     finally{$('#load-native-ped').disabled=false;$('#configure-native').disabled=false;}
   });
+}
+
+if(new URLSearchParams(location.search).get('mode')==='converter') {
+ converter=startObjConverter({getSelection:()=>selection,native,status,refreshResources:()=>collectResources(content,resources)});
+ document.addEventListener('godoy-converter-place',e=>{const {object,point}=e.detail;if(object!==selection)return;const before=snapshotTransform(object),box=visibleBounds(object);object.position.add(point.clone().sub(box.getCenter(new THREE.Vector3())));object.updateMatrixWorld(true);recordTransform(object,before,snapshotTransform(object));focus(object);status('OBJ levado ao osso. Ajuste posição, giro e escala antes de converter. Ctrl+Z desfaz.');});
 }

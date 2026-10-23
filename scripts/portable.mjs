@@ -25,10 +25,11 @@ try {
       '', 'Roupas e veiculos: pintura 3D/UV e exportacao YTD.',
       'Pack: gera YMT/META/fxmanifest e organiza arquivos em ZIP. Geracao YMT experimental.',
       'Malhas: ajuste a peca sobre o ped e exporte YDD; vinculo rigido a cintura/cabeca/tronco ou pesos originais.',
-      'OBJ e copia GLB nas opcoes avancadas; uniao OBJ nao e exportada em YDD.',
-      'Novas geometrias nao sao recompiladas em YDD/YFT. Sem rigging automatico ou _hi.yft gerado.',
+      'Malhas: incorpora OBJ ao YDD e exporta atlas UV/YTD com posicionamento manual.',
+      'Modulo 05: converte OBJ em novo YDD + YTD, escolhe osso do ped, UV e imagem diffuse.',
+      'Conversor: vinculo rigido a um osso; nao cria pesos deformaveis, fisica ou novas geometrias YFT.',
       'Valide os recursos em um servidor FiveM Legacy antes de distribuir.',
-      'Salve seus projetos; nao ha salvamento automatico. Os arquivos originais sao preservados.',
+      'Pack possui projetos/autosave. Salve as malhas e texturas exportadas; os originais sao preservados.',
       '', 'Developed by Gabriel Godoy', '',
     ].join('\r\n'));
     const exe=await readFile(path.join(directory,'Godoy3DModding.exe'));

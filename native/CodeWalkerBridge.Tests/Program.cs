@@ -45,6 +45,25 @@ Near(Vector3.TransformCoordinate(localOutput.Drawables[0].AllModels[0].Geometrie
 var missing=Fixture();missing.Drawables[0].Skeleton=null;bool refused=false;try{YddEditor.Export(missing,Request(m,"pelvis"),null);}catch{refused=true;}Check(refused,"missing skeleton refused");
 var donor=Fixture();YddEditor.Export(missing,Request(m,"pelvis"),donor);
 var addition=new {positions=new float[]{.1f,.1f,2,.2f,.1f,2,.1f,.2f,2},normals=new float[]{0,0,1,0,0,1,0,0,1},uvs=new float[]{.2f,.3f,.8f,.3f,.2f,.9f},indices=new[]{0,1,2}};
+var convertPixels=Enumerable.Repeat(new byte[]{12,34,56,255},512*512).SelectMany(x=>x).ToArray();
+JsonElement ConvertRequest(int boneTag=11816)=>JsonSerializer.SerializeToElement(new{name="accs_007_u",boneTag,parts=new[]{addition},textureSize=512,pixels=Convert.ToBase64String(convertPixels)});
+var converted=ObjYdd.Create(Fixture(),ConvertRequest());var convertedDoc=new YddFile();convertedDoc.Load(converted.ydd);var convertedTexture=new YtdFile();convertedTexture.Load(converted.ytd);
+Check(convertedDoc.Drawables.Length==1&&convertedDoc.Drawables[0].Name=="accs_007_u","new OBJ drawable name");
+Check(convertedDoc.DrawableDict.Hashes[0]==JenkHash.GenHash("accs_007_u"),"new drawable dictionary hash");
+foreach(var model in convertedDoc.Drawables[0].AllModels) {
+ Check(model.HasSkin==1&&model.Geometries.Length==1,"new YDD contains OBJ alone, no ped geometry");var g=model.Geometries[0];Check(g.VertexData.VertexCount==3&&g.BoneIds.SequenceEqual(new ushort[]{1}),"OBJ vertex count and chosen pelvis palette");
+ Near(g.VertexData.GetVector3(0,0),new Vector3(.1f,.1f,2),"OBJ world placement in bind pose");
+ Check(g.VertexData.GetUByte4(0,1).R==255&&g.VertexData.GetUByte4(0,2).R==0,"single-bone 100 percent weights");
+ Check(g.VertexData.GetColour(0,4).R==255,"white vertex colors avoid dark diffuse");
+ Check(g.VertexData.GetVector2(0,6)==new Vector2(.2f,.3f),"converter retains supplied UV");
+ Check(((TextureBase)g.Shader.ParametersList.Parameters[0].Data).Name=="accs_diff_007_a_uni","converter YDD sampler matches YTD name");
+}
+var ct=convertedTexture.TextureDict.Textures.data_items.Single();Check(ct.Name=="accs_diff_007_a_uni"&&ct.Width==512&&ct.Levels==10,"converter single diffuse and full mips");Check(CodeWalker.Utils.DDSIO.GetPixels(ct,0).Take(4).SequenceEqual(new byte[]{56,34,12,255}),"RGBA input becomes correct native BGRA");
+var headConverted=new YddFile();headConverted.Load(ObjYdd.Create(Fixture(),ConvertRequest(31086)).ydd);Check(headConverted.Drawables[0].AllModels[0].Geometries[0].BoneIds[0]==2,"converter head selection");
+bool absentBone=false;try{ObjYdd.Create(Fixture(),ConvertRequest(999));}catch(Exception){absentBone=true;}Check(absentBone,"converter missing bone rejected");
+bool invalidConversion=false;try{ObjYdd.Create(Fixture(),JsonSerializer.SerializeToElement(new{name="../bad",boneTag=11816}));}catch(Exception){invalidConversion=true;}Check(invalidConversion,"converter unsafe name rejected");
+Directory.CreateDirectory("tests/fixtures");File.WriteAllBytes("tests/fixtures/native-converted-obj.ydd",converted.ydd);File.WriteAllBytes("tests/fixtures/native-converted-obj.ytd",converted.ytd);
+Console.WriteLine("OBJ converter: new drawable only, skeleton, head/pelvis weights, all LODs, UV, white colors, sampler, RGBA mip texture and validation PASS");
 var joinFixture=Fixture();var sourceVertices=joinFixture.Drawables[0].AllModels[0].Geometries[0].VertexData.VertexBytes.ToArray();
 var joinRequest=JsonSerializer.SerializeToElement(new {matrix=Matrix.Identity.ToArray(),bone="preserve",additions=new[]{addition}});
 var joined=new YddFile();joined.Load(YddEditor.Export(joinFixture,joinRequest,null));

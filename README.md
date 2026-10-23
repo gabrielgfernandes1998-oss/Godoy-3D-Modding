@@ -1,4 +1,4 @@
-# Godoy 3D Modding · 0.8.4 beta
+# Godoy 3D Modding · 0.9.0 beta
 
 Studio local de roupas, malhas e pinturas de veículos para GTA V Legacy/FiveM. Developed by Gabriel Godoy.
 
@@ -6,7 +6,7 @@ Studio local de roupas, malhas e pinturas de veículos para GTA V Legacy/FiveM. 
 
 Os downloads são publicados em [GitHub Releases](https://github.com/gabrielgfernandes1998-oss/Godoy-3D-Modding/releases). O workflow [Windows portable release](https://github.com/gabrielgfernandes1998-oss/Godoy-3D-Modding/actions/workflows/portable-release.yml) compila e publica o ZIP e o SHA-256 quando uma tag `v` correspondente à versão do `package.json` é enviada.
 
-Extraia **todo o ZIP** `Godoy-3D-Modding-0.8.4-Windows-x64-Portable.zip` e execute `Godoy3DModding.exe`. Não precisa instalar Node.js, Python ou .NET no computador de uso. Requer driver com suporte a WebGL. O executável não é assinado digitalmente.
+Extraia **todo o ZIP** `Godoy-3D-Modding-0.9.0-Windows-x64-Portable.zip` e execute `Godoy3DModding.exe`. Não precisa instalar Node.js, Python ou .NET no computador de uso. Requer driver com suporte a WebGL. O executável não é assinado digitalmente.
 
 Os arquivos são processados localmente. Salve seus projetos em uma pasta escolhida por você; o Pack de roupas oferece recuperação de autosave e projeto `.godoypack` com os assets incluídos. O pacote não inclui arquivos originais GTA, ped base ou modelos comerciais.
 
@@ -212,3 +212,14 @@ O retângulo do OBJ substitui os pixels daquela região por cinza e recebe as il
 - **Configuração:** vínculo `_u/uni` ou `_r/whi`, flags, áudio e metadados de salto/cabelo. Props exigem assets próprios com ancoragem/rig compatíveis; classificá-los não corrige atravessamento, pesos ou recorte da roupa automaticamente. O preview não substitui a validação no FiveM.
 
 A referência funcional e as diferenças restantes estão em [grzyClothTool-reference.md](docs/grzyClothTool-reference.md). A geração de metadados foi conferida pelo leitor independente CodeWalker, incluindo estruturas, campos, enums, âncoras e variações. Rodar `npm run test:pack:browser` exercita projeto, variação independente, pintura e exportação no navegador.
+
+
+## 05 · Converter OBJ em YDD
+
+1. Abra a aba 05 e carregue o ped masculino/feminino pelo CodeWalker. Um ped YDD local com esqueleto também pode ser utilizado; GLB serve apenas como referência visual.
+2. Importe o OBJ, escolha o osso e clique **Levar OBJ ao osso**. Ajuste posição, giro e escala com os controles 3D; Ctrl+Z/Ctrl+Y desfaz/refaz o posicionamento.
+3. Escolha componente/índice. Mantenha o UV do OBJ para usar sua imagem original ou gere um novo UV, com ilhas de triângulos separadas. A geração não é um unwrap artístico por regiões.
+4. Escolha a resolução (512–4096) e uma cor ou imagem PNG/JPG/WebP. Uma única diffuse é aplicada a todas as partes; arquivos MTL e múltiplas imagens por material não são importados.
+5. **Converter e exportar YDD + YTD** cria um ZIP com a peça nova, dicionário de textura com mipmaps completos, PNG da textura, guia UV e informações do osso. Abra YDD + YTD em Pintura de roupas ou importe-os em Pack de roupas para gerar o recurso FiveM.
+
+O YDD contém somente o OBJ, com o esqueleto do ped e peso de 100% no osso escolhido; a geometria do corpo não é incluída. LOD alto e baixo usam a mesma malha; não há simplificação automática, física nem pesos deformáveis por múltiplos ossos. Limites: 20 MB por OBJ, até 32 partes/100000 vértices, 65535 por parte. Imagens até 20 MB/16 megapixels. A aparência e o acompanhamento das animações devem ser conferidos no FiveM Legacy com os assets reais.

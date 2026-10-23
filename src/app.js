@@ -3,11 +3,11 @@ import metadata from '../package.json';
 import {startPackBuilder} from './pack-builder.js';
 const $=s=>document.querySelector(s);
 $('#app').innerHTML=`<header class="shell-header"><div class="wordmark">G<span>3D</span></div><div><h1>Godoy 3D Modding</h1><p>Developed by Gabriel Godoy <span class="badge">${metadata.version} beta · Legacy</span></p></div><button id="about">Sobre esta versão</button></header>
-<nav aria-label="Módulos"><button data-tab="pack" class="selected">01 <span>Pack de roupas</span></button><button data-tab="clothing">02 <span>Pintura de roupas</span></button><button data-tab="mesh">03 <span>Malhas e objetos</span></button><button data-tab="vehicles">04 <span>Pintura de veículos</span></button></nav>
+<nav aria-label="Módulos"><button data-tab="pack" class="selected">01 <span>Pack de roupas</span></button><button data-tab="clothing">02 <span>Pintura de roupas</span></button><button data-tab="mesh">03 <span>Malhas e objetos</span></button><button data-tab="vehicles">04 <span>Pintura de veículos</span></button><button data-tab="converter">05 <span>Converter OBJ em YDD</span></button></nav>
 <main id="pack" class="tab active"></main>
-<section id="clothing" class="tab editor-tab"></section><section id="mesh" class="tab editor-tab"></section><section id="vehicles" class="tab editor-tab"></section>
-<dialog id="about-dialog"><h2>Godoy 3D Modding · ${metadata.version} beta</h2><p>Studio local e portable. Seus arquivos são processados neste computador.</p><ul><li>Roupas: pintura 3D/UV e exportação YTD, baseada no PAINTFIVE.</li><li>Pack: projetos, componentes e props, variações, preview no ped e coleções FiveM.</li><li>Malhas: ajuste da peça inteira sobre o ped, exportação YDD e ferramentas OBJ.</li><li>Veículos: visualização YFT e edição YTD baseada no Godoy-Paint-Car.</li></ul><p>YDD aceita ajuste e incorporação de OBJ. Veículos ainda não exportam novas geometrias YFT, física/damage ou novos _hi.yft. Nenhum ped original GTA é incluído; importe uma cópia autorizada.</p><button id="close-about">Fechar</button></dialog>`;
-const pages={clothing:'modules/clothing/index.html',vehicles:'modules/vehicles/index.html',mesh:'mesh.html'};
+<section id="converter" class="tab editor-tab"></section><section id="clothing" class="tab editor-tab"></section><section id="mesh" class="tab editor-tab"></section><section id="vehicles" class="tab editor-tab"></section>
+<dialog id="about-dialog"><h2>Godoy 3D Modding · ${metadata.version} beta</h2><p>Studio local e portable. Seus arquivos são processados neste computador.</p><ul><li>Roupas: pintura 3D/UV e exportação YTD, baseada no PAINTFIVE.</li><li>Pack: projetos, componentes e props, variações, preview no ped e coleções FiveM.</li><li>Malhas: ajuste da peça inteira sobre o ped, exportação YDD e ferramentas OBJ.</li><li>Conversor: cria YDD + YTD a partir de OBJ, com UV e vínculo rígido ao ped.</li><li>Veículos: visualização YFT e edição YTD baseada no Godoy-Paint-Car.</li></ul><p>YDD aceita ajuste e incorporação de OBJ. Veículos ainda não exportam novas geometrias YFT, física/damage ou novos _hi.yft. Nenhum ped original GTA é incluído; importe uma cópia autorizada.</p><button id="close-about">Fechar</button></dialog>`;
+const pages={clothing:'modules/clothing/index.html',vehicles:'modules/vehicles/index.html',mesh:'mesh.html',converter:'mesh.html?mode=converter'};
 document.querySelectorAll('[data-tab]').forEach(button=>button.onclick=()=> {
   document.querySelectorAll('[data-tab]').forEach(b=>b.classList.toggle('selected',b===button));
   document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active',t.id===button.dataset.tab));
@@ -33,8 +33,8 @@ window.addEventListener('message',event=> {
 });
 
 window.addEventListener('keydown',event=> {
-  if(!document.querySelector('#mesh.active')||!(event.ctrlKey||event.metaKey)||event.altKey||/INPUT|TEXTAREA|SELECT/.test(event.target.tagName)||event.target.isContentEditable)return;
+  if(!document.querySelector('#mesh.active, #converter.active')||!(event.ctrlKey||event.metaKey)||event.altKey||/INPUT|TEXTAREA|SELECT/.test(event.target.tagName)||event.target.isContentEditable)return;
   const key=event.key.toLowerCase();if(!['z','y'].includes(key))return;
-  const frame=document.querySelector('#mesh iframe');if(!frame)return;
+  const frame=document.querySelector('.tab.active iframe');if(!frame)return;
   event.preventDefault();frame.contentWindow.postMessage({type:'godoy-mesh-history',action:key==='y'||event.shiftKey?'redo':'undo'},location.origin);
 });

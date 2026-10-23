@@ -1,3 +1,11 @@
+# Estado da versão 0.9.0 beta
+
+Novo módulo 05 converte OBJ em YDD + YTD sem YDD de roupa de origem. Usa somente o esqueleto do ped selecionado, cria geometria/cores/pesos de 100% em um osso, shader ped_default com diffuse externa e dicionário YTD com mipmaps. O corpo do ped não entra na peça exportada. LOD alto/baixo possuem a mesma geometria.
+
+Interface permite mover o OBJ ao osso, ajustar no gizmo/campos, desfazer/refazer posicionamento, preservar UV ou gerar ilhas de triângulos sem sobreposição entre partes, escolher cor/imagem e resolução, exportar PNG/guia/JSON e reabrir o par no editor de pintura.
+
+Validação local: 69 testes JS e suíte nativa passaram. Também foi executado o comando real create-ydd da ponte, com reabertura pelos parsers JS. O teste de navegador exporta/reabre o ZIP, verifica nomes/sampler/pixels, imagem PNG, UV automático e Ctrl+Z/Y; o fluxo de packs continua passando. Testes usam assets sintéticos; aparência/animação com assets reais no FiveM não foi validada. Vínculo rígido a um osso, UV automático por triângulo e uma única imagem diffuse; sem pesos deformáveis, física ou simplificação de LOD.
+
 # Estado da versão 0.8.4 beta
 
 Corrige o bloqueio de exportação com UVs negativos/acima de 1 quando a roupa ocupa o mapa inteiro. Mantém as coordenadas exatas, inclusive faces que cruzam os limites, preservando a repetição no shader. Reduzir a fonte repetida para uma subárea ainda é recusado, com orientação no editor antes da exportação. Reservar a área do OBJ substitui aqueles pixels como já ocorria no fluxo manual.

@@ -30,7 +30,11 @@ try {
     var command=Text("command");object result;
     if(command=="probe") {
         _=Type("GTA5Keys");
-        result=new {ok=true,version=assembly.GetName().Version?.ToString(),capabilities=new[]{"ped-base-rpf","ydd-roundtrip","ydd-edit","ydd-obj"}};
+        result=new {ok=true,version=assembly.GetName().Version?.ToString(),capabilities=new[]{"ped-base-rpf","ydd-roundtrip","ydd-edit","ydd-obj","obj-to-ydd"}};
+    } else if(command=="create-ydd") {
+        var bytes=Convert.FromBase64String(Text("pedData"));if(bytes.Length>80*1024*1024)throw new Exception("Ped acima de 80 MB.");
+        var ped=new CodeWalker.GameFiles.YddFile();ped.Load(bytes);
+        var converted=ObjYdd.Create(ped,root);result=new{ok=true,data=Convert.ToBase64String(converted.ydd),ytdData=Convert.ToBase64String(converted.ytd)};
     } else if(command=="edit-ydd"||command=="plan-atlas") {
         var bytes=Convert.FromBase64String(Text("data"));
         if(bytes.Length>80*1024*1024)throw new Exception("YDD acima de 80 MB.");

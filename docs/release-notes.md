@@ -1,8 +1,9 @@
-# Godoy 3D Modding 0.8.4 beta
+# Godoy 3D Modding 0.9.0 beta
 
-- Corrige a exportação YDD + YTD + OBJ que falhava com “UV original fora de 0–1” mesmo usando a roupa no mapa inteiro. Coordenadas negativas e maiores que 1 são preservadas exatamente em todos os LODs, mantendo a repetição da textura e as faces que atravessam seus limites.
-- No ajuste UV, use **Roupa no mapa inteiro**, posicione o OBJ na área que pode ser substituída e confirme a exportação. A textura original mantém sua distribuição; os pixels da área reservada são substituídos para pintar o OBJ.
-- O editor avisa antes de exportar se uma roupa com UV repetido foi reduzida para uma subárea. Esse caso exige recorte das faces; limitar ou dobrar coordenadas por vértice deformaria a textura.
-- Inclui ajustes do preview da 0.8.3: diffuse associada nas malhas, repetição de textura, profundidade no pack, opção de ped transparente e troca de referência ao importar outro gênero.
+- Nova aba **05 · Converter OBJ em YDD**: cria um YDD novo contendo somente a geometria do OBJ, com esqueleto do ped CodeWalker e vínculo rígido ao osso escolhido. Nenhum YDD de roupa de origem é necessário.
+- Lista os ossos reais do ped, leva o OBJ ao osso e permite ajustar posição/rotação/escala com os mesmos controles 3D e histórico de posicionamento Ctrl+Z/Ctrl+Y.
+- Mantém o UV existente do OBJ ou gera ilhas separadas por triângulo. Escolha resolução de 512–4096, cor ou uma imagem PNG/JPG/WebP como diffuse única.
+- Exporta ZIP com YDD, YTD com mipmaps completos, textura PNG, guia UV e JSON da conversão. O par pode ser reaberto na pintura ou importado no gerenciador de packs para gerar o recurso FiveM.
+- CodeWalker reabre e verifica os binários gerados. Testes cobrem peça sem geometria do ped, vínculo cabeça/cintura, pesos/UV/cor de vértices, sampler e pixels/mipmaps do YTD. O teste Windows também converte e reabre a peça na pintura.
 
-Teste nativo reabre YDD/YTD com OBJ, UV negativo e acima de 1, verificando coordenadas exatas em todos os LODs. O teste do portable Windows também exporta essa geometria repetida. O ped continua estático e neutro. Assets reais do usuário e aparência no FiveM/grzy não foram validados neste ambiente.
+Vínculo rígido a um osso; não gera pesos deformáveis entre várias articulações nem física. LOD alto/baixo compartilham a forma sem simplificação automática. UV automático é por triângulo, sem unwrap artístico. Materiais MTL/múltiplas imagens não são importados; selecione uma diffuse e mantenha seu UV correspondente. Requer o portable para gerar binários; ped do GTA não é distribuído. Assets reais do usuário e aparência/animação no FiveM precisam de validação.

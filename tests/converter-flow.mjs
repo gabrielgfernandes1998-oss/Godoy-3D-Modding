@@ -1,0 +1,32 @@
+import assert from 'node:assert/strict';
+import {readFile} from 'node:fs/promises';
+import path from 'node:path';
+import {unzipSync} from 'fflate';
+import {parseYdd} from '../modules/vehicles/src/formats/ydd.js';
+import {parseYtd} from '../modules/vehicles/src/formats/ytd.js';
+
+export async function exerciseConverter(page,output,{stub=false}={}) {
+ if(stub){const ydd=await readFile('tests/fixtures/native-converted-obj.ydd'),ytd=await readFile('tests/fixtures/native-converted-obj.ytd');await page.evaluate(({ydd,ytd})=>{window.godoyNative={...window.godoyNative,createYdd:async request=>{window.converterRequest={name:request.name,boneTag:request.boneTag,partCount:request.parts.length,positions:request.parts[0].positions,textureSize:request.textureSize,pixel:Array.from(request.pixels.slice(0,4))};return {ydd:new Uint8Array(ydd),ytd:new Uint8Array(ytd)};}};},{ydd:Array.from(ydd),ytd:Array.from(ytd)});}
+ await page.locator('[data-tab=converter]').click();const frame=page.frameLocator('#converter iframe');
+ await frame.locator('#ped-file').setInputFiles('tests/fixtures/native-clothing.ydd');await frame.locator('#ped-status').filter({hasText:'Ped salvo e carregado'}).waitFor();
+ await frame.locator('#convert-bone option[value="11816"]').waitFor({state:'attached'});await frame.locator('#convert-bone').selectOption('11816');
+ const obj='o Cross\nv 0 0 0\nv .1 0 0\nv 0 .1 0\nf 1 2 3\n';
+ await frame.locator('#obj-file').setInputFiles({name:'cross-converter.obj',mimeType:'text/plain',buffer:Buffer.from(obj)});
+ await frame.locator('#convert-info').filter({hasText:'3 vértices'}).waitFor();assert.equal(await frame.locator('#convert-uv').inputValue(),'auto');assert.equal(await frame.locator('#convert-uv option[value=original]').evaluate(o=>o.disabled),true);
+ await frame.locator('#convert-to-bone').click();await frame.locator('#status').filter({hasText:'OBJ levado ao osso'}).waitFor();
+ const editor=page.frames().find(f=>f.url().includes('mode=converter'));const placement=await frame.locator('#position-y').inputValue();await page.locator('[data-tab=converter]').focus();await page.keyboard.press('Control+z');await editor.waitForFunction(v=>document.querySelector('#position-y').value!==v,placement);assert.notEqual(await frame.locator('#position-y').inputValue(),placement);await page.keyboard.press('Control+y');await editor.waitForFunction(v=>document.querySelector('#position-y').value===v,placement);assert.equal(await frame.locator('#position-y').inputValue(),placement);
+ await frame.locator('#convert-component').selectOption('accs');await frame.locator('#convert-index').fill('7');await frame.locator('#convert-size').selectOption('512');await frame.locator('#convert-color').fill('#0c2238');await frame.locator('#convert-color').dispatchEvent('input');
+ const image=await frame.locator('#convert-map').evaluate(async()=>{const c=document.createElement('canvas');c.width=c.height=2;const ctx=c.getContext('2d');ctx.fillStyle='#c86432';ctx.fillRect(0,0,2,2);const b=await new Promise(r=>c.toBlob(r));return Array.from(new Uint8Array(await b.arrayBuffer()));});
+ await frame.locator('#convert-image-file').setInputFiles({name:'diffuse.png',mimeType:'image/png',buffer:Buffer.from(image)});await editor.waitForFunction(()=>document.querySelector('#convert-map').getContext('2d').getImageData(0,0,1,1).data[0]===200);
+ await frame.locator('#convert-clear-image').click();assert.deepEqual(await frame.locator('#convert-map').evaluate(c=>Array.from(c.getContext('2d').getImageData(0,0,1,1).data)),[12,34,56,255]);
+ const download=page.waitForEvent('download');await frame.locator('#convert-export').click();const result=await download,target=path.join(output,'converted-obj.zip');await result.saveAs(target);assert.equal(result.suggestedFilename(),'accs_007_u-OBJ-YDD-YTD.zip');
+ const files=unzipSync(await readFile(target));assert.ok(files['accs_007_u.ydd']);assert.ok(files['accs_diff_007_a_uni.ytd']);assert.ok(files['UV/accs_007_u-UV.png']);assert.ok(files['UV/accs_007_u-textura.png']);
+ const doc=parseYdd(files['accs_007_u.ydd']),dict=parseYtd(files['accs_diff_007_a_uni.ytd']);assert.equal(doc.drawables.length,1);assert.equal(dict.textures.length,1);assert.equal(dict.textures[0].name,doc.drawables[0].shaders[0].diffuseName);assert.equal(dict.textures[0].width,512);assert.deepEqual(Array.from(dict.textures[0].decode().slice(0,4)),[12,34,56,255]);
+ for(let lod=0;lod<doc.drawables[0].lods.length;lod++){const geometries=doc.drawables[0].readLod(lod);assert.equal(geometries.length,1,'converted piece must not contain ped geometry');assert.equal(geometries[0].vertexCount,3);if(!stub){const y=Number(placement),g=geometries[0];assert.ok(Math.abs(g.positions[1]-y)<1e-4,'native output must keep the positioned OBJ');assert.ok(g.uvs.every(v=>v>0&&v<1),'auto UV belongs to texture');}}
+ const metadata=JSON.parse(new TextDecoder().decode(files['conversao.json']));assert.equal(metadata.bone.tag,11816);assert.equal(metadata.gender,'male');assert.equal(metadata.uv,'auto');
+ if(stub){const request=await page.evaluate(()=>window.converterRequest);assert.equal(request.name,'accs_007_u');assert.equal(request.boneTag,11816);assert.equal(request.partCount,1);assert.deepEqual(request.pixel,[12,34,56,255]);}
+ // Import result back through the existing painting editor.
+ await page.locator('[data-tab=clothing]').click();const clothing=page.frameLocator('#clothing iframe');
+ await clothing.locator('#batch-files').setInputFiles([{name:'accs_007_u.ydd',mimeType:'application/octet-stream',buffer:Buffer.from(files['accs_007_u.ydd'])},{name:'accs_diff_007_a_uni.ytd',mimeType:'application/octet-stream',buffer:Buffer.from(files['accs_diff_007_a_uni.ytd'])}]);await clothing.locator('#batch-status').filter({hasText:'YTD associado'}).waitFor();
+ await page.locator('[data-tab=converter]').click();await page.screenshot({path:'.test-output/converter.png',fullPage:true});
+}
