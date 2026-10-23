@@ -44,3 +44,9 @@ test('project round trip preserves asset gender before importing identical femal
  p=loadPackProject(savePackProject(p));assert.equal(p.assets[0].importGender,'male');
  p=importPackAssets(p,files()).project;assert.equal(p.items.length,2);assert.equal(p.assets.length,4);assert.equal(p.items.filter(i=>i.gender==='female').length,1);
 });
+
+test('manually attached assets and old project records infer gender from their owning piece',()=>{
+ let p=importPackAssets(newPackProject(),files()).project;for(const a of p.assets)delete a.importGender;p.gender='female';
+ p=loadPackProject(savePackProject(p));assert(p.assets.every(a=>a.importGender==='male'));
+ p=importPackAssets(p,files()).project;assert.equal(p.items.length,2);assert(p.items.every(i=>i.textures.length===1));
+});

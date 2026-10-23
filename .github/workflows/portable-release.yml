@@ -40,7 +40,11 @@ jobs:
         run: npm run package:windows
       - name: Test clothing pack project and variation workflow
         run: |
-          npx playwright install --with-deps chromium
+          if command -v google-chrome >/dev/null; then
+            export CHROMIUM_PATH="$(command -v google-chrome)"
+          else
+            npx playwright install --with-deps chromium
+          fi
           npm run test:pack:browser
       - name: Retain pack workflow evidence
         if: always()

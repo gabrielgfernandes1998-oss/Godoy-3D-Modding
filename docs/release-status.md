@@ -1,4 +1,4 @@
-# Estado da versão 0.8.1 beta
+# Estado da versão 0.8.2 beta
 
 Inclui correção de persistência do gênero dos assets no round-trip do projeto e seleção coerente com o gênero visualizado. Regressão específica salva masculino, reabre com visualização feminina e importa arquivos homônimos sem misturar peças/texturas.
 

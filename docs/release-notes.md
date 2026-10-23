@@ -1,4 +1,4 @@
-# Godoy 3D Modding 0.8.1 beta
+# Godoy 3D Modding 0.8.2 beta
 
 - Preserva o gênero dos assets ao salvar/reabrir projetos, permitindo adicionar masculino/feminino com os mesmos nomes sem misturar associações. A seleção inicial respeita o gênero visualizado.
 - Novo Pack de roupas inspirado no fluxo do grzyClothTool, com identidade visual Godoy: biblioteca por componente/gênero, catálogo pesquisável, grupos/tags, preview 3D e painel de variações.
