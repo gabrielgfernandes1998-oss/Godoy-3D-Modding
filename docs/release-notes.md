@@ -1,11 +1,9 @@
-# Godoy 3D Modding 0.5.2 beta
+# Godoy 3D Modding 0.6.0 beta
 
-- Corrige o carregamento do ped: aceita e copia buffers Uint8Array vindos da janela principal pelo IPC, sem rejeitar o esqueleto por diferença de contexto.
-- Corrige reconhecimento dos hashes GTA em minúsculas de DiffuseSampler e BumpSampler; mantém compatibilidade com arquivos antigos de hashes mistos.
-- Exportação de OBJ incorporado com UV automático sem sobreposição entre faces e textura diffuse própria de 1024×1024 dentro do mesmo YTD da roupa.
-- Novo botão **Associar YTD original para gerar UV** na aba Malhas e objetos. Com OBJ incorporado, exporta um ZIP com YDD, YTD atualizado e guias UV transparentes em PNG.
-- Clona o shader da região de destino e vincula o OBJ à nova diffuse, com mapas auxiliares neutros. Mantém os samplers, UVs e pixels originais da roupa. Material separado em todos os LODs.
-- Pintura de roupas mostra as arestas UV da textura selecionada. Escolha `godoy_obj_…` em **TEXTURAS DO DICIONÁRIO** para pintar somente o OBJ; exporte o YTD editado e use junto ao novo YDD.
-- Exportação sem OBJ continua gerando somente YDD. A união e Ctrl+Z/Ctrl+Y continuam disponíveis.
+- Atlas único de roupa + OBJ: remapeia o UV original para a região esquerda e reserva a direita para as ilhas dos objetos incorporados, em todos os LODs. Mantém posições, ossos e pesos.
+- Um único item diffuse no YTD exportado, com o nome principal da roupa. A primeira textura usada pelo override de ped/grzy é o próprio atlas; não há mapas neutros disputando essa posição.
+- Preserva os pixels da diffuse original na resolução original dentro do atlas. Normal/specular disponíveis são reorganizados e incorporados no YDD; a região do OBJ recebe mapas neutros. Paletas reconhecidas são preservadas.
+- **Exportar YDD + atlas UV** baixa ZIP com YDD, YTD, `UV/atlas-textura.png`, `UV/atlas-uv.png` transparente e instruções. Em Pintura de roupas, roupa e OBJ são editados na mesma textura.
+- Mantém as correções de ped via IPC e hashes GTA da 0.5.2.
 
-Limites: UV inicial com ilhas triangulares; não faz unwrap artístico, solda booleana nem importa MTL/imagens do OBJ. Textura nova começa cinza. Até 21845 triângulos por parte após separação das costuras, 100000 vértices no total, 32 partes e 10 MB de dados. Copia geometria aos LODs sem decimação. Requer material com DiffuseSampler compatível. Sem colisões ou exportação YFT. Validação automatizada não substitui teste de animação e aparência com assets reais no FiveM.
+Limites: atlas quadrado de até 4096×4096 (16 megapixels), sem reduzir automaticamente a resolução da roupa; dados regravados em BGRA8 com mipmaps. Área do OBJ começa cinza; não importa MTL/imagens OBJ. O UV do OBJ usa ilhas triangulares. Requer UV original em 0–1 e shaders com diffuse/normal/specular e paleta reconhecidos; samplers especiais, mapas auxiliares ausentes e UVs repetidos são recusados com mensagem para preservar o material. Limites da união: 21845 triângulos por parte, 100000 vértices no total, 32 partes e 10 MB. Não faz solda booleana, decimação nem colisão. A aparência/animação com os arquivos reais do usuário ainda precisa de validação no grzy/FiveM.

@@ -1,6 +1,6 @@
 # Investigação: mochila branca / objeto preto no grzyClothTool
 
-Estado: caso real ainda não reproduzido; aguardando o par YDD/YTD original e o par exportado. O usuário confirmou que a imagem vem do grzyClothTool, não de uma execução FiveM.
+Estado: atlas único implementado na 0.6.0 e em validação automatizada; caso real ainda não reproduzido; aguardando o par YDD/YTD original e o par exportado. O usuário confirmou que a imagem vem do grzyClothTool, não de uma execução FiveM.
 
 ## Evidência no preview
 

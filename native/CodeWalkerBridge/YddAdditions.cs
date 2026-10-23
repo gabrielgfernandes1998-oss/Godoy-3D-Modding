@@ -9,7 +9,7 @@ static class YddAdditions {
     public static void Apply(YddFile file,JsonElement request) {
         if(!request.TryGetProperty("additions",out var list))return;
         if(list.ValueKind!=JsonValueKind.Array||list.GetArrayLength()>32)throw new Exception("Quantidade de partes OBJ inválida.");
-        int total=0;
+        int total=0,partIndex=0;bool atlas=request.TryGetProperty("atlas",out var atlasFlag)&&atlasFlag.GetBoolean();
         foreach(var part in list.EnumerateArray()) {
             var positions=Numbers(part,"positions");var normals=Numbers(part,"normals");var uvs=Numbers(part,"uvs");
             int count=positions.Length/3;total+=count;
@@ -42,7 +42,7 @@ static class YddAdditions {
                     var n=Vector3.TransformNormal(new Vector3(normals[i*3],normals[i*3+1],normals[i*3+2]),normalMatrix);if(n.LengthSquared()>1e-12)n.Normalize();
                     data.SetVector3(i,0,p);
                     if((info.Flags&8)!=0)SetDirection(data,i,3,n,info.GetComponentType(3)==VertexComponentType.Float4?template.VertexData.GetVector4(sample,3).W:0);
-                    var uv=new Vector2(uvs[i*2],uvs[i*2+1]);
+                    var uv=new Vector2(uvs[i*2],uvs[i*2+1]);if(atlas)uv=YddAtlas.AdditionUv(request,partIndex,uv);
                     switch(info.GetComponentType(6)) {
                         case VertexComponentType.Float2:data.SetVector2(i,6,uv);break;
                         case VertexComponentType.Half2:data.SetHalf2(i,6,new Half2(uv.X,uv.Y));break;
@@ -55,7 +55,7 @@ static class YddAdditions {
                 if(geometry.VertexBuffer.Data1 is null&&geometry.VertexBuffer.Data2 is null)geometry.VertexBuffer.Data1=data;geometry.VertexBuffer.VertexCount=(uint)count;geometry.VertexBuffer.VertexStride=(ushort)stride;
                 geometry.IndexBuffer=Clone(template.IndexBuffer);geometry.IndexBuffer.Indices=indices;geometry.IndexBuffer.IndicesCount=(uint)indices.Length;
                 geometry.VerticesCount=(ushort)count;geometry.VertexStride=(ushort)stride;geometry.IndicesCount=(uint)indices.Length;geometry.TrianglesCount=(uint)indices.Length/3;
-                if(part.TryGetProperty("textureName",out _)) {
+                if(!atlas&&part.TryGetProperty("textureName",out _)) {
                     if(!request.TryGetProperty("ytdData",out _))throw new Exception("Importe o YTD original para exportar o UV atualizado.");
                     if(!materials.TryGetValue(template.ShaderID,out var shaderId)){shaderId=YddTextures.Material(destination,template,part);materials[template.ShaderID]=shaderId;}
                     geometry.ShaderID=shaderId;geometry.Shader=destination.ShaderGroup.Shaders.data_items[shaderId];
@@ -64,7 +64,7 @@ static class YddAdditions {
                 model.GeometriesCount1=model.GeometriesCount2=model.GeometriesCount3=checked((ushort)model.Geometries.Length);
                 model.ShaderMapping=model.Geometries.Select(g=>g.ShaderID).ToArray();model.RebuildBounds();
             }
-            destination.BuildAllModels();
+            destination.BuildAllModels();partIndex++;
         }
     }
     static float[] Numbers(JsonElement part,string key) {

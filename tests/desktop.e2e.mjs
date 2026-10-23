@@ -127,10 +127,11 @@ try {
     const files=unzipSync(await readFile(target));
     assert.ok(Object.keys(files).some(k=>k.startsWith('UV/')&&k.endsWith('.png')));
     const newYtd=parseYtd(files['native-clothing.ytd']);
-    const objTexture=newYtd.textures.find(t=>t.name.startsWith('godoy_obj_')&&!/_[ns]$/.test(t.name));
-    assert.ok(objTexture?.supported);assert.equal(objTexture.width,1024);
+    assert.equal(newYtd.textures.length,1,'grzy diffuse override must receive the unified atlas');
+    const objTexture=newYtd.textures[0];
+    assert.ok(objTexture?.supported);assert.equal(objTexture.width,512);
     const doc=parseYdd(files['accs_000_u.ydd']);
-    assert.equal(doc.drawables[0].shaders[1].diffuseName,objTexture.name);assert.equal(doc.drawables[0].lods.length,2);
+    assert.equal(doc.drawables[0].shaders[0].diffuseName,objTexture.name);assert.equal(doc.drawables[0].lods.length,2);
     for(let lod=0;lod<2;lod++) {
       const geometries=doc.drawables[0].readLod(lod);assert.equal(geometries.length,2,'Joined OBJ must exist inside the exported YDD at every LOD');
       assert.ok(Math.abs(geometries[0].positions[1]-1)<1e-6);
@@ -145,12 +146,13 @@ try {
     await clothing.locator('#texture-select').selectOption(objTexture.key);
     await clothing.locator('#tab-uv').click();
     const uvBox=await clothing.locator('#uv-view').boundingBox(),side=Math.min(uvBox.width,uvBox.height);
-    await page.mouse.click(uvBox.x+(uvBox.width-side)/2+side*.35,uvBox.y+(uvBox.height-side)/2+side*.35);
+    await page.mouse.click(uvBox.x+(uvBox.width-side)/2+side*.675,uvBox.y+(uvBox.height-side)/2+side*.35);
     const paintPending=page.waitForEvent('download');await clothing.locator('#export-native').click();
     const paintDownload=await paintPending,paintTarget=path.join(output,'obj-painted.ytd');await paintDownload.saveAs(paintTarget);
     const painted=parseYtd(await readFile(paintTarget));
     assert.notDeepEqual(painted.textures.find(t=>t.name===objTexture.name).decode(),objTexture.decode(),'OBJ texture must be independently paintable');
-    assert.deepEqual(painted.textures.find(t=>t.name==='original_diffuse').decode(),newYtd.textures.find(t=>t.name==='original_diffuse').decode(),'Painting the OBJ must preserve the clothing texture');
+    const beforePixels=objTexture.decode(),afterPixels=painted.textures[0].decode();
+    for(let y=0;y<objTexture.height;y++)assert.deepEqual(afterPixels.slice(y*objTexture.width*4,(y*objTexture.width+objTexture.width/2)*4),beforePixels.slice(y*objTexture.width*4,(y*objTexture.width+objTexture.width/2)*4),'Painting the OBJ must preserve the entire clothing side of the atlas');
 
   }
   assert.deepEqual(errors,[]);assert.deepEqual(failures,[]);

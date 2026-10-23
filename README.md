@@ -18,7 +18,7 @@ Os arquivos são processados localmente. Salve seus projetos em uma pasta escolh
 | Pintura de roupas | YDD/YTD, seleção de drawables/LODs, pintura 3D/UV, camadas, texto, imagem, exportação YTD e texturas embutidas | Baseada no PAINTFIVE; não recompila alterações de geometria. |
 | Associação de arquivos | Importação de conjunto, busca por nome e referências de materiais; escolha manual em caso de empate | Só acessa arquivos selecionados pelo usuário. |
 | Integração editor/pack | Exportar YTD no editor atualiza o conjunto do pack com o nome original e o YDD aberto | O nome precisa seguir a convenção de componentes para gerar o recurso. |
-| Malhas e objetos | Peça inteira sobre o ped; posição/rotação/escala gravadas no YDD original; preservar pesos ou prender rigidamente à pelve/cabeça/tronco; desfazer/refazer; GLB e união OBJ nas opções avançadas | Incorpora OBJ com textura própria no YTD e UV automático em ilhas triangulares, herdando pesos da região próxima. Sem YFT, unwrap artístico, pintura manual de pesos, animação ou colisão. Layouts incompatíveis são recusados. Teste FiveM real pendente. |
+| Malhas e objetos | Peça inteira sobre o ped; posição/rotação/escala gravadas no YDD original; preservar pesos ou prender rigidamente à pelve/cabeça/tronco; desfazer/refazer; GLB e união OBJ nas opções avançadas | Incorpora OBJ num atlas único de roupa + acessório e UV automático em ilhas triangulares, herdando pesos da região próxima. Sem YFT, unwrap artístico, pintura manual de pesos, animação ou colisão. Layouts incompatíveis são recusados. Teste FiveM real pendente. |
 | Pintura de veículos | YFT e _hi.yft visualizáveis, seleção de drawables/LODs, materiais e pintura YTD | Baseada no Godoy-Paint-Car. Não reconstrói bones/fragment physics/damage nem gera novo _hi.yft. |
 
 Não é a implementação completa dos três módulos originais. A exportação nativa de geometria e a validação em FiveM continuam pendentes. O workflow exige um teste do executável em Windows antes de publicar. Consulte [estado da versão](docs/release-status.md).
@@ -167,7 +167,7 @@ A incorporação mantém a posição mesmo com escala não uniforme no destino, 
 
 UVs do OBJ são mantidos; se faltarem, é criada uma projeção planar simples. A textura própria/MTL do OBJ não é adicionada ao YTD: o material existente do destino é reutilizado e pode exigir ajuste de UV/pintura. Limites: 65535 vértices por parte, 100000 no total, 32 partes e 10 MB de dados de incorporação. A leitura de reabertura verifica os novos vértices, índices, pesos, vínculo e LODs antes do download. A animação no FiveM com assets reais ainda precisa ser validada.
 
-### UV e textura própria do OBJ (0.5.0)
+### Histórico: UV e textura própria do OBJ (0.5.0–0.5.2)
 
 **Compatibilidade em investigação:** o preview do grzyClothTool aplica a primeira textura do YTD como diffuse em todas as geometrias. A exportação 0.5.2 com diffuses independentes pode aparecer incorreta nesse fluxo. Os testes no editor Godoy não validam esse comportamento nem comprovam renderização no FiveM. Consulte [a investigação e os arquivos necessários](docs/texture-investigation.md).
 
@@ -181,3 +181,15 @@ UVs do OBJ são mantidos; se faltarem, é criada uma projeção planar simples. 
 Um YTD pode conter várias texturas. O material do colete mantém a referência à textura original; o material adicional do OBJ referencia uma nova entrada no mesmo dicionário. UVs e pixels da roupa não são rearranjados. A nova textura começa cinza, com mipmaps completos; mapas auxiliares neutros evitam aplicar o normal/specular do colete ao acessório.
 
 O UV automático separa cada triângulo em uma ilha para impedir sobreposição, inclusive em OBJ sem UV ou com faces sobrepostas. É um ponto inicial editável; não substitui um unwrap artístico. Limite de 21845 triângulos por parte, 100000 vértices após costuras e 10 MB por requisição. MTL e imagens originais do OBJ não são importados. A estrutura é validada automaticamente; aparência e animações no FiveM com assets reais precisam ser verificadas no jogo.
+
+### Atlas único: roupa e OBJ no mesmo mapa (0.6.0)
+
+1. Importe o YDD original, posicione o OBJ e una à peça.
+2. Selecione o conjunto e **Associe o YTD original** da roupa.
+3. Clique **Exportar YDD + atlas UV** e extraia o ZIP.
+4. Abra o novo YDD e o novo YTD juntos em **Pintura de roupas**. A textura principal contém as áreas da roupa à esquerda e do OBJ à direita. O OBJ começa cinza.
+5. Pinte no modelo ou no mapa UV e exporte o YTD editado. Use esse YTD junto ao novo YDD, mantendo os nomes e registro do recurso.
+
+O ZIP inclui uma cópia PNG da imagem final e o guia UV transparente de ambas as malhas. O atlas é quadrado, até 4096×4096, preservando os pixels originais da roupa dentro dele. O YTD possui uma única diffuse; os mapas auxiliares compatíveis são reorganizados e incorporados no YDD. Isso trata a substituição da primeira textura aplicada pelo preview de ped do grzy, sem depender de múltiplas diffuses independentes.
+
+Sem redução automática: texturas grandes demais, mapas auxiliares não encontrados, UVs fora de 0–1 e shaders especiais interrompem o export com diagnóstico. A reorganização automática não faz unwrap artístico nem importa imagens/MTL do OBJ. Validação estrutural e pintura usam fixtures originais; os arquivos reais do usuário e a animação no FiveM ainda precisam ser conferidos.

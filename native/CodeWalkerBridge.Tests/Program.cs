@@ -112,3 +112,46 @@ foreach(var model in paletteOutput.Drawables[0].AllModels)foreach(var geometry i
  Check(((TextureBase)geometry.Shader.ParametersList.Parameters[1].Data).Name=="original_palette","original and added shader retain palette sampler");
 Check(((TextureBase)paletteParameter.Data).Name=="original_palette","source palette sampler not mutated");
 Console.WriteLine("Unknown shader samplers (palette/detail/mask) preserved instead of replaced with black PASS");
+
+// Unified atlas: one primary entry (the exact texture grzy overrides), all LOD UVs.
+var atlasRequest=JsonSerializer.SerializeToElement(new {matrix=Matrix.Identity.ToArray(),bone="preserve",atlas=true,ytdData=Convert.ToBase64String(originalYtd),additions=new[]{addition}});
+var atlasFixture=Fixture();var originalAtlasVertices=atlasFixture.Drawables[0].AllModels[0].Geometries[0].VertexData;
+var atlasYtd=new YtdFile();atlasYtd.Load(YddAtlas.Build(atlasFixture,atlasRequest));
+var atlasYdd=new YddFile();atlasYdd.Load(YddEditor.Export(atlasFixture,atlasRequest,null));
+Check(atlasYtd.TextureDict.Textures.data_items.Length==1,"single diffuse entry for ped/grzy override");
+var atlasTexture=atlasYtd.TextureDict.Textures.data_items[0];
+Check(atlasTexture.Name=="original_diffuse"&&atlasTexture.Width==512&&atlasTexture.Height==512&&atlasTexture.Levels==10,"atlas name/dimensions/mips");
+var atlasPixels=CodeWalker.Utils.DDSIO.GetPixels(atlasTexture,0);
+for(int y=0;y<4;y++)for(int x=0;x<4;x++)Check(atlasPixels[(y*512+x)*4]==90&&atlasPixels[(y*512+x)*4+1]==60&&atlasPixels[(y*512+x)*4+2]==30,"original diffuse pixels preserved 1:1 in atlas");
+Check(atlasPixels[(100*512+400)*4]==220,"OBJ region initially gray");
+foreach(var model in atlasYdd.Drawables[0].AllModels) {
+ var baseGeometry=model.Geometries[0];var objGeometry=model.Geometries[1];
+ Check(baseGeometry.ShaderID==objGeometry.ShaderID,"same material / primary diffuse under override");
+ Check(baseGeometry.VertexData.GetVector2(0,6).X<.5&&objGeometry.VertexData.GetVector2(0,6).X>.5,"disjoint base and OBJ UV regions at every LOD");
+ Check(((TextureBase)objGeometry.Shader.ParametersList.Parameters[0].Data).Name==atlasTexture.Name,"OBJ references unified atlas");
+ Near(baseGeometry.VertexData.GetVector3(0,0),new Vector3(0,0,2),"atlas preserves original positions");
+}
+// Maps move with the source chart and neutral accessory region stays embedded, not first in YTD.
+var auxFixture=Fixture();var auxShader=auxFixture.Drawables[0].ShaderGroup.Shaders.data_items[0];
+auxShader.ParametersList.Hashes=mapsShader.ParametersList.Hashes.ToArray();
+auxShader.ParametersList.Parameters=new[]{new ShaderParameter{DataType=0,Data=new TextureBase{Name="original_diffuse",NameHash=JenkHash.GenHash("original_diffuse")}},new ShaderParameter{DataType=0,Data=YddTextures.Solid("source_normal",4,90,100,250)},new ShaderParameter{DataType=0,Data=YddTextures.Solid("source_spec",4,40,50,60)}};
+auxShader.ParameterCount=3;auxShader.TextureParametersCount=3;auxShader.ParametersList.Count=3;auxShader.ParameterSize=auxShader.ParametersList.ParametersSize;auxShader.ParameterDataSize=auxShader.ParametersList.ParametersDataSize;
+YddAtlas.Build(auxFixture,atlasRequest);var auxOut=new YddFile();auxOut.Load(YddEditor.Export(auxFixture,atlasRequest,null));
+var normalReference=(TextureBase)auxOut.Drawables[0].AllModels[0].Geometries[0].Shader.ParametersList.Parameters[1].Data;
+var normal=auxOut.Drawables[0].ShaderGroup.TextureDictionary.Lookup(normalReference.NameHash);
+Check(normal is not null&&normal.Width==512,"normal atlas is embedded in YDD");
+var normalPixels=CodeWalker.Utils.DDSIO.GetPixels(normal,0);
+Check(normalPixels[0]==250&&normalPixels[1]==100&&normalPixels[2]==90,"normal source pixels preserved");
+Check(normalPixels[(100*512+400)*4]==255&&normalPixels[(100*512+400)*4+1]==128&&normalPixels[(100*512+400)*4+2]==128,"OBJ neutral normal region");
+bool tiledRejected=false;try{var tiled=Fixture();tiled.Drawables[0].AllModels[0].Geometries[0].VertexData.SetVector2(0,6,new Vector2(2,0));YddAtlas.Build(tiled,atlasRequest);}catch(Exception e){tiledRejected=e.Message.Contains("fora de 0–1");}Check(tiledRejected,"tiled UV rejected rather than destroyed");
+Console.WriteLine("Unified atlas: single diffuse override, original pixels, disjoint all-LOD UV, embedded auxiliary maps, unchanged positions/rig PASS");
+
+var embeddedSource=Fixture();var embeddedDictionary=new TextureDictionary();embeddedDictionary.BuildFromTextureList(new List<Texture>{YddTextures.Solid("original_diffuse",4,1,2,3)});embeddedSource.Drawables[0].ShaderGroup.TextureDictionary=embeddedDictionary;
+YddAtlas.Build(embeddedSource,atlasRequest);Check(embeddedSource.Drawables[0].ShaderGroup.TextureDictionary?.Lookup(JenkHash.GenHash("original_diffuse")) is null,"stale embedded diffuse cannot shadow unified external atlas");
+// Multiple OBJ parts share the right side without sharing UV cells.
+var twoParts=JsonSerializer.SerializeToElement(new{additions=new[]{addition,addition}});
+var firstUv=YddAtlas.AdditionUv(twoParts,0,new Vector2(.5f));var secondUv=YddAtlas.AdditionUv(twoParts,1,new Vector2(.5f));Check(firstUv.X>.5&&secondUv.X>firstUv.X,"multiple OBJ UV regions distinct");
+
+var variantFixture=Fixture();var variantSource=new YtdFile{TextureDict=new TextureDictionary()};variantSource.TextureDict.BuildFromTextureList(new List<Texture>{YddTextures.Solid("variant_diffuse",4,70,80,90)});
+var variantRequest=JsonSerializer.SerializeToElement(new{matrix=Matrix.Identity.ToArray(),bone="preserve",atlas=true,ytdData=Convert.ToBase64String(variantSource.Save()),additions=new[]{addition}});
+var variantAtlas=new YtdFile();variantAtlas.Load(YddAtlas.Build(variantFixture,variantRequest));Check(variantAtlas.TextureDict.Textures.data_items.Single().Name=="variant_diffuse","single-entry texture variation follows ped diffuse override semantics");

@@ -41,7 +41,7 @@ try {
             if(pedBytes.Length>80*1024*1024)throw new Exception("Ped acima de 80 MB.");
             donor=Activator.CreateInstance(yddType)!;Call(donor,"Load",pedBytes);
         }
-        var ytd=YddTextures.Build(root);
+        var ytd=root.TryGetProperty("atlas",out var atlas)&&atlas.GetBoolean()?YddAtlas.Build((CodeWalker.GameFiles.YddFile)file,root):YddTextures.Build(root);
         var saved=YddEditor.Export(file,root,donor);
         result=new {ok=true,data=Convert.ToBase64String(saved),ytdData=ytd is null?null:Convert.ToBase64String(ytd)};
     } else if(command=="roundtrip") {
