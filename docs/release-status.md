@@ -1,4 +1,15 @@
-# Estado da versão 0.3.2 beta
+# Estado da versão 0.4.0 beta
+
+A união OBJ + YDD tem seletores explícitos de destino e origem. O objeto incorporado vira filho da peça, preservando a posição e a escala inclusive com destino não uniformemente escalado; desfazer/refazer restaura a organização anterior. A exportação grava geometria adicional no YDD original em todos os LODs existentes, preservando os canais originais e herdando material, palette de ossos e pesos da região mais próxima. UV ausente recebe projeção planar.
+
+Validação: 50 testes JS, 7 Python e suíte .NET nativa passaram no [run 39969336248](https://github.com/gabrielgfernandes1998-oss/Godoy-3D-Modding/actions/runs/39969336248). A suíte nativa verifica geometrias adicionadas nos LODs, bytes originais, pesos, índices, UV, posição, transformação conjunta, vínculo rígido e vertex stream secundário. O EXE Windows empacotado manteve o OBJ selecionado, escolheu o YDD de destino, uniu, desfez/refez e exportou pelo botão; o arquivo baixado foi reaberto e conferido para presença e posição do OBJ em ambos os LODs da fixture.
+
+Release 0.4.0 baixada e checksum conferido: 200.590.400 bytes; SHA-256 `238621fab01d1477d6835915a004019e992cbe4642e3cd28a7dfff1899f12dca`.
+
+A geometria incorporada usa o material/YTD do destino; não adiciona textura própria/MTL nem atlas, não faz solda booleana e não gera LODs simplificados. A animação e aparência no FiveM com o YDD/YTD real do usuário continuam pendentes de validação.
+
+## Histórico da 0.3.2
+
 
 Corrige o pivô de manipulação de OBJ/YDD com origem afastada dos vértices. O gizmo usa o centro da geometria visível, enquanto as transformações e a exportação continuam aplicadas ao objeto original. O enquadramento inclui peça e referência; há recuperação manual de peças afastadas e posicionamento de OBJ fora da área de trabalho. O rótulo de versão vem do package.json.
 
