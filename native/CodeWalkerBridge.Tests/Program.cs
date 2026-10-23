@@ -18,6 +18,10 @@ YddFile Fixture(bool skin=true,byte bind=0) {
   var model=new DrawableModel{Geometries=new[]{geometry},ShaderMapping=new ushort[]{0},GeometriesCount1=1,GeometriesCount2=1,GeometriesCount3=1,BoneIndex=bind,HasSkin=(byte)(skin?1:0)};model.RebuildBounds();return model;
  }
  var drawable=new Drawable{LightAttributes=new ResourceSimpleList64<LightAttributes>(),Name="godoy_test",Skeleton=skeleton,DrawableModels=new DrawableModelsBlock{High=new[]{Model()},Low=new[]{Model()}},LodDistHigh=999,LodDistMed=999,LodDistLow=999,LodDistVlow=999};
+ var shader=new ShaderFX{Name=new MetaHash(JenkHash.GenHash("ped_default")),FileName=new MetaHash(JenkHash.GenHash("ped_default.sps")),RenderBucketMask=0xff01};
+ shader.ParametersList=new ShaderParametersBlock{Owner=shader,Count=1,Hashes=new[]{(MetaName)JenkHash.GenHash("DiffuseSampler")},Parameters=new[]{new ShaderParameter{DataType=0,Data=new TextureBase{Name="original_diffuse",NameHash=JenkHash.GenHash("original_diffuse")}}}};
+ shader.ParameterCount=1;shader.TextureParametersCount=1;shader.ParameterSize=shader.ParametersList.ParametersSize;shader.ParameterDataSize=shader.ParametersList.ParametersDataSize;
+ drawable.ShaderGroup=new ShaderGroup{Shaders=new ResourcePointerArray64<ShaderFX>{data_items=new[]{shader}}};
  drawable.BuildAllModels();drawable.BuildVertexDecls();drawable.BuildRenderMasks();
  var file=new YddFile{DrawableDict=new DrawableDictionary{Hashes=new uint[]{123},Drawables=new ResourcePointerArray64<Drawable>{data_items=new[]{drawable}}},Drawables=new[]{drawable}};
  var loaded=new YddFile();loaded.Load(file.Save());return loaded;
@@ -65,3 +69,20 @@ bool badIndices=false;try{YddEditor.Export(Fixture(),JsonSerializer.SerializeToE
 Console.WriteLine("Native OBJ incorporation: original vertices, all LODs, material, UV, skin weights, transforms and rigid bone coordinates PASS");
 Directory.CreateDirectory("tests/fixtures");File.WriteAllBytes("tests/fixtures/native-clothing.ydd",original);File.WriteAllBytes("tests/fixtures/native-rigid.ydd",Fixture(false,2).Save());
 Console.WriteLine("Native YDD: all LODs, transformed vertices, UVs, normals, weights, rigid pelvis bind, preserved rig and donor skeleton PASS");
+
+var ytdFixture=new YtdFile{TextureDict=new TextureDictionary()};
+ytdFixture.TextureDict.BuildFromTextureList(new List<Texture>{YddTextures.Solid("original_diffuse",4,30,60,90)});
+var originalYtd=ytdFixture.Save();File.WriteAllBytes("tests/fixtures/native-clothing.ytd",originalYtd);
+var textureName="godoy_obj_test_1";
+var textureRequest=JsonSerializer.SerializeToElement(new {matrix=Matrix.Identity.ToArray(),bone="preserve",ytdData=Convert.ToBase64String(originalYtd),additions=new[]{new{positions=addition.positions,normals=addition.normals,uvs=addition.uvs,indices=addition.indices,textureName}}});
+var updatedYtd=new YtdFile();updatedYtd.Load(YddTextures.Build(textureRequest)!);
+Check(updatedYtd.TextureDict.Textures.data_items.Length==4,"original plus diffuse/normal/spec OBJ entries");
+var newTexture=updatedYtd.TextureDict.Textures.data_items.Single(t=>t.Name==textureName);
+Check(newTexture.Width==1024&&newTexture.Levels==11&&newTexture.Data.FullData.Length==5592404,"complete OBJ texture and mip chain");
+var texturedYdd=new YddFile();texturedYdd.Load(YddEditor.Export(Fixture(),textureRequest,null));
+foreach(var model in texturedYdd.Drawables[0].AllModels) {
+ Check(model.Geometries[0].ShaderID==0&&model.Geometries[1].ShaderID==1,"independent material on all LODs");
+ Check(((TextureBase)model.Geometries[0].Shader.ParametersList.Parameters[0].Data).Name=="original_diffuse","original sampler unchanged");
+ Check(((TextureBase)model.Geometries[1].Shader.ParametersList.Parameters[0].Data).Name==textureName,"OBJ sampler resolves new YTD entry");
+}
+Console.WriteLine("Native UV/YTD: separate material, texture lookup, full mips, all LODs, original texture bytes preserved PASS");

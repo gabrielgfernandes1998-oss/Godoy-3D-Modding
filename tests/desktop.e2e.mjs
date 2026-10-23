@@ -106,15 +106,39 @@ try {
     await page.click('[data-tab=mesh]');await page.keyboard.press('Control+z');
     await mesh.locator('#tree button').filter({hasText:'cross.obj'}).waitFor();
     await page.keyboard.press('Control+y');await mesh.locator('#tree button').filter({hasText:'cross.obj'}).waitFor({state:'detached'});
+    await mesh.locator('#ytd-file').setInputFiles('tests/fixtures/native-clothing.ytd');
+    await mesh.locator('#ytd-status').filter({hasText:'native-clothing.ytd'}).waitFor();
     const pending=page.waitForEvent('download');await mesh.locator('#export-ydd').click();
-    const exported=await pending;assert.equal(exported.suggestedFilename(),'accs_000_u.ydd');
+    const exported=await pending;assert.equal(exported.suggestedFilename(),'accs_000_u-YDD-YTD-UV.zip');
     const target=path.join(output,'native-edited.ydd');await exported.saveAs(target);
-    const doc=parseYdd(await readFile(target));assert.equal(doc.drawables[0].lods.length,2);
+    const files=unzipSync(await readFile(target));
+    assert.ok(Object.keys(files).some(k=>k.startsWith('UV/')&&k.endsWith('.png')));
+    const newYtd=parseYtd(files['native-clothing.ytd']);
+    const objTexture=newYtd.textures.find(t=>t.name.startsWith('godoy_obj_')&&!/_[ns]$/.test(t.name));
+    assert.ok(objTexture?.supported);assert.equal(objTexture.width,1024);
+    const doc=parseYdd(files['accs_000_u.ydd']);
+    assert.equal(doc.drawables[0].shaders[1].diffuseName,objTexture.name);assert.equal(doc.drawables[0].lods.length,2);
     for(let lod=0;lod<2;lod++) {
       const geometries=doc.drawables[0].readLod(lod);assert.equal(geometries.length,2,'Joined OBJ must exist inside the exported YDD at every LOD');
       assert.ok(Math.abs(geometries[0].positions[1]-1)<1e-6);
       assert.ok(Math.abs(geometries[1].positions[0]-.1)<1e-6&&Math.abs(geometries[1].positions[1]-1)<1e-6,'Joined OBJ must keep its scene position');
     }
+    await page.click('[data-tab=clothing]');
+    await clothing.locator('#batch-files').setInputFiles([
+      {name:'accs_000_u.ydd',mimeType:'application/octet-stream',buffer:Buffer.from(files['accs_000_u.ydd'])},
+      {name:'accs_diff_000_a_uni.ytd',mimeType:'application/octet-stream',buffer:Buffer.from(files['native-clothing.ytd'])},
+    ]);
+    await clothing.locator('#batch-status').filter({hasText:'YTD associado'}).waitFor();
+    await clothing.locator('#texture-select').selectOption(objTexture.key);
+    await clothing.locator('#tab-uv').click();
+    const uvBox=await clothing.locator('#uv-view').boundingBox(),side=Math.min(uvBox.width,uvBox.height);
+    await page.mouse.click(uvBox.x+(uvBox.width-side)/2+side*.35,uvBox.y+(uvBox.height-side)/2+side*.35);
+    const paintPending=page.waitForEvent('download');await clothing.locator('#export-native').click();
+    const paintDownload=await paintPending,paintTarget=path.join(output,'obj-painted.ytd');await paintDownload.saveAs(paintTarget);
+    const painted=parseYtd(await readFile(paintTarget));
+    assert.notDeepEqual(painted.textures.find(t=>t.name===objTexture.name).decode(),objTexture.decode(),'OBJ texture must be independently paintable');
+    assert.deepEqual(painted.textures.find(t=>t.name==='original_diffuse').decode(),newYtd.textures.find(t=>t.name==='original_diffuse').decode(),'Painting the OBJ must preserve the clothing texture');
+
   }
   assert.deepEqual(errors,[]);assert.deepEqual(failures,[]);
   await page.click('[data-tab=pack]');await mkdir('.test-output',{recursive:true});

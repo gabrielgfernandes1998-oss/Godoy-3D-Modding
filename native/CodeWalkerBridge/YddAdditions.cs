@@ -26,6 +26,7 @@ static class YddAdditions {
                 if(candidate is not null&&candidate.Value.distance<best){best=candidate.Value.distance;destination=drawable;}
             }
             if(destination is null)throw new Exception("YDD sem geometria de destino compatível.");
+            var materials=new Dictionary<ushort,ushort>();
             var models=destination.DrawableModels;
             foreach(var lod in new[]{models.High,models.Med,models.Low,models.VLow,models.Extra}) {
                 if(lod is null||lod.Length==0)continue;
@@ -54,6 +55,11 @@ static class YddAdditions {
                 if(geometry.VertexBuffer.Data1 is null&&geometry.VertexBuffer.Data2 is null)geometry.VertexBuffer.Data1=data;geometry.VertexBuffer.VertexCount=(uint)count;geometry.VertexBuffer.VertexStride=(ushort)stride;
                 geometry.IndexBuffer=Clone(template.IndexBuffer);geometry.IndexBuffer.Indices=indices;geometry.IndexBuffer.IndicesCount=(uint)indices.Length;
                 geometry.VerticesCount=(ushort)count;geometry.VertexStride=(ushort)stride;geometry.IndicesCount=(uint)indices.Length;geometry.TrianglesCount=(uint)indices.Length/3;
+                if(part.TryGetProperty("textureName",out _)) {
+                    if(!request.TryGetProperty("ytdData",out _))throw new Exception("Importe o YTD original para exportar o UV atualizado.");
+                    if(!materials.TryGetValue(template.ShaderID,out var shaderId)){shaderId=YddTextures.Material(destination,template,part);materials[template.ShaderID]=shaderId;}
+                    geometry.ShaderID=shaderId;geometry.Shader=destination.ShaderGroup.Shaders.data_items[shaderId];
+                }
                 model.Geometries=model.Geometries.Append(geometry).ToArray();
                 model.GeometriesCount1=model.GeometriesCount2=model.GeometriesCount3=checked((ushort)model.Geometries.Length);
                 model.ShaderMapping=model.Geometries.Select(g=>g.ShaderID).ToArray();model.RebuildBounds();

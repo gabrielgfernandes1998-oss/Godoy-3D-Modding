@@ -1,9 +1,9 @@
-# Godoy 3D Modding 0.4.0 beta
+# Godoy 3D Modding 0.5.0 beta
 
-- União OBJ + YDD com destino explícito: não depende de selecionar a mochila/colete no viewport antes de unir. Evita usar o OBJ como seu próprio destino.
-- A união vira um conjunto no editor e pode ser desfeita/refeita. Preserva a posição inclusive com escala não uniforme no YDD.
-- Exportação nativa incorpora a geometria OBJ aos LODs do YDD original, herdando material, palette de ossos e pesos da região mais próxima.
-- Preserva UVs do OBJ ou cria projeção planar quando faltam; calcula tangentes e mantém os canais do layout de vértices do destino.
-- Reabre e verifica o arquivo consolidado. Nome original e associação ao YTD são mantidos.
+- Exportação de OBJ incorporado com UV automático sem sobreposição entre faces e textura diffuse própria de 1024×1024 dentro do mesmo YTD da roupa.
+- Novo botão **Associar YTD original para gerar UV** na aba Malhas e objetos. Com OBJ incorporado, exporta um ZIP com YDD, YTD atualizado e guias UV transparentes em PNG.
+- Clona o shader da região de destino e vincula o OBJ à nova diffuse, com mapas auxiliares neutros. Mantém os samplers, UVs e pixels originais da roupa. Material separado em todos os LODs.
+- Pintura de roupas mostra as arestas UV da textura selecionada. Escolha `godoy_obj_…` em **TEXTURAS DO DICIONÁRIO** para pintar somente o OBJ; exporte o YTD editado e use junto ao novo YDD.
+- Exportação sem OBJ continua gerando somente YDD. A união e Ctrl+Z/Ctrl+Y continuam disponíveis.
 
-Limites: reutiliza o material/YTD do destino; não insere textura própria/MTL nem cria atlas. Copia a geometria aos LODs sem decimação. Até 65535 vértices por parte, 100000 no total, 32 partes e 10 MB de dados. Sem solda booleana, edição de colisões ou exportação YFT. Teste de animação no FiveM com assets reais ainda pendente.
+Limites: UV inicial com ilhas triangulares; não faz unwrap artístico, solda booleana nem importa MTL/imagens do OBJ. Textura nova começa cinza. Até 21845 triângulos por parte após separação das costuras, 100000 vértices no total, 32 partes e 10 MB de dados. Copia geometria aos LODs sem decimação. Requer material com DiffuseSampler compatível. Sem colisões ou exportação YFT. Validação automatizada não substitui teste de animação e aparência com assets reais no FiveM.

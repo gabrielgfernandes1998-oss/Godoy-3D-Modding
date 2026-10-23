@@ -1,6 +1,6 @@
 import {Matrix4,Matrix3,Vector3} from 'three';
 
-export function serializeAdditions(target,additions=[]) {
+export function serializeAdditions(target,additions=[],{texturePrefix}={}) {
   target.updateWorldMatrix(true,true);
   const inverse=target.matrixWorld.clone().invert(),parts=[];let total=0;
   for(const addition of additions)addition.traverseVisible(mesh=> {
@@ -23,8 +23,20 @@ export function serializeAdditions(target,additions=[]) {
     const indices=geometry.index?Array.from(geometry.index.array):Array.from({length:position.count},(_,i)=>i);
     if(indices.length%3||indices.some(i=>!Number.isInteger(i)||i<0||i>=position.count))throw Error('Triângulos OBJ inválidos.');
     if(matrix.determinant()<0)for(let i=0;i<indices.length;i+=3)[indices[i+1],indices[i+2]]=[indices[i+2],indices[i+1]];
-    parts.push({positions,normals,uvs,indices});
+    if(texturePrefix) {
+      // Separate chart per triangle: works for OBJ with missing/overlapping UVs.
+      // Duplicate seam vertices so every face has its own editable area.
+      if(indices.length>65535)throw Error('UV automático: divida o OBJ em partes com até 21845 triângulos.');
+      const count=indices.length/3,grid=Math.ceil(Math.sqrt(count)),padding=.12;
+      const p=[],n=[],uv=[],idx=[];
+      for(let f=0;f<count;f++) {
+        const x=f%grid,y=Math.floor(f/grid),corners=[[padding,padding],[1-padding,padding],[padding,1-padding]];
+        for(let c=0;c<3;c++) {const i=indices[f*3+c];p.push(...positions.slice(i*3,i*3+3));n.push(...normals.slice(i*3,i*3+3));uv.push((x+corners[c][0])/grid,(y+corners[c][1])/grid);idx.push(f*3+c);}
+      }
+      parts.push({positions:p,normals:n,uvs:uv,indices:idx,textureName:`${texturePrefix}_${parts.length+1}`});
+    } else parts.push({positions,normals,uvs,indices});
   });
+  if(parts.reduce((sum,p)=>sum+p.positions.length/3,0)>100000)throw Error('UV automático acima de 100000 vértices: divida o OBJ.');
   if(parts.length>32)throw Error('Até 32 partes OBJ por união.');
   if(JSON.stringify(parts).length>10*1024*1024)throw Error('Dados OBJ acima de 10 MB para incorporação.');
   return parts;

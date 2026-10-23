@@ -25,3 +25,13 @@ test('OBJ without UV receives finite planar UV; source geometry stays untouched'
  assert.ok(parts[0].uvs.every(Number.isFinite));assert.equal(parts[0].uvs.length,mesh.geometry.attributes.position.count*2);
  assert.equal(mesh.geometry.attributes.uv,undefined);assert.deepEqual(mesh.geometry.attributes.position.array,source);
 });
+test('automatic OBJ UV separates every triangle without changing source UV or geometry',()=>{
+ const root=new Group(),object=new Group(),mesh=new Mesh(new BoxGeometry());object.add(mesh);root.add(object);
+ const original=mesh.geometry.attributes.uv.array.slice();
+ const [part]=serializeAdditions(root,[object],{texturePrefix:'godoy_obj_test'});
+ assert.equal(part.textureName,'godoy_obj_test_1');assert.equal(part.positions.length,part.indices.length*3);
+ assert.ok(part.uvs.every(n=>n>0&&n<1));
+ const cells=new Set();const grid=Math.ceil(Math.sqrt(part.indices.length/3));
+ for(let f=0;f<part.indices.length;f+=3){const i=part.indices[f],key=`${Math.floor(part.uvs[i*2]*grid)},${Math.floor(part.uvs[i*2+1]*grid)}`;assert.ok(!cells.has(key));cells.add(key);}
+ assert.deepEqual(mesh.geometry.attributes.uv.array,original);
+});

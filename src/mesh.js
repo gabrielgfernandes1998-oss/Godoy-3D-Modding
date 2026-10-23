@@ -12,9 +12,11 @@ import {SceneHistory,snapshotTransform,applyTransform,sameTransform} from './sce
 import {nativeMatrix,sourceUnchanged,previewBindMatrix} from './ydd-export.js';
 import {visibleBounds,placePivot,pivotDelta,frameScene,placeImportedObj,moveToContext} from './scene-placement.js';
 import {serializeAdditions,joinToYdd} from './ydd-additions.js';
+import {parseYtd} from '../modules/vehicles/src/formats/ytd.js';
+import {zipSync,strToU8} from 'fflate';
 import './mesh.css';
 const $=s=>document.querySelector(s);
-$('#app').innerHTML=`<aside><h1>Malhas e objetos</h1><p>Roupa inteira sobre o ped · exportação YDD</p><button id="open-mesh">Importar YDD / YFT / GLB</button><button id="open-ped">Importar ped de referência</button><button id="open-obj">Adicionar objeto OBJ</button><input id="mesh-file" type="file" accept=".ydd,.yft,.glb" hidden><input id="ped-file" type="file" accept=".ydd,.glb" hidden><input id="obj-file" type="file" accept=".obj" hidden><div class="history-actions"><button id="undo" disabled>Desfazer · Ctrl+Z</button><button id="redo" disabled>Refazer · Ctrl+Y</button></div><button id="fit-scene">Enquadrar cena inteira</button><h2>Peças na cena</h2><div id="tree"></div><h2>Transformação</h2><div class="modes"><button data-mode="translate" class="active">Mover</button><button data-mode="rotate">Girar</button><button data-mode="scale">Escala</button></div><label>Espaço<select id="space"><option value="local">Local</option><option value="world">Global</option></select></label><div id="fields"></div><button id="apply-transform">Aplicar valores</button><button id="focus">Enquadrar peça + referência</button><button id="align-selection">Trazer seleção para a referência</button><label>Vínculo ao ped<select id="attachment-bone"><option value="preserve">Manter pesos e ossos originais</option><option value="pelvis">Cintura · SKEL_Pelvis (acessório rígido)</option><option value="head">Cabeça · SKEL_Head (acessório rígido)</option><option value="spine">Tronco · SKEL_Spine0 (acessório rígido)</option></select></label><h2>Incorporar objeto à peça</h2><label>Peça de destino<select id="merge-target"></select></label><label>Objeto a incorporar<select id="merge-source"><option value="">Selecione um OBJ</option></select></label><button id="merge">Unir OBJ à peça</button><p class="hint">A união mantém a posição do objeto, usa o material/YTD da peça e herda o vínculo ao esqueleto da região mais próxima. Sem UV, cria uma projeção simples. Ctrl+Z desfaz.</p><button id="export-ydd" class="accent">Exportar peça YDD</button><p class="hint">Mova, gire e ajuste a peça inteira sobre o ped. Para prender um boné ao cinto, escolha Cintura antes de exportar. O YTD original continua associado.</p><details id="advanced-mesh"><summary>OBJ e cópia GLB</summary><button id="export-glb" >Exportar cópia GLB</button><p class="hint">O GLB é uma cópia estática da cena. Para usar a peça com os objetos incorporados no FiveM, use Exportar peça YDD.</p><p class="hint">A edição YDD mantém materiais, UVs e LODs originais. O OBJ incorporado acompanha a exportação YDD. Materiais/texturas próprios do OBJ ainda não são adicionados ao YTD.</p></details></aside><main><div id="viewport"></div><div id="status" role="status">Importe um modelo para começar.</div></main>`;
+$('#app').innerHTML=`<aside><h1>Malhas e objetos</h1><p>Roupa inteira sobre o ped · exportação YDD</p><button id="open-mesh">Importar YDD / YFT / GLB</button><button id="open-ped">Importar ped de referência</button><button id="open-obj">Adicionar objeto OBJ</button><input id="mesh-file" type="file" accept=".ydd,.yft,.glb" hidden><input id="ped-file" type="file" accept=".ydd,.glb" hidden><input id="obj-file" type="file" accept=".obj" hidden><div class="history-actions"><button id="undo" disabled>Desfazer · Ctrl+Z</button><button id="redo" disabled>Refazer · Ctrl+Y</button></div><button id="fit-scene">Enquadrar cena inteira</button><h2>Peças na cena</h2><div id="tree"></div><h2>Transformação</h2><div class="modes"><button data-mode="translate" class="active">Mover</button><button data-mode="rotate">Girar</button><button data-mode="scale">Escala</button></div><label>Espaço<select id="space"><option value="local">Local</option><option value="world">Global</option></select></label><div id="fields"></div><button id="apply-transform">Aplicar valores</button><button id="focus">Enquadrar peça + referência</button><button id="align-selection">Trazer seleção para a referência</button><label>Vínculo ao ped<select id="attachment-bone"><option value="preserve">Manter pesos e ossos originais</option><option value="pelvis">Cintura · SKEL_Pelvis (acessório rígido)</option><option value="head">Cabeça · SKEL_Head (acessório rígido)</option><option value="spine">Tronco · SKEL_Spine0 (acessório rígido)</option></select></label><h2>Incorporar objeto à peça</h2><label>Peça de destino<select id="merge-target"></select></label><label>Objeto a incorporar<select id="merge-source"><option value="">Selecione um OBJ</option></select></label><button id="merge">Unir OBJ à peça</button><p class="hint">A união mantém a posição e herda os pesos da região mais próxima. Com o YTD associado, a exportação cria UVs separados e uma textura própria para cada parte OBJ. Ctrl+Z desfaz.</p><button id="open-ytd">Associar YTD original para gerar UV</button><input id="ytd-file" type="file" accept=".ytd" hidden><p id="ytd-status" class="hint">Associe o YTD da peça antes de exportar um OBJ com textura própria.</p><button id="export-ydd" class="accent">Exportar peça YDD</button><p class="hint">Mova, gire e ajuste a peça inteira sobre o ped. Para prender um boné ao cinto, escolha Cintura antes de exportar. O YTD original continua associado.</p><details id="advanced-mesh"><summary>OBJ e cópia GLB</summary><button id="export-glb" >Exportar cópia GLB</button><p class="hint">O GLB é uma cópia estática da cena. Para usar a peça com os objetos incorporados no FiveM, use Exportar peça YDD.</p><p class="hint">A edição YDD mantém materiais, UVs e LODs originais. O OBJ incorporado acompanha a exportação YDD. O UV automático separa os triângulos em ilhas. A nova textura começa cinza; materiais MTL e imagens do OBJ não são importados.</p></details></aside><main><div id="viewport"></div><div id="status" role="status">Importe um modelo para começar.</div></main>`;
 for(const type of ['position','rotation','scale']) {
   const group=document.createElement('fieldset'),legend=document.createElement('legend');
   legend.textContent={position:'Posição',rotation:'Rotação (graus)',scale:'Escala'}[type];group.append(legend);
@@ -108,7 +110,7 @@ function sync() {
   $('#attachment-bone').value=selection.userData.attachmentBone??'preserve';
   for(const type of ['position','rotation','scale']) for(const axis of ['x','y','z']) $(`#${type}-${axis}`).value=(selection[type][axis]*(type==='rotation'?180/Math.PI:1)).toFixed(4);
 }
-function select(object) {while(object.parent&&object.parent!==content)object=object.parent;selection=object;if(placePivot(pivot,object))transform.attach(pivot);else transform.detach();sync();refreshTree();}
+function select(object) {while(object.parent&&object.parent!==content)object=object.parent;selection=object;const ytd=sourceFiles.get(object)?.ytd;$('#ytd-status').textContent=ytd?`YTD associado à peça: ${ytd.name}`:'Associe o YTD da peça antes de exportar um OBJ com textura própria.';if(placePivot(pivot,object))transform.attach(pivot);else transform.detach();sync();refreshTree();}
 function refreshTree() {
   $('#tree').replaceChildren();
   for(const object of content.children) {
@@ -265,19 +267,51 @@ $('#attachment-bone').onchange=()=> {
   const object=selection,before=object.userData.attachmentBone??'preserve',after=$('#attachment-bone').value;
   if(before!==after)history.execute({label:'Vínculo ao ped',objects:[object],redo:()=>{object.userData.attachmentBone=after;select(object);},undo:()=>{object.userData.attachmentBone=before;select(object);}});
 };
+$('#open-ytd').onclick=()=>$('#ytd-file').click();
+$('#ytd-file').onchange=guard(async event=> {
+  const file=event.target.files[0];event.target.value='';if(!file)return;
+  const source=sourceFiles.get(selection);if(!source)throw Error('Selecione a peça YDD que receberá este YTD.');
+  const bytes=new Uint8Array(await file.arrayBuffer());parseYtd(bytes);
+  source.ytd={name:file.name,bytes};
+  $('#ytd-status').textContent=`YTD associado à peça: ${file.name}`;
+  status('YTD associado. O conjunto será exportado em ZIP com YDD, YTD atualizado e mapas UV PNG.');
+});
+async function uvTemplate(part) {
+  const canvas=document.createElement('canvas');canvas.width=canvas.height=1024;
+  const ctx=canvas.getContext('2d');ctx.strokeStyle='#202020';ctx.lineWidth=1;
+  for(let f=0;f<part.indices.length;f+=3) {
+    ctx.beginPath();for(let c=0;c<3;c++){const i=part.indices[f+c],x=part.uvs[i*2]*1024,y=part.uvs[i*2+1]*1024;c?ctx.lineTo(x,y):ctx.moveTo(x,y);}ctx.closePath();ctx.stroke();
+  }
+  const blob=await new Promise(resolve=>canvas.toBlob(resolve,'image/png'));
+  return new Uint8Array(await blob.arrayBuffer());
+}
 $('#export-ydd').onclick=guard(async()=> {
   const object=selection,source=sourceFiles.get(object);
   if(!source)throw Error('Una o OBJ à peça de destino e selecione o conjunto YDD para exportar.');
   if(!native?.exportYdd)throw Error('A exportação YDD requer o portable Windows atualizado.');
   if(!sourceUnchanged(object,source))throw Error('A geometria original foi alterada por uma operação incompatível. Desfaça essa alteração.');
-  $('#export-ydd').disabled=true;status('Gravando o YDD nativo e verificando geometria, pesos e LODs…');
+  if(source.additions?.length&&!source.ytd)throw Error('Associe o YTD original desta peça para gerar o UV e a textura do OBJ.');
+  const textured=!!source.additions?.length;
+  const prefix=`godoy_obj_${crypto.randomUUID().replaceAll('-','').slice(0,12)}`;
+  const additions=serializeAdditions(object,source.additions,textured?{texturePrefix:prefix}:{});
+  $('#export-ydd').disabled=true;status('Gravando YDD, UV e texturas nativas; verificando o conjunto…');
   try {
-    const bytes=await native.exportYdd({bytes:source.bytes,additions:serializeAdditions(object,source.additions),matrix:nativeMatrix(object),bone:object.userData.attachmentBone??'preserve',pedBytes:await readPedSkeleton($('#ped-gender').value)});
+    const result=await native.exportYdd({bytes:source.bytes,additions,matrix:nativeMatrix(object),bone:object.userData.attachmentBone??'preserve',pedBytes:await readPedSkeleton($('#ped-gender').value),...(textured?{ytdBytes:source.ytd.bytes}:{})});
+    const bytes=textured?result.ydd:result;
     const parsed=parseYdd(bytes);if(!parsed.drawables.length)throw Error('YDD exportado inválido.');
-    const url=URL.createObjectURL(new Blob([bytes],{type:'application/octet-stream'}));
-    const link=document.createElement('a');link.href=url;link.download=source.name;link.click();setTimeout(()=>URL.revokeObjectURL(url),30000);
+    let output=bytes,name=source.name;
+    if(textured) {
+      const dictionary=parseYtd(result.ytd);
+      for(const part of additions)if(!dictionary.textures.some(t=>t.name===part.textureName))throw Error('Textura OBJ ausente no YTD exportado.');
+      const files={[source.name]:bytes,[source.ytd.name]:result.ytd};
+      for(const part of additions)files[`UV/${part.textureName}.png`]=await uvTemplate(part);
+      files['LEIA-ME.txt']=strToU8('Abra o YDD e o YTD deste ZIP juntos em Pintura de roupas. Selecione a textura godoy_obj_... em TEXTURAS DO DICIONÁRIO para pintar o OBJ. Exporte o YTD editado e use o par YDD/YTD no FiveM. Os PNGs da pasta UV são guias transparentes, não texturas finais. UV automático: ilhas triangulares separadas; a textura começa cinza. Teste as animações no jogo.');
+      output=zipSync(files);name=source.name.replace(/\.ydd$/i,'')+'-YDD-YTD-UV.zip';
+    }
+    const url=URL.createObjectURL(new Blob([output],{type:textured?'application/zip':'application/octet-stream'}));
+    const link=document.createElement('a');link.href=url;link.download=name;link.click();setTimeout(()=>URL.revokeObjectURL(url),30000);
     if(content.children.length===1)history.markSaved();
-    status('YDD exportado e reaberto para verificação. Use com o YTD original no recurso FiveM e teste as animações no jogo.');
+    status(textured?'Conjunto exportado. Extraia o ZIP, abra YDD + YTD em Pintura de roupas e selecione a textura godoy_obj_… para pintar só o OBJ.':'YDD exportado e reaberto para verificação. Use com o YTD original no recurso FiveM e teste as animações no jogo.');
   } finally {$('#export-ydd').disabled=false;}
 });
 $('#export-glb').onclick=guard(async()=> {

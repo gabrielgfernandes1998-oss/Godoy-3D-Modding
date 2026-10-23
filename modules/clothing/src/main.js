@@ -240,7 +240,15 @@ function refresh() {
       h = textureCanvas.height * scale;
     cctx.drawImage(textureCanvas, (c.width - w) / 2, (c.height - h) / 2, w, h);
   }
-  editor?.drawOverlay($("#uv-view").getContext("2d"));
+  const uvCtx=$("#uv-view").getContext("2d");
+  uvCtx.strokeStyle="rgba(255,255,255,.45)";uvCtx.lineWidth=.6;
+  model.traverse(mesh=> {
+    if(!mesh.isMesh||mesh.userData.editorHelper||mesh.material.map!==texture)return;
+    const uv=mesh.geometry.attributes.uv;if(!uv)return;
+    const index=mesh.geometry.index,count=index?index.count:uv.count;
+    for(let f=0;f<count;f+=3){uvCtx.beginPath();for(let c=0;c<3;c++){const i=index?index.getX(f+c):f+c,x=uv.getX(i)*size,y=(1-uv.getY(i))*textureHeight;c?uvCtx.lineTo(x,y):uvCtx.moveTo(x,y);}uvCtx.closePath();uvCtx.stroke();}
+  });
+  editor?.drawOverlay(uvCtx);
   $("#status").textContent = "Alterações locais · textura atualizada";
 }
 function updateHistory() {
@@ -796,8 +804,8 @@ function selectTexture(key, { flush = true } = {}) {
   $("#native-texture-info").textContent =
     `${entry.formatName} · ${entry.width} × ${entry.height} · ${entry.levels} mipmap(s). O histórico é separado a cada troca de textura.`;
   $("#export-native").disabled = false;
-  refresh();
   updateNativeMaterials();
+  refresh();
 }
 function resetMaterialOptions() {
   const select = $("#material-select");

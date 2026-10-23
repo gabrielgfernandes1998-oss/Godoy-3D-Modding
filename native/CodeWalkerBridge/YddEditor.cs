@@ -84,6 +84,10 @@ static class YddEditor {
                 if(a.SkeletonBinding!=b.SkeletonBinding||a.Geometries.Length!=b.Geometries.Length)throw new Exception("Falha ao preservar vínculo de esqueleto.");
                 for(int gi=0;gi<a.Geometries.Length;gi++) {
                     var ag=a.Geometries[gi];var bg=b.Geometries[gi];
+                    if(ag.ShaderID!=bg.ShaderID)throw new Exception("YDD reaberto perdeu o material de uma geometria.");
+                    var originalSamplers=ag.Shader?.ParametersList?.Parameters?.Where(p=>p.DataType==0).Select(p=>(p.Data as TextureBase)?.Name??"").ToArray()??Array.Empty<string>();
+                    var savedSamplers=bg.Shader?.ParametersList?.Parameters?.Where(p=>p.DataType==0).Select(p=>(p.Data as TextureBase)?.Name??"").ToArray()??Array.Empty<string>();
+                    if(!originalSamplers.SequenceEqual(savedSamplers))throw new Exception("YDD reaberto perdeu uma referência de textura.");
                     if(!ag.VertexData.VertexBytes.SequenceEqual(bg.VertexData.VertexBytes)||!ag.IndexBuffer.Indices.SequenceEqual(bg.IndexBuffer.Indices)||!(ag.BoneIds??Array.Empty<ushort>()).SequenceEqual(bg.BoneIds??Array.Empty<ushort>()))throw new Exception("YDD reaberto diverge dos vértices/pesos exportados.");
                 }
             }

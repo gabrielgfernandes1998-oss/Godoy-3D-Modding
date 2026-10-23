@@ -41,8 +41,9 @@ try {
             if(pedBytes.Length>80*1024*1024)throw new Exception("Ped acima de 80 MB.");
             donor=Activator.CreateInstance(yddType)!;Call(donor,"Load",pedBytes);
         }
+        var ytd=YddTextures.Build(root);
         var saved=YddEditor.Export(file,root,donor);
-        result=new {ok=true,data=Convert.ToBase64String(saved)};
+        result=new {ok=true,data=Convert.ToBase64String(saved),ytdData=ytd is null?null:Convert.ToBase64String(ytd)};
     } else if(command=="roundtrip") {
         var bytes=Convert.FromBase64String(Text("data"));
         if(bytes.Length>80*1024*1024)throw new Exception("YDD acima de 80 MB.");

@@ -66,8 +66,12 @@ function registerNativeBridge({app,ipcMain,dialog,getWindow}) {
     busy=true;
     try {
       const config=await resolveConfig();
-      const result=await runBridge(executable,{command:'edit-ydd',codewalkerDirectory:config.codewalkerDirectory,data,pedData,additions,matrix:request.matrix,bone:request.bone});
+      const result=await runBridge(executable,{command:'edit-ydd',codewalkerDirectory:config.codewalkerDirectory,data,pedData,ytdData:request.ytdBytes?bytes(request.ytdBytes):undefined,additions,matrix:request.matrix,bone:request.bone});
       if(typeof result.data!=='string'||result.data.length>112*1024*1024)throw Error('YDD de saída inválido.');
+      if(request.ytdBytes) {
+        if(typeof result.ytdData!=='string'||result.ytdData.length>112*1024*1024)throw Error('YTD de saída inválido.');
+        return {ydd:new Uint8Array(Buffer.from(result.data,'base64')),ytd:new Uint8Array(Buffer.from(result.ytdData,'base64'))};
+      }
       return new Uint8Array(Buffer.from(result.data,'base64'));
     } finally {busy=false;}
   });
