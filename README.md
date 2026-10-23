@@ -105,3 +105,22 @@ A ponte .NET usa a biblioteca local para ler os componentes base de cabeça, tro
 A conexão/carregamento da biblioteca e o round-trip YDD foram exercitados com CodeWalker.Core real e um drawable de referência reservado do grzyClothTool, somente fora do pacote. A extração do ped de uma instalação GTA real ainda exige validação no computador do usuário: não existe uma instalação GTA neste ambiente. A ponte não aplica animações/skinning e **ainda não recompila o OBJ editado em YDD/YFT**; essa etapa continua exigindo um pipeline de rigging e escrita nativa. Não substitua um recurso FiveM pelo GLB.
 
 Para compilar o portable dos fontes agora é necessário também **.NET SDK 8** no host de build. `npm run package:windows` compila a ponte para Windows x64, gera o frontend e empacota tudo. O usuário final não precisa instalar o SDK/runtime .NET.
+
+### Compilar o CodeWalker fornecido em código-fonte
+
+Se o ZIP contém `CodeWalker.Core.csproj`, extraia-o e, com SDK .NET 8 instalado, execute:
+
+```sh
+npm run build:codewalker -- /caminho/CodeWalker/CodeWalker.Core
+```
+
+O comando compila o núcleo e suas dependências em `native/publish/codewalker-local`.
+Copie essa pasta para o Windows e selecione-a em **Configurar CodeWalker + GTA V**.
+É uma compilação local de fontes fornecidas pelo usuário; não adiciona esses fontes ou DLLs às releases públicas.
+
+Para deixar os dois peds disponíveis, importe uma referência completa YDD/GLB com o gênero
+masculino selecionado e outra com o feminino. A biblioteca local guarda cada referência
+separadamente. Os arquivos de ped não vêm no código-fonte CodeWalker.
+**Ajustar posição/rotação/escala na cena ainda não regrava o YDD:** a exportação de malha
+atual é GLB. Para levar esses ajustes ao FiveM é necessário gravar a geometria nativa
+com ossos, pesos e LODs compatíveis; carregar o CodeWalker por si só não realiza essa etapa.

@@ -16,7 +16,8 @@
     "release:check": "node scripts/publish-release.mjs --check",
     "release:publish": "node scripts/publish-release.mjs",
     "test:desktop": "node tests/desktop.e2e.mjs",
-    "build:native": "node scripts/build-native.mjs"
+    "build:native": "node scripts/build-native.mjs",
+    "build:codewalker": "node scripts/build-codewalker.mjs"
   },
   "dependencies": {
     "three": "0.180.0",
