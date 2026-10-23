@@ -14,12 +14,17 @@ static class YddAtlas {
     }
     static int Pow2(int n){int value=1;while(value<n)value*=2;return value;}
     public static Vector2 AdditionUv(JsonElement request,int part,Vector2 uv) {
+        if(request.TryGetProperty("atlasLayout",out var layout)) {
+            var r=layout.GetProperty("additions")[part];float size=layout.GetProperty("size").GetInt32();
+            return new Vector2((r.GetProperty("x").GetSingle()+.5f+uv.X*(r.GetProperty("width").GetSingle()-1))/size,(r.GetProperty("y").GetSingle()+.5f+uv.Y*(r.GetProperty("height").GetSingle()-1))/size);
+        }
         int grid=(int)Math.Ceiling(Math.Sqrt(request.GetProperty("additions").GetArrayLength()));
         float padding=.015f;
         return new Vector2(.5f+((part%grid+padding+uv.X*(1-2*padding))/grid)*.5f,(part/grid+padding+uv.Y*(1-2*padding))/grid);
     }
     sealed record Tile(Texture diffuse,Texture? normal,Texture? spec,int index);
-    public sealed record AtlasPlan(int width,int height,int requiredSize,int divisor,int columns,int regions,int materials,int sourceWidth,int sourceHeight,int limit,bool reduced,bool fits,int auxiliaryResolution);
+    public sealed record Rect(int x,int y,int width,int height);
+    public sealed record AtlasPlan(int width,int height,int requiredSize,int divisor,int columns,int regions,int materials,int sourceWidth,int sourceHeight,int limit,bool reduced,bool fits,int auxiliaryResolution,Rect[]? sourceRects=null,Rect[]? additionRects=null,string[]? sourceNames=null);
     static (YtdFile ytd,Dictionary<ShaderFX,Tile> tiles) Gather(YddFile ydd,JsonElement request) {
         var parts=request.GetProperty("additions");
         if(parts.ValueKind!=JsonValueKind.Array||parts.GetArrayLength()<1||parts.GetArrayLength()>32)throw new Exception("Atlas exige 1–32 partes OBJ.");
@@ -80,9 +85,27 @@ static class YddAtlas {
             }
             return (best,columns);
         }
+        if(request.TryGetProperty("atlasLayout",out var manual)) {
+            int side=manual.GetProperty("size").GetInt32();
+            if(!new[]{512,1024,2048,4096}.Contains(side))throw new Exception("Tamanho do atlas manual inválido.");
+            Rect[] Rects(string key,int count) {
+                var items=manual.GetProperty(key);if(items.ValueKind!=JsonValueKind.Array||items.GetArrayLength()!=count)throw new Exception("Quantidade de áreas UV inválida.");
+                return items.EnumerateArray().Select(r=> {
+                    var rect=new Rect(r.GetProperty("x").GetInt32(),r.GetProperty("y").GetInt32(),r.GetProperty("width").GetInt32(),r.GetProperty("height").GetInt32());
+                    if(rect.x<0||rect.y<0||rect.width<4||rect.height<4||rect.x>side-rect.width||rect.y>side-rect.height)throw new Exception("Área UV fora do atlas ou menor que 4 pixels.");
+                    return rect;
+                }).ToArray();
+            }
+            var sources=Rects("sources",regions);var additions=Rects("additions",request.GetProperty("additions").GetArrayLength());
+            bool Overlap(Rect a,Rect b)=>a.x<b.x+b.width&&b.x<a.x+a.width&&a.y<b.y+b.height&&b.y<a.y+a.height;
+            foreach(var group in new[]{sources,additions})for(int i=0;i<group.Length;i++)for(int j=i+1;j<group.Length;j++)if(Overlap(group[i],group[j]))throw new Exception("Áreas de dois OBJ ou duas texturas da roupa não podem se sobrepor.");
+            bool reduced=tiles.Values.Any(t=>sources[t.index].width<t.diffuse.Width||sources[t.index].height<t.diffuse.Height);
+            bool aux=tiles.Keys.Any(s=>Slot(s,"BumpSampler") is not null||Slot(s,"NormalSampler") is not null||Slot(s,"SpecSampler") is not null);
+            return new AtlasPlan(side,side,side,1,1,regions,tiles.Count,sourceW,sourceH,limit,reduced,true,aux?Math.Min(side,2048):0,sources,additions,tiles.Values.DistinctBy(t=>t.index).OrderBy(t=>t.index).Select(t=>t.diffuse.Name).ToArray());
+        }
         var original=Size(1);int divisor=1;var output=original;
         if(limit!=0)while(output.size>limit){divisor*=2;output=Size(divisor);}
-        return new AtlasPlan(output.size,output.size,original.size,divisor,output.columns,regions,tiles.Count,sourceW,sourceH,limit,divisor>1,output.size<=4096,tiles.Keys.Any(s=>Slot(s,"BumpSampler") is not null||Slot(s,"NormalSampler") is not null||Slot(s,"SpecSampler") is not null)?Math.Min(output.size,2048):0);
+        return new AtlasPlan(output.size,output.size,original.size,divisor,output.columns,regions,tiles.Count,sourceW,sourceH,limit,divisor>1,output.size<=4096,tiles.Keys.Any(s=>Slot(s,"BumpSampler") is not null||Slot(s,"NormalSampler") is not null||Slot(s,"SpecSampler") is not null)?Math.Min(output.size,2048):0,sourceNames:tiles.Values.DistinctBy(t=>t.index).OrderBy(t=>t.index).Select(t=>t.diffuse.Name).ToArray());
     }
     public static AtlasPlan Plan(YddFile ydd,JsonElement request) {var (_,tiles)=Gather(ydd,request);return Layout(tiles,request);}
     public static byte[] Build(YddFile ydd,JsonElement request) {
@@ -93,11 +116,20 @@ static class YddAtlas {
         bool needNormal=tiles.Keys.Any(s=>Slot(s,"BumpSampler") is not null||Slot(s,"NormalSampler") is not null),needSpec=tiles.Keys.Any(s=>Slot(s,"SpecSampler") is not null);
         var diffusePixels=Fill(width,height,220,220,220);var normalPixels=needNormal?Fill(width,height,128,128,255):null;var specPixels=needSpec?Fill(width,height,0,0,0):null;
         foreach(var tile in tiles.Values.DistinctBy(t=>t.index)) {
-            int x=tile.index%grid*cellW,y=tile.index/grid*cellH;
-            int tileW=Math.Max(1,tile.diffuse.Width/plan.divisor),tileH=Math.Max(1,tile.diffuse.Height/plan.divisor);
+            int x=plan.sourceRects?[tile.index].x??tile.index%grid*cellW,y=plan.sourceRects?[tile.index].y??tile.index/grid*cellH;
+            int tileW=plan.sourceRects?[tile.index].width??Math.Max(1,tile.diffuse.Width/plan.divisor),tileH=plan.sourceRects?[tile.index].height??Math.Max(1,tile.diffuse.Height/plan.divisor);
             Paste(diffusePixels,width,x,y,tile.diffuse,tileW,tileH,true);
             if(tile.normal is not null)Paste(normalPixels!,width,x,y,tile.normal,tileW,tileH,false);
             if(tile.spec is not null)Paste(specPixels!,width,x,y,tile.spec,tileW,tileH,false);
+        }
+        // An accessory replaces only the explicitly reserved rectangle. Other
+        // source pixels stay intact, including when the source fills the atlas.
+        if(plan.additionRects is not null)foreach(var r in plan.additionRects) {
+            void Clear(byte[]? target,byte b,byte g,byte red) {
+                if(target is null)return;
+                for(int y=r.y;y<r.y+r.height;y++)for(int x=r.x;x<r.x+r.width;x++){int p=(y*width+x)*4;target[p]=b;target[p+1]=g;target[p+2]=red;target[p+3]=255;}
+            }
+            Clear(diffusePixels,220,220,220);Clear(normalPixels,255,128,128);Clear(specPixels,0,0,0);
         }
         string diffuseName=tiles.Values.First().diffuse.Name;
         string suffix=Guid.NewGuid().ToString("N")[..12];
@@ -112,7 +144,8 @@ static class YddAtlas {
                 for(int i=0;i<data.VertexCount;i++) {
                     Vector2 uv=data.Info.GetComponentType(6) switch {VertexComponentType.Float2=>data.GetVector2(i,6),VertexComponentType.Half2=>(Vector2)data.GetHalf2(i,6),_=>throw new Exception("Atlas exige UV Float2 ou Half2.")};
                     if(!float.IsFinite(uv.X)||!float.IsFinite(uv.Y)||uv.X<0||uv.Y<0||uv.X>1||uv.Y>1)throw new Exception("UV original fora de 0–1: prepare as ilhas no editor antes de gerar o atlas; repetição não é recortada automaticamente.");
-                    uv=new Vector2((tile.index%grid*cellW+.5f+uv.X*(Math.Max(1,tile.diffuse.Width/plan.divisor)-1))/width,(tile.index/grid*cellH+.5f+uv.Y*(Math.Max(1,tile.diffuse.Height/plan.divisor)-1))/height);
+                    var rect=plan.sourceRects?[tile.index];
+                    uv=rect is null?new Vector2((tile.index%grid*cellW+.5f+uv.X*(Math.Max(1,tile.diffuse.Width/plan.divisor)-1))/width,(tile.index/grid*cellH+.5f+uv.Y*(Math.Max(1,tile.diffuse.Height/plan.divisor)-1))/height):new Vector2((rect.x+uv.X*rect.width)/width,(rect.y+uv.Y*rect.height)/height);
                     if(data.Info.GetComponentType(6)==VertexComponentType.Float2)data.SetVector2(i,6,uv);else data.SetHalf2(i,6,new Half2(uv.X,uv.Y));
                 }
             }

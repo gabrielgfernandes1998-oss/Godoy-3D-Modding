@@ -1,3 +1,11 @@
+# Estado da versão 0.7.0 beta
+
+Janela de posicionamento manual do UV antes da exportação. A roupa começa no mapa inteiro e os OBJ em áreas pequenas. Mostra a textura de referência, ilhas OBJ, UV original opcional, medidas em pixels, movimento/escala por ponteiro e histórico próprio Ctrl+Z/Ctrl+Y. Confirmação reserva os pixels selecionados e exporta YDD/YTD/PNGs/JSON; cancelar mantém a cena. A transformação UV é aplicada a todos os LODs. Mapas auxiliares conservam o limite de 2048.
+
+Validação local: suíte nativa reabre o YDD/YTD com retângulo manual, confere UV original inalterado em todos os LODs quando ocupa o mapa inteiro, UV do OBJ dentro da área escolhida, pixels originais fora da reserva, cinza dentro e rejeição de área fora dos limites. Testes JS cobrem a proporção inicial e limites/sobreposição. O navegador verifica movimento por ponteiro, redimensionamento numérico, desfazer/refazer, confirmação da reserva e cancelamento. Workflow portable/Windows pendente de publicação.
+
+Não há detecção automática de espaço livre: reservar sobre uma área usada substitui aqueles pixels. Aumentar uma imagem já reduzida não recupera seus detalhes. Edição por retângulo de cada parte OBJ; não é unwrap artístico por vértice. Arquivos reais do usuário e aparência/animação no grzy/FiveM não foram validados neste ambiente.
+
 # Estado da versão 0.6.3 beta
 
 Correção do recurso RSC7 acima de 256 MiB: um atlas normal e outro specular de 4096 com mipmaps ocupavam duas páginas gráficas de 128 MiB, além das páginas de sistema. A diffuse permanece em até 4096 no YTD. Os mapas auxiliares passam a até 2048 com filtro de área, mipmaps completos e o mesmo UV normalizado. A interface informa o limite separado e o JSON inclui auxiliaryResolution. A redução pode perder detalhes de relevo/brilho; Preservar refere-se à diffuse.

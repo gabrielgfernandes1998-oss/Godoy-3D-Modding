@@ -236,3 +236,20 @@ void TestAtlasResourceBudget() {
  Directory.CreateDirectory(".test-output");File.WriteAllBytes(".test-output/budget-atlas.ydd",outputYdd);File.WriteAllBytes(".test-output/budget-atlas.ytd",outputYtd);
 }
 TestAtlasResourceBudget();
+
+void TestManualAtlas() {
+ var manual=new {size=512,sources=new[]{new{x=0,y=0,width=512,height=512}},additions=new[]{new{x=400,y=400,width=64,height=96}}};
+ var request=JsonSerializer.SerializeToElement(new{matrix=Matrix.Identity.ToArray(),bone="preserve",atlas=true,ytdData=Convert.ToBase64String(originalYtd),additions=new[]{addition},atlasLayout=manual});
+ var source=Fixture();var originalUv=source.Drawables[0].AllModels.Select(m=>m.Geometries[0].VertexData.GetVector2(1,6)).ToArray();
+ var ytdBytes=YddAtlas.Build(source,request);var bytes=YddEditor.Export(source,request,null);var reopened=new YddFile();reopened.Load(bytes);
+ for(int i=0;i<reopened.Drawables[0].AllModels.Length;i++) {
+  var g=reopened.Drawables[0].AllModels[i].Geometries;Check(g[0].VertexData.GetVector2(1,6)==originalUv[i],"full-size manual atlas keeps original UV unchanged in every LOD");
+  var uv=g[1].VertexData.GetVector2(0,6);Check(uv.X>=400f/512&&uv.X<464f/512&&uv.Y>=400f/512&&uv.Y<496f/512,"OBJ follows manually positioned/scaled rectangle");
+ }
+ var ytd=new YtdFile();ytd.Load(ytdBytes);var pixels=CodeWalker.Utils.DDSIO.GetPixels(ytd.TextureDict.Textures.data_items.Single(),0);
+ Check(pixels[0]==90&&pixels[1]==60&&pixels[2]==30,"source texture kept outside reserved area");
+ Check(pixels[(420*512+420)*4]==220,"only reserved area painted neutral for OBJ");
+ var bad=JsonSerializer.SerializeToElement(new{atlas=true,ytdData=Convert.ToBase64String(originalYtd),additions=new[]{addition},atlasLayout=new{size=512,sources=manual.sources,additions=new[]{new{x=500,y=400,width=64,height=96}}}});
+ bool refused=false;try{YddAtlas.Build(Fixture(),bad);}catch(Exception){refused=true;}Check(refused,"native bridge refuses out-of-bounds manual UV area");
+}
+TestManualAtlas();Console.WriteLine("Manual atlas: original UV unchanged, source pixels outside reserved area, positioned/scaled OBJ, all LODs and invalid bounds PASS");

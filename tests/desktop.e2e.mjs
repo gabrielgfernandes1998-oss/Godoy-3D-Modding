@@ -131,10 +131,17 @@ try {
     await mesh.locator('#ytd-file').setInputFiles('tests/fixtures/native-clothing.ytd');
     await mesh.locator('#ytd-status').filter({hasText:'native-clothing.ytd'}).waitFor();
     const pending=page.waitForEvent('download');await mesh.locator('#export-ydd').click();
+    await mesh.locator('#uv-layout-canvas').waitFor();
+    assert.equal(await mesh.locator('#uv-width').inputValue(),'64','OBJ starts small instead of owning half the atlas');
+    await mesh.locator('#uv-width').fill('80');await mesh.locator('#uv-width').dispatchEvent('change');
+    await mesh.locator('#uv-undo').click();assert.equal(await mesh.locator('#uv-width').inputValue(),'64');
+    await mesh.locator('#uv-redo').click();assert.equal(await mesh.locator('#uv-width').inputValue(),'80');
+    for(const [key,value] of Object.entries({x:320,y:100,width:64,height:100})){await mesh.locator('#uv-'+key).fill(String(value));await mesh.locator('#uv-'+key).dispatchEvent('change');}
+    await mesh.locator('#uv-reserved').check();await mesh.locator('#uv-confirm').click();
     const exported=await pending;assert.equal(exported.suggestedFilename(),'accs_000_u-YDD-YTD-UV.zip');
     const target=path.join(output,'native-edited.ydd');await exported.saveAs(target);
     const files=unzipSync(await readFile(target));
-    const atlasPlan=JSON.parse(new TextDecoder().decode(files['atlas-info.json']));assert.equal(atlasPlan.width,512);assert.equal(atlasPlan.reduced,false);
+    const atlasPlan=JSON.parse(new TextDecoder().decode(files['atlas-info.json']));assert.equal(atlasPlan.width,512);assert.equal(atlasPlan.reduced,false);assert.deepEqual(atlasPlan.sourceRects,[{x:0,y:0,width:512,height:512}]);assert.equal(atlasPlan.additionRects[0].x,320);
     assert.ok(Object.keys(files).some(k=>k.startsWith('UV/')&&k.endsWith('.png')));
     const newYtd=parseYtd(files['native-clothing.ytd']);
     assert.equal(newYtd.textures.length,1,'grzy diffuse override must receive the unified atlas');
@@ -145,6 +152,7 @@ try {
     for(let lod=0;lod<2;lod++) {
       const geometries=doc.drawables[0].readLod(lod);assert.equal(geometries.length,2,'Joined OBJ must exist inside the exported YDD at every LOD');
       assert.ok(Math.abs(geometries[0].positions[1]-1)<1e-6);
+      const originalDoc=parseYdd(await readFile('tests/fixtures/native-clothing-checker.ydd'));assert.deepEqual(geometries[0].uvs,originalDoc.drawables[0].readLod(lod)[0].uvs,'Full-map placement must preserve original clothing UVs');
       assert.ok(Math.abs(geometries[1].positions[0]-.1)<1e-6&&Math.abs(geometries[1].positions[1]-1)<1e-6,'Joined OBJ must keep its scene position');
     }
     await page.click('[data-tab=clothing]');

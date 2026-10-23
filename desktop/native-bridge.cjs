@@ -62,11 +62,12 @@ function registerNativeBridge({app,ipcMain,dialog,getWindow}) {
     if(!request||!['preserve','pelvis','head','spine'].includes(request.bone)||!Array.isArray(request.matrix)||request.matrix.length!==16||request.matrix.some(n=>typeof n!=='number'||!Number.isFinite(n)||Math.abs(n)>100000))throw Error('Transformação de exportação inválida.');
     const bytes=value=>{if(!(value instanceof Uint8Array)||!value.length||value.length>80*1024*1024)throw Error('Arquivo nativo inválido.');return Buffer.from(value).toString('base64');};
     const additions=request.additions??[];if(!Array.isArray(additions)||additions.length>32||Buffer.byteLength(JSON.stringify(additions))>10*1024*1024)throw Error('OBJ incorporado acima do limite.');
+    if(request.atlasLayout&&Buffer.byteLength(JSON.stringify(request.atlasLayout))>64*1024)throw Error('Layout UV acima do limite.');
     const data=bytes(request.bytes),pedData=request.pedBytes?bytes(request.pedBytes):undefined;
     busy=true;
     try {
       const config=await resolveConfig();
-      const result=await runBridge(executable,{command:request.atlasPlan===true?'plan-atlas':'edit-ydd',codewalkerDirectory:config.codewalkerDirectory,data,pedData,ytdData:request.ytdBytes?bytes(request.ytdBytes):undefined,atlas:request.atlas===true,atlasMaxResolution:request.atlasMaxResolution??4096,additions,matrix:request.matrix,bone:request.bone});
+      const result=await runBridge(executable,{command:request.atlasPlan===true?'plan-atlas':'edit-ydd',codewalkerDirectory:config.codewalkerDirectory,data,pedData,ytdData:request.ytdBytes?bytes(request.ytdBytes):undefined,atlas:request.atlas===true,atlasMaxResolution:request.atlasMaxResolution??4096,atlasLayout:request.atlasLayout,additions,matrix:request.matrix,bone:request.bone});
       if(request.atlasPlan===true)return result.plan;
       if(typeof result.data!=='string'||result.data.length>112*1024*1024)throw Error('YDD de saída inválido.');
       if(request.ytdBytes) {

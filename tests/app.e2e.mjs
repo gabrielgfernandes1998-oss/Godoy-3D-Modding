@@ -84,6 +84,28 @@ try {
   await mesh.locator('#load-native-ped').click();
   await mesh.locator('#ped-status').filter({hasText:'Ped do GTA carregado: mp_m_freemode_01'}).waitFor();
   await mesh.locator('#native-status').filter({hasText:'Ped base carregado via CodeWalker'}).waitFor();
+  // Exercise the export dialog in the browser; the actual binary export is
+  // covered by the packaged Windows test and the native all-LOD round trip.
+  await page.evaluate(()=>{window.godoyNative.exportYdd=async()=>({width:512,height:512,regions:1,materials:1,sourceWidth:4,sourceHeight:4,divisor:1,columns:1,reduced:false,fits:true});});
+  await meshFrame.goto(meshFrame.url());
+  await mesh.locator('#mesh-file').setInputFiles('tests/fixtures/native-clothing.ydd');
+  await mesh.locator('#status').filter({hasText:'native-clothing.ydd carregado'}).waitFor();
+  await mesh.locator('#obj-file').setInputFiles({name:'uv-cross.obj',mimeType:'text/plain',buffer:Buffer.from('v 0 0 0\nv 0.1 0 0\nv 0 0.1 0\nf 1 2 3\n')});
+  await mesh.locator('#merge-target').selectOption({label:'native-clothing.ydd'});await mesh.locator('#merge').click();
+  await mesh.locator('#ytd-file').setInputFiles('tests/fixtures/native-clothing.ytd');
+  await mesh.locator('#export-ydd').click();await mesh.locator('#uv-layout-canvas').waitFor();
+  assert.equal(await mesh.locator('#uv-width').inputValue(),'64');
+  await mesh.locator('#uv-width').fill('96');await mesh.locator('#uv-width').dispatchEvent('change');
+  await mesh.locator('#uv-undo').click();assert.equal(await mesh.locator('#uv-width').inputValue(),'64');
+  await mesh.locator('#uv-redo').click();assert.equal(await mesh.locator('#uv-width').inputValue(),'96');
+  const uvCanvas=await mesh.locator('#uv-layout-canvas').boundingBox();
+  await page.mouse.move(uvCanvas.x+uvCanvas.width*.9,uvCanvas.y+uvCanvas.height*.9);await page.mouse.down();await page.mouse.move(uvCanvas.x+uvCanvas.width*.8,uvCanvas.y+uvCanvas.height*.8);await page.mouse.up();
+  assert.ok(Number(await mesh.locator('#uv-x').inputValue())<448,'UV region follows pointer drag');
+  await mesh.locator('#uv-confirm').click();await mesh.locator('#uv-error').filter({hasText:'marque a confirmação'}).waitFor();
+  await mesh.locator('#uv-layout-canvas').focus();await page.keyboard.press('Control+z');assert.equal(await mesh.locator('#uv-x').inputValue(),'448','Ctrl+Z undoes UV drag');await page.keyboard.press('Control+y');
+  await mesh.locator('#uv-region').selectOption('0');assert.equal(await mesh.locator('#uv-width').inputValue(),'512','clothing occupies full canvas by default');
+  await page.screenshot({path:'.test-output/atlas-layout.png',fullPage:true});
+  await mesh.locator('#uv-cancel').click();await mesh.locator('#status').filter({hasText:'Exportação cancelada'}).waitFor();
   assert.deepEqual(errors,[]);assert.deepEqual(requests,[]);
   await mkdir('.test-output',{recursive:true});await page.click('[data-tab=pack]');await page.screenshot({path:'.test-output/studio.png',fullPage:true});
   await writeFile('.test-output/browser-results.json',JSON.stringify({status:'passed',checks:['pack ZIP with generated YMT','clothing YDD import / 3D paint / YTD round-trip','vehicle YFT import / 3D paint / YTD round-trip','OBJ geometry union / GLB export / reopen'],output},null,2));
