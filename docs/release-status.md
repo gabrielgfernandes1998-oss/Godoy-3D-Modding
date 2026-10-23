@@ -1,4 +1,14 @@
-# Estado da versão 0.6.1 beta
+# Estado da versão 0.6.2 beta
+
+Resolve o bloqueio por tamanho do atlas sem aumentar o limite de 16 megapixels. Materiais com as mesmas imagens diffuse/normal/specular compartilham uma área, e a quantidade de colunas é escolhida para minimizar o lado necessário. A resolução possui opções Ajustar até 4096/2048/1024 e Preservar original. Se necessário, Ajustar reduz as imagens com filtro de área (alpha ponderado para diffuse), mantendo o UV e os mapas auxiliares alinhados. Preservar não reduz silenciosamente. O botão Calcular tamanho do atlas mostra dimensões, áreas/materiais e fator de redução antes de exportar; o cálculo não modifica os vértices. O ZIP inclui atlas-info.json. Imagens antigas que deixaram de ser referenciadas não são duplicadas no YDD.
+
+Validação no [run 39992976802](https://github.com/gabrielgfernandes1998-oss/Godoy-3D-Modding/actions/runs/39992976802): 53 testes JS, 7 Python e suíte nativa passaram. A suíte nativa verifica 9 materiais com imagens idênticas usando uma região, entrada 4096 com atlas necessário 8192 sendo ajustada para 4096, modo Preservar sem alteração silenciosa, cálculo sem mutação, filtro de redução com padrão alternado e UVs/posição preservados nos LODs. O executável Windows usou a fixture 4096 pela UI para conferir cálculo e os modos Ajustar/Preservar, depois exportou/reabriu/pintou o atlas e comparou toda a metade da roupa. O fluxo CLI + navegador também passou localmente.
+
+Verificação adicional local: uma exportação completa pela CLI com a textura DXT1 sintética 4096 gerou atlas 4096×4096. O par YDD/YTD foi reaberto pelos parsers JavaScript e conferido para diffuse única, pixels da roupa/OBJ e separação de UV nos dois LODs. O arquivo real do usuário não foi disponibilizado; aparência/animação no grzy/FiveM continuam dependentes desse teste real.
+
+[Release 0.6.2](https://github.com/gabrielgfernandes1998-oss/Godoy-3D-Modding/releases/tag/v0.6.2) publicada, baixada e checksum conferido: 200,624,977 bytes; SHA-256 `f2ab426bbd9b208f6cd839244210d35c5bc35da7268885b8cca1ebe23b3628d1`.
+
+# Histórico da versão 0.6.1 beta
 
 Corrige o bloqueio do atlas para o sampler opaco `0x8ab98831` referenciando `givemechecker` sem imagem atribuída. Esse nome é o fallback de `FbxConverter.GetTextureBaseParam` no CodeWalker. Quando não existe imagem no parâmetro, no YTD ou no dicionário embutido, o slot desconhecido mantém hash e referência sem ser tratado como um mapa UV real. Normal/specular não atribuídos recebem regiões neutras no atlas auxiliar; secondary diffuse provisória ausente é preservada. Uma imagem real chamada givemechecker continua sujeita às verificações de compatibilidade.
 
