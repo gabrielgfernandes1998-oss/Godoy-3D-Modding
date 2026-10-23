@@ -1,4 +1,16 @@
-# Estado da versão 0.4.0 beta
+# Estado da versão 0.5.1 beta
+
+OBJ incorporado pode receber UV automático sem sobreposição entre faces e textura diffuse própria no YTD original. A exportação com OBJ exige associar o YTD e baixa um ZIP com o par YDD/YTD e guias UV PNG. O material adicional usa a nova textura em todos os LODs, preservando as referências, UVs e pixels da roupa. A pintura mostra as arestas UV da textura selecionada.
+
+Validação no [run 39973640482](https://github.com/gabrielgfernandes1998-oss/Godoy-3D-Modding/actions/runs/39973640482): 51 testes JS, 7 Python e suíte nativa .NET passaram. O executável Windows empacotado importou a roupa, incorporou OBJ, desfez/refez, associou YTD, exportou o ZIP e reabriu ambos os arquivos; verificou as geometrias e o novo sampler nos LODs. Depois selecionou a textura OBJ em Pintura de roupas, pintou no UV, exportou YTD e conferiu que os pixels do OBJ mudaram enquanto os da roupa permaneceram iguais. O navegador local também verificou o botão de associação do YTD, além das regressões de pack, pintura, cena e histórico. A suíte nativa verifica mipmaps completos, nomes/samplers e preservação dos bytes das texturas originais.
+
+[Release 0.5.1](https://github.com/gabrielgfernandes1998-oss/Godoy-3D-Modding/releases/tag/v0.5.1) publicada, baixada e checksum conferido: 200,600,164 bytes; SHA-256 `c5ae3c9901b69391746cf576f61617f18bbe549532f7302afef574f622307169`.
+
+O teste Windows da 0.5.0 bloqueou sua publicação ao detectar que o botão YTD perdia o evento de seleção. A 0.5.1 corrige o encaminhamento do evento e inclui a regressão no navegador.
+
+Limites: UV inicial com ilhas triangulares e textura cinza; sem unwrap artístico, MTL/imagens do OBJ, solda booleana, decimação de LOD ou edição de colisão. Até 21845 triângulos por parte após separação das costuras, 100000 vértices no total, 32 partes e 10 MB. Exige shader com DiffuseSampler compatível. A aparência e animação com assets reais no FiveM ainda precisam ser verificadas no jogo.
+
+# Histórico da versão 0.4.0 beta
 
 A união OBJ + YDD tem seletores explícitos de destino e origem. O objeto incorporado vira filho da peça, preservando a posição e a escala inclusive com destino não uniformemente escalado; desfazer/refazer restaura a organização anterior. A exportação grava geometria adicional no YDD original em todos os LODs existentes, preservando os canais originais e herdando material, palette de ossos e pesos da região mais próxima. UV ausente recebe projeção planar.
 
