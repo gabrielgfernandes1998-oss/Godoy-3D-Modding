@@ -146,3 +146,11 @@ O esqueleto da peça é preservado; quando falta o osso escolhido, pode ser usad
 O exportador recusa layouts de posição/normal não suportados, buffers compartilhados/duplos distintos e colisões próprias. União OBJ altera topologia e precisa ser desfeita para exportar o YDD original; GLB permanece como cópia avançada. Não converte registro de prop de cabeça para componente de roupa: se o boné for equipado pelo jogo como prop de cabeça, o recurso também precisa registrá-lo no componente apropriado para uso no cinto. Nome/META/YMT de um recurso existente não são convertidos automaticamente por este botão.
 
 Validação automatizada cobre serialização nativa, movimento/rotação/escala, normais, UVs, vínculo rígido, pesos preservados, esqueleto doador e LODs com nível intermediário ausente. A animação real no FiveM ainda precisa ser validada com o YDD/YTD do usuário.
+
+
+### Pivô e enquadramento OBJ (0.3.2)
+
+O gizmo fica no centro da geometria visível, mesmo quando a origem do OBJ está longe.
+A transformação é aplicada ao objeto original; a correção do pivô não altera os vértices de origem nem acrescenta um deslocamento à exportação YDD.
+**Enquadrar peça + referência** mantém YDD/ped e a seleção na vista. **Trazer seleção para a referência** recupera objetos já afastados e pode ser desfeito.
+Na importação, OBJ muito distante da referência é colocado ao lado dela; se a proporção de tamanho passar de 20× ou cair abaixo de 0,05×, a escala também é adaptada e informada no status. O arquivo original não é sobrescrito.

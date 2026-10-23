@@ -10,9 +10,10 @@ import {mergeStaticMeshes} from './mesh-core.js';
 import {rememberPed,readPed,forgetPed,rememberPedSkeleton,readPedSkeleton,forgetPedSkeleton} from './ped-library.js';
 import {SceneHistory,snapshotTransform,applyTransform,sameTransform} from './scene-history.js';
 import {nativeMatrix,sourceUnchanged,previewBindMatrix} from './ydd-export.js';
+import {visibleBounds,placePivot,pivotDelta,frameScene,placeImportedObj,moveToContext} from './scene-placement.js';
 import './mesh.css';
 const $=s=>document.querySelector(s);
-$('#app').innerHTML=`<aside><h1>Malhas e objetos</h1><p>Roupa inteira sobre o ped · exportação YDD</p><button id="open-mesh">Importar YDD / YFT / GLB</button><button id="open-ped">Importar ped de referência</button><button id="open-obj">Adicionar objeto OBJ</button><input id="mesh-file" type="file" accept=".ydd,.yft,.glb" hidden><input id="ped-file" type="file" accept=".ydd,.glb" hidden><input id="obj-file" type="file" accept=".obj" hidden><div class="history-actions"><button id="undo" disabled>Desfazer · Ctrl+Z</button><button id="redo" disabled>Refazer · Ctrl+Y</button></div><button id="fit-scene">Enquadrar cena inteira</button><h2>Peças na cena</h2><div id="tree"></div><h2>Transformação</h2><div class="modes"><button data-mode="translate" class="active">Mover</button><button data-mode="rotate">Girar</button><button data-mode="scale">Escala</button></div><label>Espaço<select id="space"><option value="local">Local</option><option value="world">Global</option></select></label><div id="fields"></div><button id="apply-transform">Aplicar valores</button><button id="focus">Centralizar seleção</button><label>Vínculo ao ped<select id="attachment-bone"><option value="preserve">Manter pesos e ossos originais</option><option value="pelvis">Cintura · SKEL_Pelvis (acessório rígido)</option><option value="head">Cabeça · SKEL_Head (acessório rígido)</option><option value="spine">Tronco · SKEL_Spine0 (acessório rígido)</option></select></label><button id="export-ydd" class="accent">Exportar peça YDD</button><p class="hint">Mova, gire e ajuste a peça inteira sobre o ped. Para prender um boné ao cinto, escolha Cintura antes de exportar. O YTD original continua associado.</p><details id="advanced-mesh"><summary>OBJ e cópia GLB</summary><label>Adicionar à primeira malha da peça selecionada<select id="merge-source"><option value="">Selecione um OBJ</option></select></label><button id="merge">Unir geometria + UV</button><button id="export-glb" >Exportar cópia GLB</button><p class="hint">A união usa o material de destino e preserva os UVs existentes. Não cria atlas nem pesos de skinning. O GLB é uma cena estática; não substitui YDD/YFT no FiveM.</p><p class="hint">A edição YDD mantém materiais, UVs e LODs originais. União OBJ e GLB são ferramentas separadas; não entram na exportação YDD.</p></details></aside><main><div id="viewport"></div><div id="status" role="status">Importe um modelo para começar.</div></main>`;
+$('#app').innerHTML=`<aside><h1>Malhas e objetos</h1><p>Roupa inteira sobre o ped · exportação YDD</p><button id="open-mesh">Importar YDD / YFT / GLB</button><button id="open-ped">Importar ped de referência</button><button id="open-obj">Adicionar objeto OBJ</button><input id="mesh-file" type="file" accept=".ydd,.yft,.glb" hidden><input id="ped-file" type="file" accept=".ydd,.glb" hidden><input id="obj-file" type="file" accept=".obj" hidden><div class="history-actions"><button id="undo" disabled>Desfazer · Ctrl+Z</button><button id="redo" disabled>Refazer · Ctrl+Y</button></div><button id="fit-scene">Enquadrar cena inteira</button><h2>Peças na cena</h2><div id="tree"></div><h2>Transformação</h2><div class="modes"><button data-mode="translate" class="active">Mover</button><button data-mode="rotate">Girar</button><button data-mode="scale">Escala</button></div><label>Espaço<select id="space"><option value="local">Local</option><option value="world">Global</option></select></label><div id="fields"></div><button id="apply-transform">Aplicar valores</button><button id="focus">Enquadrar peça + referência</button><button id="align-selection">Trazer seleção para a referência</button><label>Vínculo ao ped<select id="attachment-bone"><option value="preserve">Manter pesos e ossos originais</option><option value="pelvis">Cintura · SKEL_Pelvis (acessório rígido)</option><option value="head">Cabeça · SKEL_Head (acessório rígido)</option><option value="spine">Tronco · SKEL_Spine0 (acessório rígido)</option></select></label><button id="export-ydd" class="accent">Exportar peça YDD</button><p class="hint">Mova, gire e ajuste a peça inteira sobre o ped. Para prender um boné ao cinto, escolha Cintura antes de exportar. O YTD original continua associado.</p><details id="advanced-mesh"><summary>OBJ e cópia GLB</summary><label>Adicionar à primeira malha da peça selecionada<select id="merge-source"><option value="">Selecione um OBJ</option></select></label><button id="merge">Unir geometria + UV</button><button id="export-glb" >Exportar cópia GLB</button><p class="hint">A união usa o material de destino e preserva os UVs existentes. Não cria atlas nem pesos de skinning. O GLB é uma cena estática; não substitui YDD/YFT no FiveM.</p><p class="hint">A edição YDD mantém materiais, UVs e LODs originais. União OBJ e GLB são ferramentas separadas; não entram na exportação YDD.</p></details></aside><main><div id="viewport"></div><div id="status" role="status">Importe um modelo para começar.</div></main>`;
 for(const type of ['position','rotation','scale']) {
   const group=document.createElement('fieldset'),legend=document.createElement('legend');
   legend.textContent={position:'Posição',rotation:'Rotação (graus)',scale:'Escala'}[type];group.append(legend);
@@ -35,9 +36,10 @@ const reference=new THREE.Group();reference.name='PedReference';scene.add(refere
 const pedPanel=document.createElement('section');pedPanel.id='ped-library';
 pedPanel.innerHTML='<h2>Ped de referência</h2><label>Personagem<select id="ped-gender"><option value="male">Masculino · mp_m_freemode_01</option><option value="female">Feminino · mp_f_freemode_01</option></select></label><p id="ped-status" class="hint" role="status">Consultando biblioteca local…</p><label><input id="ped-visible" type="checkbox" checked> Mostrar ped (transparente)</label><button id="forget-ped">Remover ped salvo deste gênero</button><p class="hint">Importe uma vez um YDD ou GLB autorizado; ele será lembrado neste computador. A referência não entra na exportação GLB.</p>';
 $('#open-ped').after(pedPanel);
+const pivot=new THREE.Group();pivot.name='SelectionPivot';scene.add(pivot);
 const transform=new TransformControls(camera,renderer.domElement);scene.add(transform.getHelper());
 transform.addEventListener('dragging-changed',e=>orbit.enabled=!e.value);
-transform.addEventListener('objectChange',()=>{dirty=true;sync();});
+transform.addEventListener('objectChange',()=>{if(dragStart){pivotDelta(dragStart.object,pivot,dragStart.anchor,dragStart.world);dirty=true;sync();}});
 let selection=null,dirty=false,dragStart=null;
 const resources=new Set();
 const sourceFiles=new WeakMap();
@@ -46,7 +48,7 @@ const history=new SceneHistory({onChange:()=> {
   $('#undo').disabled=!history.undoStack.length;$('#redo').disabled=!history.redoStack.length;
   releaseUnusedResources();
 }});
-transform.addEventListener('mouseDown',()=>{if(selection)dragStart={object:selection,before:snapshotTransform(selection)};});
+transform.addEventListener('mouseDown',()=>{if(selection)dragStart={object:selection,before:snapshotTransform(selection),anchor:pivot.matrixWorld.clone(),world:selection.matrixWorld.clone()};});
 transform.addEventListener('mouseUp',()=> {
   if(!dragStart)return;
   const {object,before}=dragStart;dragStart=null;const after=snapshotTransform(object);
@@ -105,7 +107,7 @@ function sync() {
   $('#attachment-bone').value=selection.userData.attachmentBone??'preserve';
   for(const type of ['position','rotation','scale']) for(const axis of ['x','y','z']) $(`#${type}-${axis}`).value=(selection[type][axis]*(type==='rotation'?180/Math.PI:1)).toFixed(4);
 }
-function select(object) {while(object.parent&&object.parent!==content)object=object.parent;selection=object;transform.attach(object);sync();refreshTree();}
+function select(object) {while(object.parent&&object.parent!==content)object=object.parent;selection=object;if(placePivot(pivot,object))transform.attach(pivot);else transform.detach();sync();refreshTree();}
 function refreshTree() {
   $('#tree').replaceChildren();
   for(const object of content.children) {
@@ -114,10 +116,15 @@ function refreshTree() {
   $('#merge-source').replaceChildren(new Option('Selecione um OBJ',''));
   content.children.filter(a=>a.userData.godoyObj).forEach(a=>$('#merge-source').append(new Option(a.name,a.uuid)));
 }
+function contextBounds(exclude=null) {
+  const box=new THREE.Box3();
+  for(const object of content.children)if(object!==exclude&&!object.userData.godoyObj)box.union(visibleBounds(object));
+  if(reference.visible)box.union(visibleBounds(reference));return box;
+}
 function focus(object=selection??content) {
-  const box=object===scene?new THREE.Box3().setFromObject(content).union(new THREE.Box3().setFromObject(reference)):new THREE.Box3().setFromObject(object);if(box.isEmpty()) return;
-  const center=box.getCenter(new THREE.Vector3()),size=box.getSize(new THREE.Vector3()).length();
-  orbit.target.copy(center);camera.position.copy(center).add(new THREE.Vector3(1,.6,1).normalize().multiplyScalar(Math.max(size*1.5,.5)));orbit.update();
+  const box=object===scene?visibleBounds(content).union(visibleBounds(reference)):visibleBounds(object);
+  if(object!==scene&&object!==content)box.union(contextBounds(object));
+  frameScene(camera,orbit,box);
 }
 const ray=new THREE.Raycaster();let down=null;
 renderer.domElement.addEventListener('pointerdown',e=>down=[e.clientX,e.clientY]);
@@ -207,8 +214,8 @@ $('#obj-file').onchange=e=>guard(async()=> {
   const object=new OBJLoader().parse(await file.text());let vertices=0;
   object.traverse(m=>{if(m.isMesh){vertices+=m.geometry.attributes.position.count;m.material=new THREE.MeshStandardMaterial({color:0xdca05c,side:THREE.DoubleSide});}});
   if(!vertices||vertices>1000000)throw Error('OBJ vazio ou acima de 1 milhão de vértices.');
-  object.name=file.name;addObject(object,{isObj:true});e.target.value='';
-  status('OBJ adicionado sem mudar a câmera. Os modelos e o ped foram preservados. Use Enquadrar cena inteira se precisar.');
+  object.name=file.name;const placement=placeImportedObj(object,contextBounds());addObject(object,{isObj:true});if(placement.adjusted)focus(object);e.target.value='';
+  status(placement.adjusted?`OBJ adicionado perto da referência; origem distante/unidades ajustadas (escala ×${placement.factor.toPrecision(4)}). O arquivo original foi preservado. Ctrl+Z desfaz a importação.`:'OBJ adicionado. O gizmo acompanha o centro da peça. Enquadrar peça + referência mantém o YDD e o ped na vista.');
 })();
 document.querySelectorAll('[data-mode]').forEach(button=>button.onclick=()=> {
   transform.setMode(button.dataset.mode);document.querySelectorAll('[data-mode]').forEach(b=>b.classList.toggle('active',b===button));
@@ -223,6 +230,11 @@ $('#apply-transform').onclick=guard(()=> {
   const object=selection,before=snapshotTransform(object);object.position.fromArray(values.position);object.rotation.set(...values.rotation.map(v=>v*Math.PI/180));object.scale.fromArray(values.scale);const after=snapshotTransform(object);if(!sameTransform(before,after))recordTransform(object,before,after);sync();status('Transformação aplicada. Ctrl+Z desfaz.');
 });
 $('#focus').onclick=()=>focus();
+$('#align-selection').onclick=guard(()=> {
+  if(!selection)throw Error('Selecione o OBJ ou a peça a reposicionar.');
+  const object=selection,before=snapshotTransform(object);moveToContext(object,contextBounds(object));const after=snapshotTransform(object);
+  if(!sameTransform(before,after))recordTransform(object,before,after);focus(object);status('Seleção trazida para a referência. Ctrl+Z restaura a posição anterior.');
+});
 $('#merge').onclick=guard(()=> {
   const source=content.children.find(a=>a.userData.godoyObj&&a.uuid===$('#merge-source').value);
   let target=null;selection?.traverse(o=>{if(!target&&o.isMesh)target=o;});

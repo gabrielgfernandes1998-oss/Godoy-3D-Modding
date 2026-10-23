@@ -1,10 +1,10 @@
-# Godoy 3D Modding 0.3.1 beta
+# Godoy 3D Modding 0.3.2 beta
 
-- Seleção da peça inteira no mesmo viewport do ped, sem árvore de drawables/LODs.
-- Exportação nativa YDD: grava posição, rotação e escala em todos os LODs e transforma normais/tangentes.
-- Opção de preservar rig original ou prender acessório rigidamente à pelve, cabeça ou tronco. Quando necessário, usa esqueleto do ped YDD carregado/importado.
-- Reabre e verifica vértices, pesos, índices, bindings e LODs antes de exportar. Mantém materiais, UVs e nome do arquivo; use o YTD original.
-- Ctrl+Z/Ctrl+Y também desfazem/refazem a escolha do vínculo. OBJ/GLB ficam em ferramentas avançadas.
-- Corrige offsets de escrita CodeWalker quando faltam LODs intermediários.
+- O gizmo acompanha o centro visível da peça, inclusive OBJ com origem distante dos vértices. Rotação e escala usam esse pivô; posição e exportação nativa continuam aplicadas ao objeto original.
+- Enquadrar peça + referência mantém YDD/ped e seleção no mesmo enquadramento, respeitando proporção da janela e planos de recorte da câmera.
+- OBJ com origem muito distante ou tamanho incompatível é colocado perto da referência na importação; escalas extremas são ajustadas e informadas. Vértices do arquivo original permanecem intactos.
+- Trazer seleção para a referência recupera peças já afastadas, com Ctrl+Z/Ctrl+Y.
+- LODs ocultos não deslocam o pivô nem distorcem o enquadramento.
+- Corrige o rótulo da versão para acompanhar o package.json.
 
-Limites: sem incorporação OBJ nativa, pintura de pesos, colisões próprias ou exportação YFT. Layouts incompatíveis são recusados. Não converte a categoria/META/YMT de prop de cabeça em roupa de cintura. Preview estático; testes de animação no FiveM e extração do ped de instalação real ainda precisam de validação.
+A exportação YDD da versão anterior permanece. OBJ unido ainda não é incorporado ao YDD nativo; a união continua nas ferramentas GLB. Validação FiveM com assets reais permanece necessária.
