@@ -4,8 +4,8 @@ using System.Runtime.Loader;
 using System.Security.Cryptography;
 using System.Text.Json;
 
-// Original adapter. CodeWalker and GTA data are supplied by the local user,
-// never downloaded, bundled, patched or written into the game installation.
+// Original adapter. The GPL grzyClothTool CodeWalker core is bundled with source.
+// GTA data remains local; the game installation is never modified.
 var output=Console.Out;
 try {
     var input=await Console.In.ReadToEndAsync();

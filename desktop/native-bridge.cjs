@@ -1,6 +1,7 @@
 const fs=require('node:fs/promises');
 const path=require('node:path');
 const {spawn}=require('node:child_process');
+const {validGame,discoverGame}=require('./gta-discovery.cjs');
 
 function runBridge(executable,request,{timeout=300000}={}) {
   return new Promise((resolve,reject)=> {
@@ -24,30 +25,42 @@ function registerNativeBridge({app,ipcMain,dialog,getWindow}) {
   const executable=path.join(process.resourcesPath,'native-bridge','Godoy.CodeWalkerBridge.exe');
   let busy=false;
   const allowed=event=>{if(event.sender!==getWindow()?.webContents||event.senderFrame?.url!=='godoy://app/index.html')throw Error('Origem não autorizada.');};
-  const readConfig=async()=>JSON.parse(await fs.readFile(configFile,'utf8'));
+  const bundled=path.join(process.resourcesPath,'codewalker-local');
+  const readConfig=async()=>{try{return JSON.parse(await fs.readFile(configFile,'utf8'));}catch{return {};}};
+  const save=async config=>{await fs.mkdir(path.dirname(configFile),{recursive:true});await fs.writeFile(configFile,JSON.stringify(config));};
+  const resolveConfig=async()=> {
+    const config=await readConfig();
+    try {await fs.access(path.join(bundled,'CodeWalker.Core.dll'));config.codewalkerDirectory=bundled;}catch{}
+    if(!await validGame(config.gameDirectory))config.gameDirectory=await discoverGame();
+    if(config.gameDirectory)await save(config);
+    return config;
+  };
   ipcMain.handle('godoy:native-status',async event=> {
     allowed(event);if(process.platform!=='win32')return {configured:false,available:false};
     try {await fs.access(executable);}catch{return {configured:false,available:false};}
-    try {const config=await readConfig();await fs.access(path.join(config.codewalkerDirectory,'CodeWalker.Core.dll'));return {configured:true,available:true};}catch{return {configured:false,available:true};}
+    const config=await resolveConfig();
+    let core=false;try{await fs.access(path.join(config.codewalkerDirectory,'CodeWalker.Core.dll'));core=true;}catch{}
+    return {configured:core&&!!config.gameDirectory,available:true,gameFound:!!config.gameDirectory,coreAvailable:core};
   });
   ipcMain.handle('godoy:native-configure',async event=> {
     allowed(event);if(busy)throw Error('Aguarde a operação nativa atual.');busy=true;
     try {
-      const cw=await dialog.showOpenDialog(getWindow(),{title:'Selecione a pasta do CodeWalker (CodeWalker.Core.dll)',properties:['openDirectory']});
-      if(cw.canceled)return {canceled:true};
-      const codewalkerDirectory=cw.filePaths[0];await fs.access(path.join(codewalkerDirectory,'CodeWalker.Core.dll'));
-      const probe=await runBridge(executable,{command:'probe',codewalkerDirectory});
-      const gta=await dialog.showOpenDialog(getWindow(),{title:'Selecione a instalação GTA V Legacy (GTA5.exe)',properties:['openDirectory']});
-      if(gta.canceled)return {canceled:true};
-      const gameDirectory=gta.filePaths[0];await fs.access(path.join(gameDirectory,'GTA5.exe'));await fs.access(path.join(gameDirectory,'x64v.rpf'));
-      await fs.mkdir(path.dirname(configFile),{recursive:true});await fs.writeFile(configFile,JSON.stringify({codewalkerDirectory,gameDirectory}));
-      return {configured:true,version:probe.version};
+      const config=await resolveConfig();
+      if(!config.codewalkerDirectory)throw Error('Núcleo CodeWalker ausente. Extraia novamente o portable completo.');
+      const probe=await runBridge(executable,{command:'probe',codewalkerDirectory:config.codewalkerDirectory});
+      if(!await validGame(config.gameDirectory)) {
+        const gta=await dialog.showOpenDialog(getWindow(),{title:'Selecione a instalação GTA V Legacy (GTA5.exe e x64v.rpf)',properties:['openDirectory']});
+        if(gta.canceled)return {canceled:true};
+        config.gameDirectory=gta.filePaths[0];
+        if(!await validGame(config.gameDirectory))throw Error('Pasta inválida: são necessários GTA5.exe e x64v.rpf do GTA V Legacy.');
+      }
+      await save(config);return {configured:true,version:probe.version};
     } finally {busy=false;}
   });
   ipcMain.handle('godoy:native-ped',async(event,gender)=> {
     allowed(event);if(!['male','female'].includes(gender))throw Error('Gênero inválido.');if(busy)throw Error('Aguarde a operação nativa atual.');busy=true;
     try {
-      const config=await readConfig(),result=await runBridge(executable,{command:'ped',...config,gender});
+      const config=await resolveConfig();if(!await validGame(config.gameDirectory))throw Error("GTA V Legacy não encontrado. Selecione o diretório do jogo.");const result=await runBridge(executable,{command:'ped',...config,gender});
       if(!Array.isArray(result.assets)||result.assets.length>5)throw Error('Resposta de ped inválida.');
       const assets=result.assets.map(asset=> {
         if(!/^[a-z0-9_.-]+\.ydd$/i.test(asset.name)||typeof asset.data!=='string'||asset.data.length>112*1024*1024)throw Error('Componente de ped inválido.');

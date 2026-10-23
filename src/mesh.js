@@ -235,7 +235,7 @@ window.addEventListener('beforeunload',e=>{if(dirty){e.preventDefault();e.return
 
 const native=window.parent.godoyNative??window.godoyNative;
 const nativePanel=document.createElement('section');nativePanel.id='native-ped-panel';
-nativePanel.innerHTML='<h2>CodeWalker · ped do GTA</h2><button id="configure-native">Configurar CodeWalker + GTA V</button><button id="load-native-ped">Carregar ped deste gênero do GTA</button><p id="native-status" class="hint" role="status">Selecione a pasta do CodeWalker e uma instalação GTA V Legacy. O preview usa os componentes base em pose estática.</p>';
+nativePanel.innerHTML='<h2>CodeWalker · ped do GTA</h2><button id="configure-native">Selecionar diretório do GTA V</button><button id="load-native-ped">Carregar ped deste gênero do GTA</button><p id="native-status" class="hint" role="status">Procurando GTA V Legacy nas bibliotecas Steam… O preview usa os componentes base em pose estática.</p>';
 $('#ped-library').append(nativePanel);
 if(!native) {
   $('#configure-native').disabled=true;$('#load-native-ped').disabled=true;
@@ -244,11 +244,11 @@ if(!native) {
   $('#load-native-ped').disabled=true;
   native.status().then(value=> {
     if(!value.available){$('#configure-native').disabled=true;$('#load-native-ped').disabled=true;$('#native-status').textContent='A ponte CodeWalker requer o portable Windows.';return;}
-    $('#load-native-ped').disabled=!value.configured;if(value.configured)$('#native-status').textContent='Pastas configuradas. Pronto para solicitar o ped base.';
+    $('#load-native-ped').disabled=!value.configured;$('#configure-native').hidden=value.configured;$('#native-status').textContent=value.configured?'GTA V Legacy encontrado. Selecione o gênero e carregue o ped.':value.coreAvailable?'GTA V Legacy não encontrado. Selecione o diretório do jogo.':'Núcleo CodeWalker ausente. Extraia o portable completo.';
   }).catch(error=>$('#native-status').textContent=error.message);
   $('#configure-native').onclick=guard(async()=> {
     $('#configure-native').disabled=true;
-    try {const result=await native.configure();if(!result.canceled){$('#load-native-ped').disabled=false;$('#native-status').textContent=`CodeWalker ${result.version} conectado. Selecione o gênero e carregue o ped.`;}}
+    try {const result=await native.configure();if(!result.canceled){$('#load-native-ped').disabled=false;$('#configure-native').hidden=true;$('#native-status').textContent=`CodeWalker ${result.version} conectado. Selecione o gênero e carregue o ped.`;}}
     catch(error){$('#native-status').textContent=error.message;}
     finally{$('#configure-native').disabled=false;}
   });

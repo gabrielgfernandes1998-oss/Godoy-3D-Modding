@@ -78,7 +78,7 @@ A CLI legada aceita apenas `_u/uni` e o contrato antigo de META (`dlcName` igual
 
 ## Créditos
 
-Integra os projetos do autor [PAINTFIVE](https://github.com/gabrielgfernandes1998-oss/PAINTFIVE) e [Godoy-Paint-Car](https://github.com/gabrielgfernandes1998-oss/Godoy-Paint-Car), conforme solicitado. Commits de origem e avisos preservados em `modules/*/UPSTREAM.md` e `THIRD_PARTY_NOTICES.txt`. CodeWalker não é incluído no aplicativo.
+Integra os projetos do autor [PAINTFIVE](https://github.com/gabrielgfernandes1998-oss/PAINTFIVE) e [Godoy-Paint-Car](https://github.com/gabrielgfernandes1998-oss/Godoy-Paint-Car), conforme solicitado. Commits de origem e avisos preservados em `modules/*/UPSTREAM.md` e `THIRD_PARTY_NOTICES.txt`. A partir da 0.2.4, o núcleo CodeWalker da variante grzyClothTool acompanha o portable, com fontes e licença GPL-3.0.
 
 ## Correção da tela vazia (0.2.1)
 
@@ -96,11 +96,11 @@ A importação de OBJ mantém a câmera e a cena existentes. **Enquadrar cena in
 
 No portable Windows, em **Malhas → CodeWalker · ped do GTA**:
 
-1. Clique **Configurar CodeWalker + GTA V** e escolha a pasta que contém `CodeWalker.Core.dll` e as DLLs do próprio CodeWalker.
-2. Escolha sua instalação **GTA V Legacy**, contendo `GTA5.exe` e `x64v.rpf`.
+1. O Godoy procura automaticamente GTA V Legacy nas bibliotecas Steam. O núcleo CodeWalker já está integrado.
+2. Somente se não encontrar o jogo, clique **Selecionar diretório do GTA V** e escolha a instalação **Legacy**, contendo `GTA5.exe` e `x64v.rpf`.
 3. Selecione masculino/feminino e clique **Carregar ped deste gênero do GTA**.
 
-A ponte .NET usa a biblioteca local para ler os componentes base de cabeça, tronco, pernas, pés e mãos em `x64v.rpf`; o preview é estático e pode informar componentes ausentes. A cópia é guardada na biblioteca local. O jogo e seus RPFS não são modificados. CodeWalker, suas dependências e arquivos GTA não são distribuídos no nosso ZIP. O runtime .NET necessário à ponte está incluído; seus avisos de licença ficam em `resources/native-bridge/`.
+A ponte .NET usa a biblioteca local para ler os componentes base de cabeça, tronco, pernas, pés e mãos em `x64v.rpf`; o preview é estático e pode informar componentes ausentes. A cópia é guardada na biblioteca local. O jogo e seus RPFS não são modificados. Na 0.2.4, CodeWalker.Core e suas dependências acompanham o ZIP; os arquivos GTA não são distribuídos. O runtime .NET necessário à ponte está incluído; seus avisos de licença ficam em `resources/native-bridge/`.
 
 A conexão/carregamento da biblioteca e o round-trip YDD foram exercitados com CodeWalker.Core real e um drawable de referência reservado do grzyClothTool, somente fora do pacote. A extração do ped de uma instalação GTA real ainda exige validação no computador do usuário: não existe uma instalação GTA neste ambiente. A ponte não aplica animações/skinning e **ainda não recompila o OBJ editado em YDD/YFT**; essa etapa continua exigindo um pipeline de rigging e escrita nativa. Não substitua um recurso FiveM pelo GLB.
 
@@ -115,8 +115,8 @@ npm run build:codewalker -- /caminho/CodeWalker/CodeWalker.Core
 ```
 
 O comando compila o núcleo e suas dependências em `native/publish/codewalker-local`.
-Copie essa pasta para o Windows e selecione-a em **Configurar CodeWalker + GTA V**.
-É uma compilação local de fontes fornecidas pelo usuário; não adiciona esses fontes ou DLLs às releases públicas.
+Ao compilar o portable, essa pasta é incluída automaticamente em `resources/codewalker-local`; o usuário não precisa selecioná-la.
+Sem argumento, o comando compila os fontes incluídos em `third_party/CodeWalker.Core`. O portable inclui o resultado e os fontes correspondentes.
 
 Para deixar os dois peds disponíveis, importe uma referência completa YDD/GLB com o gênero
 masculino selecionado e outra com o feminino. A biblioteca local guarda cada referência
@@ -124,3 +124,12 @@ separadamente. Os arquivos de ped não vêm no código-fonte CodeWalker.
 **Ajustar posição/rotação/escala na cena ainda não regrava o YDD:** a exportação de malha
 atual é GLB. Para levar esses ajustes ao FiveM é necessário gravar a geometria nativa
 com ossos, pesos e LODs compatíveis; carregar o CodeWalker por si só não realiza essa etapa.
+
+### GTA Steam automático (0.2.4)
+
+O portable inclui CodeWalker.Core; não é necessário instalar ou configurar CodeWalker.
+A busca consulta o registro Steam, as pastas padrão, `libraryfolders.vdf` e o manifesto
+Steam 271590, incluindo bibliotecas em outros discos. Só aceita GTA V Legacy com
+`GTA5.exe` e `x64v.rpf`. Se não encontrar, mostra **Selecionar diretório do GTA V**;
+a escolha válida é lembrada. Selecione masculino/feminino e clique **Carregar ped**.
+A leitura real do RPF continua dependendo de validação com uma instalação local do GTA.

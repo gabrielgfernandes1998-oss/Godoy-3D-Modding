@@ -43,6 +43,9 @@ try {
     try {execFileSync(executable,[],{input:JSON.stringify({command:'probe',codewalkerDirectory:path.join(output,'missing-codewalker')}),encoding:'utf8',windowsHide:true});throw Error('Missing CodeWalker must not report success');}
     catch(error){if(!error.stdout)throw error;result=JSON.parse(error.stdout);}
     assert.equal(result.ok,false);assert.match(result.error,/CodeWalker.Core.dll/);
+    const bundled=JSON.parse(execFileSync(executable,[],{input:JSON.stringify({command:'probe',codewalkerDirectory:path.join(resourcesPath,'codewalker-local')}),encoding:'utf8',windowsHide:true}));
+    assert.equal(bundled.ok,true);assert.ok(bundled.capabilities.includes('ped-base-rpf'));
+    assert.ok((await readFile(path.join(resourcesPath,'codewalker-local/source/COPYING'),'utf8')).includes('GNU GENERAL PUBLIC LICENSE'));
   }
   const blocked=await page.evaluate(async()=> {try{await fetch('file:///etc/passwd');return false;}catch{return true;}});
   assert.ok(blocked,'Renderer must not have arbitrary file access');

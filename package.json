@@ -1,6 +1,6 @@
 {
   "name": "godoy-3d-modding",
-  "version": "0.2.3",
+  "version": "0.2.4",
   "private": true,
   "type": "module",
   "main": "electron.cjs",
@@ -12,7 +12,7 @@
     "preview": "vite preview --host 127.0.0.1",
     "test": "node --test tests/*.test.js modules/clothing/tests/native-formats.test.js modules/clothing/tests/editor-core.test.js modules/vehicles/tests/native-formats.test.js modules/vehicles/tests/uv.test.js modules/vehicles/tests/camera-pan.test.js",
     "test:browser": "node tests/app.e2e.mjs",
-    "package:windows": "npm run build:native && npm run build && node --use-env-proxy scripts/portable.mjs",
+    "package:windows": "npm run build:native && npm run build:codewalker && npm run build && node --use-env-proxy scripts/portable.mjs",
     "release:check": "node scripts/publish-release.mjs --check",
     "release:publish": "node scripts/publish-release.mjs",
     "test:desktop": "node tests/desktop.e2e.mjs",

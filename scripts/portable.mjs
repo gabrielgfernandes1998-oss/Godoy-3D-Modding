@@ -13,7 +13,7 @@ try {
   await copyFile('electron.cjs',path.join(stage,'electron.cjs'));
   await cp('desktop',path.join(stage,'desktop'),{recursive:true});
   await writeFile(path.join(stage,'package.json'),JSON.stringify({name:'godoy-3d-modding',version,main:'electron.cjs',author:'Gabriel Godoy',description:'Godoy 3D Modding',private:true}));
-  const paths=await packager({dir:stage,name:'Godoy 3D Modding',executableName:'Godoy3DModding',platform:'win32',arch:'x64',electronVersion:'45.0.0',out:path.join(root,'release'),overwrite:true,asar:true,prune:true,extraResource:[native],download:{cacheRoot:process.env.GODOY_ELECTRON_CACHE||'/tmp/godoy-electron-cache'}});
+  const paths=await packager({dir:stage,name:'Godoy 3D Modding',executableName:'Godoy3DModding',platform:'win32',arch:'x64',electronVersion:'45.0.0',out:path.join(root,'release'),overwrite:true,asar:true,prune:true,extraResource:[native,path.join(root,'native/publish/codewalker-local')],download:{cacheRoot:process.env.GODOY_ELECTRON_CACHE||'/tmp/godoy-electron-cache'}});
   for(const directory of paths) {
     for(const file of ['README.md','THIRD_PARTY_NOTICES.txt'])await copyFile(file,path.join(directory,file));
     await cp('docs',path.join(directory,'docs'),{recursive:true});

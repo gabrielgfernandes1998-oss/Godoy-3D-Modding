@@ -1,0 +1,3 @@
+CodeWalker.Core: fontes fornecidas pelo usuário em CodeWalker.zip, variante do grzyClothTool (https://github.com/grzybeek/grzyClothTool), originalmente CodeWalker de dexyfex. Licença da distribuição grzyClothTool: GPL-3.0, preservada em COPYING. Modificações do Godoy: nenhuma. Fontes correspondentes acompanham o portable.
+
+Todos os arquivos originais foram comparados com a árvore do grzyClothTool no commit 6b118754e332414e7026b694b7559bfff56984a4 (iguais, normalizando CRLF). Origem: CodeWalker/CodeWalker.Core. Os avisos adicionais COPYING, SharpDX-LICENSE.txt e Microsoft-runtime-LICENSE.txt foram acrescentados pelo empacotamento Godoy.

@@ -158,4 +158,4 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
-Godoy.CodeWalkerBridge uses the self-contained Microsoft .NET 8 runtime. Its LICENSE and THIRD-PARTY-NOTICES are included under resources/native-bridge. CodeWalker.Core and GTA assets are user-supplied and are not distributed in this package.
+Godoy.CodeWalkerBridge uses the self-contained Microsoft .NET 8 runtime. Its LICENSE and THIRD-PARTY-NOTICES are included under resources/native-bridge. CodeWalker.Core is bundled from the GPL-3.0 grzyClothTool distribution (original CodeWalker by dexyfex). Corresponding source and GPL license accompany it under resources/codewalker-local/source. GTA assets are not distributed.
