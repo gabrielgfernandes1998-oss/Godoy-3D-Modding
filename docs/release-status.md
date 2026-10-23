@@ -1,4 +1,12 @@
-# Estado da versão 0.5.1 beta
+# Estado da versão 0.5.2 beta
+
+Corrige os dois erros reportados em uso real: “Esqueleto de ped inválido” ao carregar pelo CodeWalker e “Material YDD sem DiffuseSampler compatível” na exportação do OBJ. O buffer Uint8Array vindo da janela principal é validado por sua marca de view e copiado para o contexto local antes do IndexedDB; a verificação antiga por instanceof rejeitava buffers de outro contexto. A identificação dos samplers agora usa os hashes JOAAT canônicos em minúsculas do GTA, mantendo suporte aos hashes mistos produzidos nas fixtures antigas. Os fixtures foram corrigidos para usar o hash GTA `4059966321` de diffusesampler.
+
+Validação no [run 39980396697](https://github.com/gabrielgfernandes1998-oss/Godoy-3D-Modding/actions/runs/39980396697): 53 testes JavaScript, suíte nativa .NET e 7 testes Python passaram. Há regressões para Uint8Array de outro contexto com byteOffset, entradas inválidas, diffuse/bump/spec canônicos e diffuse legado. O navegador local simulou bytes da janela principal e carregou o ped pelo botão. O executável Windows empacotado recebeu um ped sintético pela IPC real do Electron, carregou e guardou o esqueleto, depois exportou o OBJ incorporado usando material com hash canônico e verificou a pintura independente no YTD. O teste usa fixtures originais; a extração de uma instalação GTA real e a aparência/animação no FiveM continuam dependentes de validação no computador do usuário.
+
+[Release 0.5.2](https://github.com/gabrielgfernandes1998-oss/Godoy-3D-Modding/releases/tag/v0.5.2) publicada, baixada e checksum conferido: 200,601,299 bytes; SHA-256 `ae6ae06f3335d981d269d2767576533b5fe0b222f9277257052ee5ba89f4aab1`.
+
+# Histórico da versão 0.5.1 beta
 
 OBJ incorporado pode receber UV automático sem sobreposição entre faces e textura diffuse própria no YTD original. A exportação com OBJ exige associar o YTD e baixa um ZIP com o par YDD/YTD e guias UV PNG. O material adicional usa a nova textura em todos os LODs, preservando as referências, UVs e pixels da roupa. A pintura mostra as arestas UV da textura selecionada.
 
