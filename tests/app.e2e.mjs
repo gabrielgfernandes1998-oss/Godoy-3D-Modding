@@ -78,6 +78,12 @@ try {
   await meshFrame.goto(meshFrame.url());
   await mesh.locator('#ped-status').filter({hasText:'Ped carregado: mp_m_freemode_01.ydd'}).waitFor();
   await mesh.locator('#mesh-file').setInputFiles(glbPath);await mesh.locator('#status').filter({hasText:'scene.glb carregado'}).waitFor();
+  // Emulate the main-window native API: asset bytes belong to the parent realm.
+  await page.evaluate(data=>window.godoyNative={status:async()=>({available:true,configured:true,coreAvailable:true}),loadPed:async()=>({ped:'mp_m_freemode_01',assets:[{name:'head_000_r.ydd',bytes:new Uint8Array(data)}],missing:[]})},Array.from(makeYdd()));
+  await meshFrame.goto(meshFrame.url());
+  await mesh.locator('#load-native-ped').click();
+  await mesh.locator('#ped-status').filter({hasText:'Ped do GTA carregado: mp_m_freemode_01'}).waitFor();
+  await mesh.locator('#native-status').filter({hasText:'Ped base carregado via CodeWalker'}).waitFor();
   assert.deepEqual(errors,[]);assert.deepEqual(requests,[]);
   await mkdir('.test-output',{recursive:true});await page.click('[data-tab=pack]');await page.screenshot({path:'.test-output/studio.png',fullPage:true});
   await writeFile('.test-output/browser-results.json',JSON.stringify({status:'passed',checks:['pack ZIP with generated YMT','clothing YDD import / 3D paint / YTD round-trip','vehicle YFT import / 3D paint / YTD round-trip','OBJ geometry union / GLB export / reopen'],output},null,2));

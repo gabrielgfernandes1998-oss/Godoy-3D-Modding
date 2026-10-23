@@ -85,6 +85,19 @@ try {
   await exerciseMeshHistory(page,mesh);
   if(process.platform==='win32') {
     const original=await readFile('tests/fixtures/native-clothing.ydd');
+    // Simulate extracted GTA bytes through real Electron IPC; no GTA install in CI.
+    await desktop.evaluate(({ipcMain},data)=> {
+      ipcMain.removeHandler('godoy:native-ped');
+      ipcMain.handle('godoy:native-ped',()=>({ped:'mp_m_freemode_01',assets:[{name:'head_000_r.ydd',bytes:new Uint8Array(data)}],missing:[]}));
+    },Array.from(original));
+    await mesh.locator('#load-native-ped').evaluate(button=>button.disabled=false);
+    await mesh.locator('#load-native-ped').click();
+    await mesh.locator('#ped-status').filter({hasText:'Ped do GTA carregado: mp_m_freemode_01'}).waitFor();
+    await mesh.locator('#native-status').filter({hasText:'Ped base carregado via CodeWalker'}).waitFor();
+    await mesh.locator('#load-native-ped').waitFor({state:'visible'});
+    // Wait for GLB cache/export completion before importing a different reference.
+    await mesh.locator('#load-native-ped').evaluate(button=>new Promise(resolve=>{const check=()=>button.disabled?setTimeout(check,25):resolve();check();}));
+
     await mesh.locator('#ped-file').setInputFiles({name:'mp_m_freemode_01.ydd',mimeType:'application/octet-stream',buffer:original});
     await mesh.locator('#ped-status').filter({hasText:'Ped salvo e carregado'}).waitFor();
     await mesh.locator('#mesh-file').setInputFiles({name:'accs_000_u.ydd',mimeType:'application/octet-stream',buffer:original});

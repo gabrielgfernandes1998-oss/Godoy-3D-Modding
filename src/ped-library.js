@@ -31,8 +31,14 @@ export async function readPed(gender) {
 export const forgetPed=gender=>transaction(gender,'readwrite',(store,key)=>store.delete(key));
 
 export async function rememberPedSkeleton(gender,bytes) {
-  if(!(bytes instanceof Uint8Array)||!bytes.length||bytes.length>80*1024*1024)throw Error('Esqueleto de ped inválido.');
+  bytes=pedSkeletonBytes(bytes);
   return transaction(gender,'readwrite',(store,key)=>store.put(bytes,key),'-skeleton');
 }
 export const readPedSkeleton=gender=>transaction(gender,'readonly',(store,key)=>store.get(key),'-skeleton');
 export const forgetPedSkeleton=gender=>transaction(gender,'readwrite',(store,key)=>store.delete(key),'-skeleton');
+
+// Native results cross the main-window / iframe boundary; instanceof is realm-local.
+export function pedSkeletonBytes(value) {
+  if(!ArrayBuffer.isView(value)||Object.prototype.toString.call(value)!=='[object Uint8Array]'||!value.byteLength||value.byteLength>80*1024*1024)throw Error('Esqueleto de ped inválido.');
+  return new Uint8Array(value.buffer,value.byteOffset,value.byteLength).slice();
+}

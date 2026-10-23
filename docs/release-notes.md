@@ -1,5 +1,7 @@
-# Godoy 3D Modding 0.5.1 beta
+# Godoy 3D Modding 0.5.2 beta
 
+- Corrige o carregamento do ped: aceita e copia buffers Uint8Array vindos da janela principal pelo IPC, sem rejeitar o esqueleto por diferença de contexto.
+- Corrige reconhecimento dos hashes GTA em minúsculas de DiffuseSampler e BumpSampler; mantém compatibilidade com arquivos antigos de hashes mistos.
 - Exportação de OBJ incorporado com UV automático sem sobreposição entre faces e textura diffuse própria de 1024×1024 dentro do mesmo YTD da roupa.
 - Novo botão **Associar YTD original para gerar UV** na aba Malhas e objetos. Com OBJ incorporado, exporta um ZIP com YDD, YTD atualizado e guias UV transparentes em PNG.
 - Clona o shader da região de destino e vincula o OBJ à nova diffuse, com mapas auxiliares neutros. Mantém os samplers, UVs e pixels originais da roupa. Material separado em todos os LODs.

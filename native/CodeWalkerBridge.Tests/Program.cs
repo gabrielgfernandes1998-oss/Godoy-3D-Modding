@@ -19,7 +19,7 @@ YddFile Fixture(bool skin=true,byte bind=0) {
  }
  var drawable=new Drawable{LightAttributes=new ResourceSimpleList64<LightAttributes>(),Name="godoy_test",Skeleton=skeleton,DrawableModels=new DrawableModelsBlock{High=new[]{Model()},Low=new[]{Model()}},LodDistHigh=999,LodDistMed=999,LodDistLow=999,LodDistVlow=999};
  var shader=new ShaderFX{Name=new MetaHash(JenkHash.GenHash("ped_default")),FileName=new MetaHash(JenkHash.GenHash("ped_default.sps")),RenderBucketMask=0xff01};
- shader.ParametersList=new ShaderParametersBlock{Owner=shader,Count=1,Hashes=new[]{(MetaName)JenkHash.GenHash("DiffuseSampler")},Parameters=new[]{new ShaderParameter{DataType=0,Data=new TextureBase{Name="original_diffuse",NameHash=JenkHash.GenHash("original_diffuse")}}}};
+ shader.ParametersList=new ShaderParametersBlock{Owner=shader,Count=1,Hashes=new[]{(MetaName)JenkHash.GenHash("diffusesampler")},Parameters=new[]{new ShaderParameter{DataType=0,Data=new TextureBase{Name="original_diffuse",NameHash=JenkHash.GenHash("original_diffuse")}}}};
  shader.ParameterCount=1;shader.TextureParametersCount=1;shader.ParameterSize=shader.ParametersList.ParametersSize;shader.ParameterDataSize=shader.ParametersList.ParametersDataSize;
  drawable.ShaderGroup=new ShaderGroup{Shaders=new ResourcePointerArray64<ShaderFX>{data_items=new[]{shader}}};
  drawable.BuildAllModels();drawable.BuildVertexDecls();drawable.BuildRenderMasks();
@@ -86,3 +86,17 @@ foreach(var model in texturedYdd.Drawables[0].AllModels) {
  Check(((TextureBase)model.Geometries[1].Shader.ParametersList.Parameters[0].Data).Name==textureName,"OBJ sampler resolves new YTD entry");
 }
 Console.WriteLine("Native UV/YTD: separate material, texture lookup, full mips, all LODs, original texture bytes preserved PASS");
+
+// Regression: real GTA sampler hashes are lowercase, unlike the old synthetic fixture.
+Check((uint)texturedYdd.Drawables[0].AllModels[0].Geometries[1].Shader.ParametersList.Hashes[0]==4059966321u,"canonical GTA diffuse hash preserved");
+var legacyFixture=Fixture();legacyFixture.Drawables[0].ShaderGroup.Shaders.data_items[0].ParametersList.Hashes[0]=(MetaName)JenkHash.GenHash("DiffuseSampler");
+YddEditor.Export(legacyFixture,textureRequest,null);
+var mapsFixture=Fixture();var mapsShader=mapsFixture.Drawables[0].ShaderGroup.Shaders.data_items[0];
+mapsShader.ParametersList.Hashes=new[]{(MetaName)JenkHash.GenHash("diffusesampler"),(MetaName)JenkHash.GenHash("bumpsampler"),(MetaName)JenkHash.GenHash("specsampler")};
+mapsShader.ParametersList.Parameters=new[]{"diffuse","normal","spec"}.Select(n=>new ShaderParameter{DataType=0,Data=new TextureBase{Name=n,NameHash=JenkHash.GenHash(n)}}).ToArray();
+mapsShader.ParametersList.Count=3;mapsShader.ParameterCount=3;mapsShader.TextureParametersCount=3;mapsShader.ParameterSize=mapsShader.ParametersList.ParametersSize;mapsShader.ParameterDataSize=mapsShader.ParametersList.ParametersDataSize;
+var mapped=new YddFile();mapped.Load(YddEditor.Export(mapsFixture,textureRequest,null));
+var mapParameters=mapped.Drawables[0].AllModels[0].Geometries[1].Shader.ParametersList.Parameters;
+Check(((TextureBase)mapParameters[1].Data).Name==textureName+"_n","canonical bump sampler uses neutral normal");
+Check(((TextureBase)mapParameters[2].Data).Name==textureName+"_s","canonical spec sampler uses neutral specular");
+Console.WriteLine("GTA lowercase diffuse/bump/spec hashes and legacy mixed-case samplers PASS");

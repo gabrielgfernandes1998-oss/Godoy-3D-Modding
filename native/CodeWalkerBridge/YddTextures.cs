@@ -50,8 +50,8 @@ static class YddTextures {
         for(int i=0;i<parameters.Parameters.Length;i++) {
             var p=parameters.Parameters[i];if(p.DataType!=0)continue;
             uint hash=(uint)parameters.Hashes[i];
-            bool isDiffuse=hash==JenkHash.GenHash("DiffuseSampler")||hash==JenkHash.GenHash("DiffuseSampler2");
-            bool normal=hash==JenkHash.GenHash("BumpSampler")||hash==JenkHash.GenHash("NormalSampler");
+            bool isDiffuse=Sampler(hash,"DiffuseSampler")||Sampler(hash,"DiffuseSampler2");
+            bool normal=Sampler(hash,"BumpSampler")||Sampler(hash,"NormalSampler");
             string textureName=isDiffuse?name:name+(normal?"_n":"_s");
             p.Data=new TextureBase{Name=textureName,NameHash=JenkHash.GenHash(textureName)};
             diffuse|=isDiffuse;
@@ -60,6 +60,8 @@ static class YddTextures {
         ushort index=checked((ushort)group.Shaders.data_items.Length);
         group.Shaders.data_items=group.Shaders.data_items.Append(shader).ToArray();return index;
     }
+    // GTA uses lowercase JOAAT names. Keep legacy mixed-case files readable too.
+    static bool Sampler(uint hash,string name)=>hash==JenkHash.GenHash(name.ToLowerInvariant())||hash==JenkHash.GenHash(name);
     public static Texture Solid(string name,int size,byte r,byte g,byte b) {
         var data=new List<byte>();byte levels=0;
         for(int width=size;width>0;width/=2) {levels++;for(int i=0;i<width*width;i++)data.AddRange(new byte[]{b,g,r,255});}
