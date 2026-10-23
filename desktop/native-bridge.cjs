@@ -61,11 +61,12 @@ function registerNativeBridge({app,ipcMain,dialog,getWindow}) {
     allowed(event);if(busy)throw Error('Aguarde a operação nativa atual.');
     if(!request||!['preserve','pelvis','head','spine'].includes(request.bone)||!Array.isArray(request.matrix)||request.matrix.length!==16||request.matrix.some(n=>typeof n!=='number'||!Number.isFinite(n)||Math.abs(n)>100000))throw Error('Transformação de exportação inválida.');
     const bytes=value=>{if(!(value instanceof Uint8Array)||!value.length||value.length>80*1024*1024)throw Error('Arquivo nativo inválido.');return Buffer.from(value).toString('base64');};
+    const additions=request.additions??[];if(!Array.isArray(additions)||additions.length>32||Buffer.byteLength(JSON.stringify(additions))>10*1024*1024)throw Error('OBJ incorporado acima do limite.');
     const data=bytes(request.bytes),pedData=request.pedBytes?bytes(request.pedBytes):undefined;
     busy=true;
     try {
       const config=await resolveConfig();
-      const result=await runBridge(executable,{command:'edit-ydd',codewalkerDirectory:config.codewalkerDirectory,data,pedData,matrix:request.matrix,bone:request.bone});
+      const result=await runBridge(executable,{command:'edit-ydd',codewalkerDirectory:config.codewalkerDirectory,data,pedData,additions,matrix:request.matrix,bone:request.bone});
       if(typeof result.data!=='string'||result.data.length>112*1024*1024)throw Error('YDD de saída inválido.');
       return new Uint8Array(Buffer.from(result.data,'base64'));
     } finally {busy=false;}

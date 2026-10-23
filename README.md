@@ -18,7 +18,7 @@ Os arquivos são processados localmente. Salve seus projetos em uma pasta escolh
 | Pintura de roupas | YDD/YTD, seleção de drawables/LODs, pintura 3D/UV, camadas, texto, imagem, exportação YTD e texturas embutidas | Baseada no PAINTFIVE; não recompila alterações de geometria. |
 | Associação de arquivos | Importação de conjunto, busca por nome e referências de materiais; escolha manual em caso de empate | Só acessa arquivos selecionados pelo usuário. |
 | Integração editor/pack | Exportar YTD no editor atualiza o conjunto do pack com o nome original e o YDD aberto | O nome precisa seguir a convenção de componentes para gerar o recurso. |
-| Malhas e objetos | Peça inteira sobre o ped; posição/rotação/escala gravadas no YDD original; preservar pesos ou prender rigidamente à pelve/cabeça/tronco; desfazer/refazer; GLB e união OBJ nas opções avançadas | Sem incorporação OBJ nativa, exportação YFT, pintura de pesos, animação ou colisão. Layouts incompatíveis são recusados. Teste FiveM real pendente. |
+| Malhas e objetos | Peça inteira sobre o ped; posição/rotação/escala gravadas no YDD original; preservar pesos ou prender rigidamente à pelve/cabeça/tronco; desfazer/refazer; GLB e união OBJ nas opções avançadas | Incorpora OBJ usando UVs e material do destino, herdando pesos da região próxima. Sem YFT, atlas de texturas, pintura manual de pesos, animação ou colisão. Layouts incompatíveis são recusados. Teste FiveM real pendente. |
 | Pintura de veículos | YFT e _hi.yft visualizáveis, seleção de drawables/LODs, materiais e pintura YTD | Baseada no Godoy-Paint-Car. Não reconstrói bones/fragment physics/damage nem gera novo _hi.yft. |
 
 Não é a implementação completa dos três módulos originais. A exportação nativa de geometria e a validação em FiveM continuam pendentes. O workflow exige um teste do executável em Windows antes de publicar. Consulte [estado da versão](docs/release-status.md).
@@ -143,7 +143,7 @@ A leitura real do RPF continua dependendo de validação com uma instalação lo
 
 O esqueleto da peça é preservado; quando falta o osso escolhido, pode ser usado o esqueleto do ped YDD importado/carregado do GTA, guardado por gênero. GLB sozinho não fornece um esqueleto GTA nativo. O ped em si não é modificado.
 
-O exportador recusa layouts de posição/normal não suportados, buffers compartilhados/duplos distintos e colisões próprias. União OBJ altera topologia e precisa ser desfeita para exportar o YDD original; GLB permanece como cópia avançada. Não converte registro de prop de cabeça para componente de roupa: se o boné for equipado pelo jogo como prop de cabeça, o recurso também precisa registrá-lo no componente apropriado para uso no cinto. Nome/META/YMT de um recurso existente não são convertidos automaticamente por este botão.
+O exportador recusa layouts de posição/normal não suportados, buffers compartilhados/duplos distintos e colisões próprias. A partir da 0.4.0, OBJ incorporado é gravado como geometria adicional nos LODs do YDD; GLB permanece como cópia avançada. Não converte registro de prop de cabeça para componente de roupa: se o boné for equipado pelo jogo como prop de cabeça, o recurso também precisa registrá-lo no componente apropriado para uso no cinto. Nome/META/YMT de um recurso existente não são convertidos automaticamente por este botão.
 
 Validação automatizada cobre serialização nativa, movimento/rotação/escala, normais, UVs, vínculo rígido, pesos preservados, esqueleto doador e LODs com nível intermediário ausente. A animação real no FiveM ainda precisa ser validada com o YDD/YTD do usuário.
 
@@ -154,3 +154,15 @@ O gizmo fica no centro da geometria visível, mesmo quando a origem do OBJ está
 A transformação é aplicada ao objeto original; a correção do pivô não altera os vértices de origem nem acrescenta um deslocamento à exportação YDD.
 **Enquadrar peça + referência** mantém YDD/ped e a seleção na vista. **Trazer seleção para a referência** recupera objetos já afastados e pode ser desfeito.
 Na importação, OBJ muito distante da referência é colocado ao lado dela; se a proporção de tamanho passar de 20× ou cair abaixo de 0,05×, a escala também é adaptada e informada no status. O arquivo original não é sobrescrito.
+
+
+### Incorporar OBJ ao YDD (0.4.0)
+
+1. Posicione o OBJ sobre o YDD.
+2. Em **Peça de destino**, escolha o YDD. Em **Objeto a incorporar**, escolha o OBJ. O OBJ pode continuar selecionado no viewport.
+3. Clique **Unir OBJ à peça**. A lista passa a mostrar um conjunto; gizmos movem os dois juntos. Ctrl+Z separa e Ctrl+Y restaura a união.
+4. Clique **Exportar peça YDD**. O arquivo contém a geometria original e o OBJ incorporado, com o nome original. Use o YTD correspondente.
+
+A incorporação mantém a posição mesmo com escala não uniforme no destino, converte os eixos, copia a geometria adicional aos LODs existentes e preserva os canais originais do YDD. Cada parte herda material e os quatro pesos/índices do vértice mais próximo ao seu centro; o acessório acompanha aquela região do esqueleto. Não há decimação automática para LODs. As superfícies ficam no mesmo YDD; a operação não faz solda booleana das bordas.
+
+UVs do OBJ são mantidos; se faltarem, é criada uma projeção planar simples. A textura própria/MTL do OBJ não é adicionada ao YTD: o material existente do destino é reutilizado e pode exigir ajuste de UV/pintura. Limites: 65535 vértices por parte, 100000 no total, 32 partes e 10 MB de dados de incorporação. A leitura de reabertura verifica os novos vértices, índices, pesos, vínculo e LODs antes do download. A animação no FiveM com assets reais ainda precisa ser validada.

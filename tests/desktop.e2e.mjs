@@ -96,11 +96,25 @@ try {
     assert.equal(await mesh.locator('#attachment-bone').inputValue(),'preserve');
     await page.keyboard.press('Control+y');await mesh.locator('#attachment-bone option[value=pelvis]:checked').waitFor({state:'attached'});assert.equal(await mesh.locator('#attachment-bone').inputValue(),'pelvis');
     await mesh.locator('#position-y').fill('-1');await mesh.locator('#apply-transform').click();
+    await mesh.locator('#obj-file').setInputFiles({name:'cross.obj',mimeType:'text/plain',buffer:Buffer.from('v 0.1 1 0\nv 0.2 1 0\nv 0.1 1.1 0\nf 1 2 3\n')});
+    await mesh.locator('#tree button').filter({hasText:'cross.obj'}).click();
+    // Keep the OBJ selected: destination must come from the explicit YDD selector.
+    await mesh.locator('#merge-target').selectOption({label:'accs_000_u.ydd'});
+    await mesh.locator('#merge').click();
+    await mesh.locator('#status').filter({hasText:'OBJ incorporado'}).waitFor();
+    await mesh.locator('#tree button').filter({hasText:'cross.obj'}).waitFor({state:'detached'});
+    await page.click('[data-tab=mesh]');await page.keyboard.press('Control+z');
+    await mesh.locator('#tree button').filter({hasText:'cross.obj'}).waitFor();
+    await page.keyboard.press('Control+y');await mesh.locator('#tree button').filter({hasText:'cross.obj'}).waitFor({state:'detached'});
     const pending=page.waitForEvent('download');await mesh.locator('#export-ydd').click();
     const exported=await pending;assert.equal(exported.suggestedFilename(),'accs_000_u.ydd');
     const target=path.join(output,'native-edited.ydd');await exported.saveAs(target);
     const doc=parseYdd(await readFile(target));assert.equal(doc.drawables[0].lods.length,2);
-    for(let lod=0;lod<2;lod++)assert.ok(Math.abs(doc.drawables[0].readLod(lod)[0].positions[1]-1)<1e-6);
+    for(let lod=0;lod<2;lod++) {
+      const geometries=doc.drawables[0].readLod(lod);assert.equal(geometries.length,2,'Joined OBJ must exist inside the exported YDD at every LOD');
+      assert.ok(Math.abs(geometries[0].positions[1]-1)<1e-6);
+      assert.ok(Math.abs(geometries[1].positions[0]-.1)<1e-6&&Math.abs(geometries[1].positions[1]-1)<1e-6,'Joined OBJ must keep its scene position');
+    }
   }
   assert.deepEqual(errors,[]);assert.deepEqual(failures,[]);
   await page.click('[data-tab=pack]');await mkdir('.test-output',{recursive:true});

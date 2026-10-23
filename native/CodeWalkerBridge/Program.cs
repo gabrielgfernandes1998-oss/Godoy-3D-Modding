@@ -30,7 +30,7 @@ try {
     var command=Text("command");object result;
     if(command=="probe") {
         _=Type("GTA5Keys");
-        result=new {ok=true,version=assembly.GetName().Version?.ToString(),capabilities=new[]{"ped-base-rpf","ydd-roundtrip","ydd-edit"}};
+        result=new {ok=true,version=assembly.GetName().Version?.ToString(),capabilities=new[]{"ped-base-rpf","ydd-roundtrip","ydd-edit","ydd-obj"}};
     } else if(command=="edit-ydd") {
         var bytes=Convert.FromBase64String(Text("data"));
         if(bytes.Length>80*1024*1024)throw new Exception("YDD acima de 80 MB.");

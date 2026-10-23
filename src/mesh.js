@@ -11,9 +11,10 @@ import {rememberPed,readPed,forgetPed,rememberPedSkeleton,readPedSkeleton,forget
 import {SceneHistory,snapshotTransform,applyTransform,sameTransform} from './scene-history.js';
 import {nativeMatrix,sourceUnchanged,previewBindMatrix} from './ydd-export.js';
 import {visibleBounds,placePivot,pivotDelta,frameScene,placeImportedObj,moveToContext} from './scene-placement.js';
+import {serializeAdditions,joinToYdd} from './ydd-additions.js';
 import './mesh.css';
 const $=s=>document.querySelector(s);
-$('#app').innerHTML=`<aside><h1>Malhas e objetos</h1><p>Roupa inteira sobre o ped · exportação YDD</p><button id="open-mesh">Importar YDD / YFT / GLB</button><button id="open-ped">Importar ped de referência</button><button id="open-obj">Adicionar objeto OBJ</button><input id="mesh-file" type="file" accept=".ydd,.yft,.glb" hidden><input id="ped-file" type="file" accept=".ydd,.glb" hidden><input id="obj-file" type="file" accept=".obj" hidden><div class="history-actions"><button id="undo" disabled>Desfazer · Ctrl+Z</button><button id="redo" disabled>Refazer · Ctrl+Y</button></div><button id="fit-scene">Enquadrar cena inteira</button><h2>Peças na cena</h2><div id="tree"></div><h2>Transformação</h2><div class="modes"><button data-mode="translate" class="active">Mover</button><button data-mode="rotate">Girar</button><button data-mode="scale">Escala</button></div><label>Espaço<select id="space"><option value="local">Local</option><option value="world">Global</option></select></label><div id="fields"></div><button id="apply-transform">Aplicar valores</button><button id="focus">Enquadrar peça + referência</button><button id="align-selection">Trazer seleção para a referência</button><label>Vínculo ao ped<select id="attachment-bone"><option value="preserve">Manter pesos e ossos originais</option><option value="pelvis">Cintura · SKEL_Pelvis (acessório rígido)</option><option value="head">Cabeça · SKEL_Head (acessório rígido)</option><option value="spine">Tronco · SKEL_Spine0 (acessório rígido)</option></select></label><button id="export-ydd" class="accent">Exportar peça YDD</button><p class="hint">Mova, gire e ajuste a peça inteira sobre o ped. Para prender um boné ao cinto, escolha Cintura antes de exportar. O YTD original continua associado.</p><details id="advanced-mesh"><summary>OBJ e cópia GLB</summary><label>Adicionar à primeira malha da peça selecionada<select id="merge-source"><option value="">Selecione um OBJ</option></select></label><button id="merge">Unir geometria + UV</button><button id="export-glb" >Exportar cópia GLB</button><p class="hint">A união usa o material de destino e preserva os UVs existentes. Não cria atlas nem pesos de skinning. O GLB é uma cena estática; não substitui YDD/YFT no FiveM.</p><p class="hint">A edição YDD mantém materiais, UVs e LODs originais. União OBJ e GLB são ferramentas separadas; não entram na exportação YDD.</p></details></aside><main><div id="viewport"></div><div id="status" role="status">Importe um modelo para começar.</div></main>`;
+$('#app').innerHTML=`<aside><h1>Malhas e objetos</h1><p>Roupa inteira sobre o ped · exportação YDD</p><button id="open-mesh">Importar YDD / YFT / GLB</button><button id="open-ped">Importar ped de referência</button><button id="open-obj">Adicionar objeto OBJ</button><input id="mesh-file" type="file" accept=".ydd,.yft,.glb" hidden><input id="ped-file" type="file" accept=".ydd,.glb" hidden><input id="obj-file" type="file" accept=".obj" hidden><div class="history-actions"><button id="undo" disabled>Desfazer · Ctrl+Z</button><button id="redo" disabled>Refazer · Ctrl+Y</button></div><button id="fit-scene">Enquadrar cena inteira</button><h2>Peças na cena</h2><div id="tree"></div><h2>Transformação</h2><div class="modes"><button data-mode="translate" class="active">Mover</button><button data-mode="rotate">Girar</button><button data-mode="scale">Escala</button></div><label>Espaço<select id="space"><option value="local">Local</option><option value="world">Global</option></select></label><div id="fields"></div><button id="apply-transform">Aplicar valores</button><button id="focus">Enquadrar peça + referência</button><button id="align-selection">Trazer seleção para a referência</button><label>Vínculo ao ped<select id="attachment-bone"><option value="preserve">Manter pesos e ossos originais</option><option value="pelvis">Cintura · SKEL_Pelvis (acessório rígido)</option><option value="head">Cabeça · SKEL_Head (acessório rígido)</option><option value="spine">Tronco · SKEL_Spine0 (acessório rígido)</option></select></label><h2>Incorporar objeto à peça</h2><label>Peça de destino<select id="merge-target"></select></label><label>Objeto a incorporar<select id="merge-source"><option value="">Selecione um OBJ</option></select></label><button id="merge">Unir OBJ à peça</button><p class="hint">A união mantém a posição do objeto, usa o material/YTD da peça e herda o vínculo ao esqueleto da região mais próxima. Sem UV, cria uma projeção simples. Ctrl+Z desfaz.</p><button id="export-ydd" class="accent">Exportar peça YDD</button><p class="hint">Mova, gire e ajuste a peça inteira sobre o ped. Para prender um boné ao cinto, escolha Cintura antes de exportar. O YTD original continua associado.</p><details id="advanced-mesh"><summary>OBJ e cópia GLB</summary><button id="export-glb" >Exportar cópia GLB</button><p class="hint">O GLB é uma cópia estática da cena. Para usar a peça com os objetos incorporados no FiveM, use Exportar peça YDD.</p><p class="hint">A edição YDD mantém materiais, UVs e LODs originais. O OBJ incorporado acompanha a exportação YDD. Materiais/texturas próprios do OBJ ainda não são adicionados ao YTD.</p></details></aside><main><div id="viewport"></div><div id="status" role="status">Importe um modelo para começar.</div></main>`;
 for(const type of ['position','rotation','scale']) {
   const group=document.createElement('fieldset'),legend=document.createElement('legend');
   legend.textContent={position:'Posição',rotation:'Rotação (graus)',scale:'Escala'}[type];group.append(legend);
@@ -113,8 +114,13 @@ function refreshTree() {
   for(const object of content.children) {
     const button=document.createElement('button');button.textContent=object.name||'Peça';button.classList.toggle('selected',object===selection);button.onclick=()=>select(object);$('#tree').append(button);
   }
+  const sourceValue=selection?.userData.godoyObj?selection.uuid:$('#merge-source').value,targetValue=sourceFiles.has(selection)?selection.uuid:$('#merge-target').value;
   $('#merge-source').replaceChildren(new Option('Selecione um OBJ',''));
   content.children.filter(a=>a.userData.godoyObj).forEach(a=>$('#merge-source').append(new Option(a.name,a.uuid)));
+  if([...$('#merge-source').options].some(o=>o.value===sourceValue))$('#merge-source').value=sourceValue;
+  $('#merge-target').replaceChildren();content.children.filter(a=>!a.userData.godoyObj).forEach(a=>$('#merge-target').append(new Option(a.name,a.uuid)));
+  if([...$('#merge-target').options].some(o=>o.value===targetValue))$('#merge-target').value=targetValue;
+
 }
 function contextBounds(exclude=null) {
   const box=new THREE.Box3();
@@ -237,9 +243,17 @@ $('#align-selection').onclick=guard(()=> {
 });
 $('#merge').onclick=guard(()=> {
   const source=content.children.find(a=>a.userData.godoyObj&&a.uuid===$('#merge-source').value);
-  let target=null;selection?.traverse(o=>{if(!target&&o.isMesh)target=o;});
+  const destination=content.children.find(o=>o.uuid===$('#merge-target').value);
+  if(!source||!destination||source===destination)throw Error('Escolha um OBJ e uma peça de destino diferentes.');
+  const record=sourceFiles.get(destination);
+  if(record){
+    serializeAdditions(destination,[...(record.additions??[]),source]);
+    joinToYdd(content,destination,source,record,history,select);
+    status('OBJ incorporado à peça. Mova o conjunto e use Exportar peça YDD. O objeto usa o material/YTD da região mais próxima. Ctrl+Z desfaz.');return;
+  }
+  let target=null;destination?.traverse(o=>{if(!target&&o.isMesh)target=o;});
   if(!target||!source)throw Error('Selecione a peça de destino e escolha um OBJ.');
-  let ancestor=selection;while(ancestor){if(ancestor===source)throw Error('O destino precisa estar fora do OBJ escolhido.');ancestor=ancestor.parent;}
+  let ancestor=destination;while(ancestor){if(ancestor===source)throw Error('O destino precisa estar fora do OBJ escolhido.');ancestor=ancestor.parent;}
   const old=target.geometry,geometry=mergeStaticMeshes(target,source),index=content.children.indexOf(source);resources.add(geometry);
   history.execute({label:'Unir geometria',objects:[target,source],geometries:[old,geometry],
     redo:()=>{target.geometry=geometry;source.removeFromParent();select(target);},
@@ -253,12 +267,12 @@ $('#attachment-bone').onchange=()=> {
 };
 $('#export-ydd').onclick=guard(async()=> {
   const object=selection,source=sourceFiles.get(object);
-  if(!source)throw Error('Selecione um YDD original importado para exportar esta peça.');
+  if(!source)throw Error('Una o OBJ à peça de destino e selecione o conjunto YDD para exportar.');
   if(!native?.exportYdd)throw Error('A exportação YDD requer o portable Windows atualizado.');
-  if(!sourceUnchanged(object,source))throw Error('A geometria foi unida a um OBJ. Desfaça a união para exportar os ajustes do YDD original.');
+  if(!sourceUnchanged(object,source))throw Error('A geometria original foi alterada por uma operação incompatível. Desfaça essa alteração.');
   $('#export-ydd').disabled=true;status('Gravando o YDD nativo e verificando geometria, pesos e LODs…');
   try {
-    const bytes=await native.exportYdd({bytes:source.bytes,matrix:nativeMatrix(object),bone:object.userData.attachmentBone??'preserve',pedBytes:await readPedSkeleton($('#ped-gender').value)});
+    const bytes=await native.exportYdd({bytes:source.bytes,additions:serializeAdditions(object,source.additions),matrix:nativeMatrix(object),bone:object.userData.attachmentBone??'preserve',pedBytes:await readPedSkeleton($('#ped-gender').value)});
     const parsed=parseYdd(bytes);if(!parsed.drawables.length)throw Error('YDD exportado inválido.');
     const url=URL.createObjectURL(new Blob([bytes],{type:'application/octet-stream'}));
     const link=document.createElement('a');link.href=url;link.download=source.name;link.click();setTimeout(()=>URL.revokeObjectURL(url),30000);

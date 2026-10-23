@@ -13,6 +13,7 @@ static class YddEditor {
         var bone=request.GetProperty("bone").GetString();
         ushort? tag=bone switch {"preserve"=>(ushort?)null,"pelvis"=>11816,"head"=>31086,"spine"=>23553,_=>throw new Exception("Vínculo de osso inválido.")};
         if(file.Drawables is null||file.Drawables.Length==0)throw new Exception("YDD vazio.");
+        YddAdditions.Apply(file,request);
         foreach(var drawable in file.Drawables) {
             if(drawable.Bound is not null)throw new Exception("Este YDD contém colisão própria. A edição de colisões ainda não é suportada.");
             var originalBones=drawable.Skeleton?.Bones?.Items;

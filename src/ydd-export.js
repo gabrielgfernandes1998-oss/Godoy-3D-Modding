@@ -9,7 +9,10 @@ export function nativeMatrix(object) {
   return values;
 }
 export function sourceUnchanged(object,source) {
-  const current=[];object.traverse(o=>{if(o.isMesh)current.push(o);});
+  const current=[];object.traverse(o=>{
+    let parent=o;while(parent&&parent!==object){if(source.additions?.includes(parent))return;parent=parent.parent;}
+    if(o.isMesh)current.push(o);
+  });
   return current.length===source.geometries.size&&current.every(o=>source.geometries.get(o)===o.geometry);
 }
 

@@ -65,7 +65,7 @@ try {
   await mesh.locator('#tree button').filter({hasText:'jbib_000_u.ydd'}).first().click();
   await mesh.locator('#advanced-mesh').evaluate(e=>e.open=true);
   await mesh.locator('#merge-source').selectOption({label:'accessory.obj'});await mesh.locator('#merge').click();
-  await mesh.locator('#status').filter({hasText:'Geometria unida'}).waitFor();
+  await mesh.locator('#status').filter({hasText:'OBJ incorporado'}).waitFor();
   const glbDownload=page.waitForEvent('download');await mesh.locator('#export-glb').click();const glb=await glbDownload;const glbPath=path.join(output,'scene.glb');await glb.saveAs(glbPath);
   const bytes=await readFile(glbPath);assert.equal(bytes.readUInt32LE(0),0x46546c67);
   const sceneJson=JSON.parse(bytes.subarray(20,20+bytes.readUInt32LE(12)).toString());
