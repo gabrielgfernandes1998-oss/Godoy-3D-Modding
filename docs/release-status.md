@@ -1,4 +1,17 @@
-# Estado da versão 0.2.3 beta
+# Estado da versão 0.3.1 beta
+
+O portable inclui o núcleo CodeWalker e o exportador nativo da peça YDD, com seleção unificada e vínculo rígido opcional ao ped. A exportação mantém o YTD original e verifica a reabertura do YDD.
+
+Validação: 45 testes JavaScript, 7 Python e suíte .NET nativa passaram. A suíte nativa usa triângulos/esqueleto originais sintéticos, verifica posição/rotação/escala, normais, UV, pesos preservados, vínculo à pelve, coordenadas locais de peças rígidas, esqueleto doador e preservação dos LODs quando falta nível intermediário. O comando real do helper foi executado e o resultado lido pelo parser do renderer.
+
+O [run Windows 39954038588](https://github.com/gabrielgfernandes1998-oss/Godoy-3D-Modding/actions/runs/39954038588) passou: inicia o EXE empacotado, carrega o núcleo incluído, verifica Ctrl+Z/Ctrl+Y do vínculo, altera a posição no editor, exporta pelo botão YDD, baixa e reabre o arquivo, conferindo vértices e LODs. A primeira tentativa 0.3.0 não foi publicada; o teste precisava aguardar o comando encaminhado ao iframe antes de consultar o seletor.
+
+Download da release 0.3.1 conferido após publicação: 200.579.338 bytes; SHA-256 `b694fabb11189adfa6d9eee44db1ef1aef895a7a257c0dbc48dafc20099dfc19`.
+
+Ainda não há teste de animação no FiveM nem leitura de ped de uma instalação GTA real neste ambiente. O exportador não converte registro/META/YMT de prop de cabeça em roupa de cintura, não incorpora OBJ em YDD, não exporta YFT e recusa layouts de vértice/buffers/colisões incompatíveis. Para validar o caso real do boné é necessário seu YDD/YTD e conferir o componente em que está registrado.
+
+## Histórico da 0.2.3
+
 
 A versão adiciona a correção de câmera ao importar OBJ, histórico de cena e ponte CodeWalker local. Testes de regressão verificam pixels do modelo/ped ainda visíveis após importar um OBJ distante, desfazer/refazer a importação, transformar, desfazer/refazer a transformação e desfazer/refazer a união. A versão usa a biblioteca CodeWalker externa, selecionada pelo usuário; não redistribui essa DLL ou dados GTA.
 
