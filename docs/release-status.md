@@ -6,6 +6,10 @@ Interface permite mover o OBJ ao osso, ajustar no gizmo/campos, desfazer/refazer
 
 Validação local: 69 testes JS e suíte nativa passaram. Também foi executado o comando real create-ydd da ponte, com reabertura pelos parsers JS. O teste de navegador exporta/reabre o ZIP, verifica nomes/sampler/pixels, imagem PNG, UV automático e Ctrl+Z/Y; o fluxo de packs continua passando. Testes usam assets sintéticos; aparência/animação com assets reais no FiveM não foi validada. Vínculo rígido a um osso, UV automático por triângulo e uma única imagem diffuse; sem pesos deformáveis, física ou simplificação de LOD.
 
+Validação no [run 40040843696](https://github.com/gabrielgfernandes1998-oss/Godoy-3D-Modding/actions/runs/40040843696): 69 testes JavaScript, 7 Python, suíte nativa e fluxo de packs passaram. O executável portable foi testado no Windows: módulo 05 importou OBJ sem UV, selecionou osso, posicionou com desfazer/refazer, carregou imagem PNG, converteu pelo IPC real, verificou YDD/YTD e reabriu na pintura. O teste confere uma única geometria OBJ por LOD, sem corpo do ped, além de nome/sampler/pixels e UV gerado.
+
+[Release 0.9.0](https://github.com/gabrielgfernandes1998-oss/Godoy-3D-Modding/releases/tag/v0.9.0) publicada. ZIP baixado e checksum confirmado: 200,665,013 bytes; SHA-256 `d78d18c3f092a6395c5bcc086b4de784c1d58dabb194e41977308123fd4980bd`. Ao importar o par no Pack de roupas, selecione o mesmo gênero usado para gerar a peça; o JSON da conversão registra esse gênero e o osso.
+
 # Estado da versão 0.8.4 beta
 
 Corrige o bloqueio de exportação com UVs negativos/acima de 1 quando a roupa ocupa o mapa inteiro. Mantém as coordenadas exatas, inclusive faces que cruzam os limites, preservando a repetição no shader. Reduzir a fonte repetida para uma subárea ainda é recusado, com orientação no editor antes da exportação. Reservar a área do OBJ substitui aqueles pixels como já ocorria no fluxo manual.
