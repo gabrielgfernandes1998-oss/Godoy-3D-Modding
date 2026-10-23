@@ -4,6 +4,10 @@ Corrige o bloqueio de exportação com UVs negativos/acima de 1 quando a roupa o
 
 Validação nativa: YDD/YTD com OBJ reabertos; UV negativo e acima de 1 exatos em todos os LODs; UV não finito recusado; autoatlas de fonte repetida em subárea continua protegido. Teste Windows atualizado para exportar o fixture repetido e conferir os UVs, geometria e YTD. Teste de navegador verifica o aviso de redução e recuperação com Roupa no mapa inteiro.
 
+Validação no [run 40027867528](https://github.com/gabrielgfernandes1998-oss/Godoy-3D-Modding/actions/runs/40027867528): 66 testes JS, 7 Python e suíte nativa passaram. Portable compilado, fluxo do pack testado no navegador e executável real testado no Windows, incluindo exportação do YDD com UV repetido + OBJ, reabertura do YTD e pintura da área adicionada.
+
+[Release 0.8.4](https://github.com/gabrielgfernandes1998-oss/Godoy-3D-Modding/releases/tag/v0.8.4) publicada e ZIP baixado com checksum confirmado: 200,651,698 bytes; SHA-256 `0129d3e259a854298a7e30f9c459d24e29f36aa3873f137e1ab229b05d33a107`. Os testes utilizam fixtures sintéticos; o par YDD/YTD real da captura não está disponível para validar a aparência no jogo.
+
 # Estado da versão 0.8.3 beta
 
 Corrige a diffuse ausente ao associar YTD na aba de malhas, repetição de UV no preview, sobreposição de transparência no pack e referência de ped de outro gênero ao importar peças. O ped de malhas começa opaco e possui controle separado de transparência. Enquadrar com ped oculto usa a roupa.
