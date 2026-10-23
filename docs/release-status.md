@@ -1,4 +1,14 @@
-# Estado da versão 0.5.2 beta
+# Estado da versão 0.6.0 beta
+
+Atlas único de roupa e OBJ implementado. A diffuse original ocupa a região esquerda com seus pixels preservados, e as ilhas dos OBJ incorporados ficam na direita. Os UVs são atualizados em todos os LODs, mantendo posição/rig e o mesmo sampler principal. O YTD contém uma única entrada diffuse; mapas normais/speculares disponíveis são reorganizados e incorporados no YDD, com regiões neutras para o OBJ. Paletas compatíveis permanecem disponíveis. A saída ZIP inclui YDD/YTD, `UV/atlas-textura.png` e o guia transparente `UV/atlas-uv.png`.
+
+Validação no [run 39984907575](https://github.com/gabrielgfernandes1998-oss/Godoy-3D-Modding/actions/runs/39984907575): 53 testes JavaScript, 7 Python e suíte nativa .NET passaram. A suíte nativa verifica YTD com uma única diffuse, pixels originais, UVs separados em todos os LODs, mapas auxiliares embutidos, remoção de diffuse embutida antiga que poderia sobrepor o atlas, UVs repetidos recusados e variação de textura de entrada única. O executável Windows exportou o ZIP pelo botão, reabriu o par nativo, confirmou presença e posição do OBJ nos LODs e pintou o OBJ no atlas; comparou todos os pixels da metade esquerda e verificou que ficaram inalterados. O fluxo completo também passou localmente no navegador usando a CLI nativa.
+
+[Release 0.6.0](https://github.com/gabrielgfernandes1998-oss/Godoy-3D-Modding/releases/tag/v0.6.0) publicada, baixada e checksum conferido: 200,614,454 bytes; SHA-256 `471ed4f4ea6f053236482ceb53003bb5c12d406da7fa60443fc3f618e93dd4ec`.
+
+O atlas trata a incompatibilidade estrutural do override da primeira textura no preview do grzy, identificada em seu código-fonte. O grzy e o FiveM não foram executados com os arquivos reais do usuário neste ambiente. Esses arquivos ainda são necessários para confirmar aparência/animação do caso reportado. Limites: atlas quadrado até 4096×4096, área OBJ inicialmente cinza, ilhas triangulares, UV original em 0–1, mapas auxiliares disponíveis e samplers compatíveis. Casos fora desses limites são recusados sem modificar os arquivos originais.
+
+# Histórico da versão 0.5.2 beta
 
 Corrige os dois erros reportados em uso real: “Esqueleto de ped inválido” ao carregar pelo CodeWalker e “Material YDD sem DiffuseSampler compatível” na exportação do OBJ. O buffer Uint8Array vindo da janela principal é validado por sua marca de view e copiado para o contexto local antes do IndexedDB; a verificação antiga por instanceof rejeitava buffers de outro contexto. A identificação dos samplers agora usa os hashes JOAAT canônicos em minúsculas do GTA, mantendo suporte aos hashes mistos produzidos nas fixtures antigas. Os fixtures foram corrigidos para usar o hash GTA `4059966321` de diffusesampler.
 

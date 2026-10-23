@@ -1,6 +1,6 @@
 # Investigação: mochila branca / objeto preto no grzyClothTool
 
-Estado: atlas único implementado na 0.6.0 e em validação automatizada; caso real ainda não reproduzido; aguardando o par YDD/YTD original e o par exportado. O usuário confirmou que a imagem vem do grzyClothTool, não de uma execução FiveM.
+Estado: atlas único implementado e validado no portable 0.6.0 com fixtures; caso real ainda não reproduzido; aguardando o par YDD/YTD original e o par exportado. O usuário confirmou que a imagem vem do grzyClothTool, não de uma execução FiveM.
 
 ## Evidência no preview
 
@@ -14,10 +14,10 @@ Assim, o preview aplica a primeira textura do dicionário às diversas geometria
 
 ## Correção independente já testada no código
 
-O exportador trocava todos os samplers do shader copiado por mapas neutros. Agora altera somente diffuse/normal/specular reconhecidos; preserva slots específicos de paleta, máscara, detalhe e ambiente. Teste nativo verifica o sampler de paleta original e o copiado após serialização/reabertura em todos os LODs. Essa alteração ainda não é uma correção visual comprovada da mochila branca e não foi publicada em uma nova release portable.
+O exportador trocava todos os samplers do shader copiado por mapas neutros. Agora altera somente diffuse/normal/specular reconhecidos; preserva slots específicos de paleta, máscara, detalhe e ambiente. Teste nativo verifica o sampler de paleta original e o copiado após serialização/reabertura em todos os LODs. Essa preservação foi incluída na 0.6.0 junto ao atlas único. O caso visual com os arquivos reais continua pendente.
 
-## Próximo passo dependente dos arquivos
+## Validação final dependente dos arquivos
 
-Comparar as referências, a ordem/hashes do dicionário e os mapas originais com os arquivos exportados. Preparar um atlas comum da diffuse para roupa e OBJ, atualizar UVs e preservar a correspondência dos mapas auxiliares. Não remapear UVs cegamente: shaders podem usar texturas auxiliares externas/embutidas, UVs fora de 0–1 ou múltiplos canais. É necessário validar no modelo real antes de anunciar compatibilidade.
+Comparar as referências, a ordem/hashes do dicionário e os mapas originais com os arquivos exportados. O atlas comum já implementado reorganiza diffuse, UVs e mapas auxiliares compatíveis; confirmar o resultado com o modelo real. Não remapear UVs cegamente: shaders podem usar texturas auxiliares externas/embutidas, UVs fora de 0–1 ou múltiplos canais. É necessário validar no modelo real antes de anunciar compatibilidade.
 
 Arquivos necessários: YDD original + YTD original; YDD exportado + YTD exportado que geraram o problema, preferencialmente os bytes usados no grzy, sem nova conversão/otimização. O OBJ original é útil se disponível.
