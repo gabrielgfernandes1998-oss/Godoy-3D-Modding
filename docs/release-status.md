@@ -1,8 +1,10 @@
-# Estado da versão 0.2.2 beta
+# Estado da versão 0.2.3 beta
 
 A versão adiciona a correção de câmera ao importar OBJ, histórico de cena e ponte CodeWalker local. Testes de regressão verificam pixels do modelo/ped ainda visíveis após importar um OBJ distante, desfazer/refazer a importação, transformar, desfazer/refazer a transformação e desfazer/refazer a união. A versão usa a biblioteca CodeWalker externa, selecionada pelo usuário; não redistribui essa DLL ou dados GTA.
 
 A conexão com CodeWalker.Core e um round-trip de YDD reservado foram testados por execução real da ponte .NET em Linux. O recurso usado para isso é o reservedDrawable.ydd do grzyClothTool, mantido somente em /tmp e não copiado para o projeto/pacote. A extração do ped em x64v.rpf não foi validada numa instalação real GTA, indisponível neste ambiente. O teste Windows verifica que o helper self-contained inicia e reporta a ausência de CodeWalker corretamente; não simula uma instalação GTA como se fosse real.
+
+Validação da 0.2.3: 40 testes JavaScript e 7 Python passaram. O teste do executável Windows, incluindo regressão de câmera/undo e inicialização do helper .NET, passou no [run 39880621937](https://github.com/gabrielgfernandes1998-oss/Godoy-3D-Modding/actions/runs/39880621937). A tentativa 0.2.2 foi bloqueada pelo teste Windows por um erro de escopo de require no próprio teste; a verificação foi movida para o processo Node de testes. Nenhuma Release 0.2.2 foi publicada.
 
 ## Histórico da 0.2.1
 
