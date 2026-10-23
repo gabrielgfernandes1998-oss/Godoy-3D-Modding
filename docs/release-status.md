@@ -1,4 +1,13 @@
-# Estado da versão 0.3.1 beta
+# Estado da versão 0.3.2 beta
+
+Corrige o pivô de manipulação de OBJ/YDD com origem afastada dos vértices. O gizmo usa o centro da geometria visível, enquanto as transformações e a exportação continuam aplicadas ao objeto original. O enquadramento inclui peça e referência; há recuperação manual de peças afastadas e posicionamento de OBJ fora da área de trabalho. O rótulo de versão vem do package.json.
+
+Validação: 48 testes JavaScript, suíte nativa e 7 Python passaram no [run 39959692921](https://github.com/gabrielgfernandes1998-oss/Godoy-3D-Modding/actions/runs/39959692921). O navegador e o executável Windows empacotado importaram OBJ com coordenadas próximas a (1000, -370, -473), arrastaram seu gizmo com o mouse mantendo pixels do YDD/ped visíveis, enquadraram peça/referência e verificaram Ctrl+Z do movimento e do reposicionamento. O teste Windows também mantém a exportação YDD e a verificação de vértices/LODs.
+
+Release 0.3.2 baixada após publicação e checksum conferido: 200.580.415 bytes; SHA-256 `c77c445085ceb6e8a8c1a5767a761816a1c10728001dbe554495f1af17ffad37`.
+
+## Histórico da 0.3.1
+
 
 O portable inclui o núcleo CodeWalker e o exportador nativo da peça YDD, com seleção unificada e vínculo rígido opcional ao ped. A exportação mantém o YTD original e verifica a reabertura do YDD.
 
