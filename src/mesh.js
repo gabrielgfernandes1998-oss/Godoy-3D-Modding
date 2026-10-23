@@ -278,7 +278,7 @@ $('#ytd-file').onchange=guard(async event=> {
   status('YTD associado. O conjunto será exportado em ZIP com YDD, YTD atualizado e mapas UV PNG.');
 });
 function showAtlasPlan(plan) {
-  const text=`Atlas ${plan.width} × ${plan.height} · ${plan.regions} área(s) de textura para ${plan.materials} material(is). `+(plan.reduced?`A textura da roupa será reduzida para 1/${plan.divisor} da resolução em cada eixo.`:'Resolução da roupa preservada.');
+  const text=`Atlas ${plan.width} × ${plan.height} · ${plan.regions} área(s) de textura para ${plan.materials} material(is). `+(plan.reduced?`A textura da roupa será reduzida para 1/${plan.divisor} da resolução em cada eixo.`:'Resolução da roupa preservada.')+(plan.auxiliaryResolution>0&&plan.auxiliaryResolution<plan.width?` Mapas normal/brilho limitados a ${plan.auxiliaryResolution} × ${plan.auxiliaryResolution} para caber no YDD.`:'');
   $('#atlas-plan').textContent=text+(plan.fits?'':' Excede o limite: escolha Ajustar até 4096.');
   return text;
 }

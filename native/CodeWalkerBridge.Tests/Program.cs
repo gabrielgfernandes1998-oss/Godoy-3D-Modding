@@ -213,3 +213,26 @@ void TestAtlasResolution() {
 }
 TestAtlasResolution();
 Console.WriteLine("Atlas resolution: shared regions, 4096 input preflight, preserve mode, filtered downsampling and all-LOD UV PASS");
+
+// Full-sized auxiliary mip chains used to reserve two 128 MiB graphics pages.
+void TestAtlasResourceBudget() {
+ var source=Fixture();var shader=source.Drawables[0].ShaderGroup.Shaders.data_items[0];
+ shader.ParametersList.Hashes=auxShader.ParametersList.Hashes.ToArray();
+ shader.ParametersList.Parameters=auxShader.ParametersList.Parameters.ToArray();
+ shader.ParameterCount=3;shader.TextureParametersCount=3;shader.ParametersList.Count=3;shader.ParameterSize=shader.ParametersList.ParametersSize;shader.ParameterDataSize=shader.ParametersList.ParametersDataSize;
+ var request=JsonSerializer.SerializeToElement(new{matrix=Matrix.Identity.ToArray(),bone="preserve",atlas=true,ytdData=Convert.ToBase64String(File.ReadAllBytes("tests/fixtures/native-large-diffuse.ytd")),additions=new[]{addition},atlasMaxResolution=4096});
+ Check(YddAtlas.Plan(source,request).auxiliaryResolution==2048,"preflight discloses auxiliary resolution cap");
+ var outputYtd=YddAtlas.Build(source,request);var outputYdd=YddEditor.Export(source,request,null);
+ long PageSize(uint f)=>new RpfResourcePageFlags{Value=f}.Size;
+ var reserved=PageSize(BitConverter.ToUInt32(outputYdd,8))+PageSize(BitConverter.ToUInt32(outputYdd,12));
+ Console.WriteLine($"4096 atlas YDD reserved bytes: {reserved}; flags {BitConverter.ToUInt32(outputYdd,8):x8}/{BitConverter.ToUInt32(outputYdd,12):x8}");
+ Check(reserved<=256L*1024*1024,"4096 atlas with normal and specular fits renderer resource budget");
+ var reopened=new YddFile();reopened.Load(outputYdd);
+ var textures=reopened.Drawables[0].ShaderGroup.TextureDictionary.Textures.data_items;
+ Check(textures.Length==2&&textures.All(t=>t.Width==2048&&t.Height==2048&&t.Levels==12),"both auxiliary maps retain full mips within budget");
+ var n=CodeWalker.Utils.DDSIO.GetPixels(textures.Single(t=>t.Usage==TextureUsage.NORMAL),0);
+ Check(n[0]==250&&n[1]==100&&n[2]==90,"auxiliary source color preserved after filtered resize");
+ Check(n[(100*2048+1500)*4]==255&&n[(100*2048+1500)*4+1]==128,"neutral OBJ auxiliary region remains aligned");
+ Directory.CreateDirectory(".test-output");File.WriteAllBytes(".test-output/budget-atlas.ydd",outputYdd);File.WriteAllBytes(".test-output/budget-atlas.ytd",outputYtd);
+}
+TestAtlasResourceBudget();

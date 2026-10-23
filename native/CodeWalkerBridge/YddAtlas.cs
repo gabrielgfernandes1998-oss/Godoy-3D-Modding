@@ -19,7 +19,7 @@ static class YddAtlas {
         return new Vector2(.5f+((part%grid+padding+uv.X*(1-2*padding))/grid)*.5f,(part/grid+padding+uv.Y*(1-2*padding))/grid);
     }
     sealed record Tile(Texture diffuse,Texture? normal,Texture? spec,int index);
-    public sealed record AtlasPlan(int width,int height,int requiredSize,int divisor,int columns,int regions,int materials,int sourceWidth,int sourceHeight,int limit,bool reduced,bool fits);
+    public sealed record AtlasPlan(int width,int height,int requiredSize,int divisor,int columns,int regions,int materials,int sourceWidth,int sourceHeight,int limit,bool reduced,bool fits,int auxiliaryResolution);
     static (YtdFile ytd,Dictionary<ShaderFX,Tile> tiles) Gather(YddFile ydd,JsonElement request) {
         var parts=request.GetProperty("additions");
         if(parts.ValueKind!=JsonValueKind.Array||parts.GetArrayLength()<1||parts.GetArrayLength()>32)throw new Exception("Atlas exige 1–32 partes OBJ.");
@@ -82,7 +82,7 @@ static class YddAtlas {
         }
         var original=Size(1);int divisor=1;var output=original;
         if(limit!=0)while(output.size>limit){divisor*=2;output=Size(divisor);}
-        return new AtlasPlan(output.size,output.size,original.size,divisor,output.columns,regions,tiles.Count,sourceW,sourceH,limit,divisor>1,output.size<=4096);
+        return new AtlasPlan(output.size,output.size,original.size,divisor,output.columns,regions,tiles.Count,sourceW,sourceH,limit,divisor>1,output.size<=4096,tiles.Keys.Any(s=>Slot(s,"BumpSampler") is not null||Slot(s,"NormalSampler") is not null||Slot(s,"SpecSampler") is not null)?Math.Min(output.size,2048):0);
     }
     public static AtlasPlan Plan(YddFile ydd,JsonElement request) {var (_,tiles)=Gather(ydd,request);return Layout(tiles,request);}
     public static byte[] Build(YddFile ydd,JsonElement request) {
@@ -102,8 +102,8 @@ static class YddAtlas {
         string diffuseName=tiles.Values.First().diffuse.Name;
         string suffix=Guid.NewGuid().ToString("N")[..12];
         var diffuseAtlas=Pixels(diffuseName,width,height,diffusePixels,TextureUsage.DIFFUSE);
-        var normalAtlas=normalPixels is null?null:Pixels("godoy_atlas_n_"+suffix,width,height,normalPixels,TextureUsage.NORMAL);
-        var specAtlas=specPixels is null?null:Pixels("godoy_atlas_s_"+suffix,width,height,specPixels,TextureUsage.SPECULAR);
+        var normalAtlas=normalPixels is null?null:AuxiliaryPixels("godoy_atlas_n_"+suffix,width,height,normalPixels,TextureUsage.NORMAL);
+        var specAtlas=specPixels is null?null:AuxiliaryPixels("godoy_atlas_s_"+suffix,width,height,specPixels,TextureUsage.SPECULAR);
         var visited=new HashSet<VertexData>();
         foreach(var drawable in ydd.Drawables) {
             foreach(var model in drawable.AllModels)foreach(var geometry in model.Geometries) {
@@ -168,6 +168,18 @@ static class YddAtlas {
             byte Byte(double value)=>(byte)Math.Clamp((int)Math.Round(value),0,255);
             target[destination]=Byte(divisor>0?b/divisor:0);target[destination+1]=Byte(divisor>0?g/divisor:0);target[destination+2]=Byte(divisor>0?r/divisor:0);target[destination+3]=Byte(alpha/weight);
         }
+    }
+    // A 4096 BGRA mip chain occupies a 128 MiB RSC graphics page. Two such
+    // maps exceed the reader budget once system pages/geometry are included.
+    // Half-size auxiliary maps retain the same normalized UV coordinates.
+    static Texture AuxiliaryPixels(string name,int w,int h,byte[] pixels,TextureUsage usage) {
+        if(w<=2048)return Pixels(name,w,h,pixels,usage);
+        int width=w/2,height=h/2;var reduced=new byte[width*height*4];
+        for(int y=0;y<height;y++)for(int x=0;x<width;x++)for(int c=0;c<4;c++) {
+            int sum=0;for(int dy=0;dy<2;dy++)for(int dx=0;dx<2;dx++)sum+=pixels[((y*2+dy)*w+x*2+dx)*4+c];
+            reduced[(y*width+x)*4+c]=(byte)((sum+2)/4);
+        }
+        return Pixels(name,width,height,reduced,usage);
     }
     public static Texture Pixels(string name,int w,int h,byte[] pixels,TextureUsage usage) {
         var mips=new List<byte>();byte levels=0;var current=pixels;

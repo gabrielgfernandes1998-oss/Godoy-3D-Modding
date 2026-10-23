@@ -1,5 +1,7 @@
-# Godoy 3D Modding 0.6.2 beta
+# Godoy 3D Modding 0.6.3 beta
 
+- Corrige a falha “Tamanho de recurso inválido ou acima do limite de 256 MB descomprimidos” no atlas 4096 com normal e specular: os mapas auxiliares embutidos usam até 2048×2048 e mipmaps completos. A diffuse continua em até 4096; os UVs normalizados permanecem alinhados. O cálculo mostra a resolução auxiliar e `atlas-info.json` registra `auxiliaryResolution`. Pode haver perda de detalhes de relevo/brilho.
+- Mantém o limite de leitura de 256 MiB. Regressão exporta/reabre um par real RSC7 sintético com diffuse 4096 e dois mapas auxiliares; o YDD reserva cerca de 64 MiB em vez de mais de 256 MiB.
 - Corrige o bloqueio de tamanho do atlas com ajuste automático de resolução: opções **Ajustar até 4096**, **2048**, **1024** e **Preservar resolução original**. A redução, quando necessária, é informada na tela e usa filtro de área com alpha, mantendo UVs e mapas auxiliares alinhados.
 - Materiais que usam imagens idênticas compartilham a mesma região UV. O empacotador escolhe a quantidade de colunas que exige o menor atlas, evitando cópias e espaço desperdiçado.
 - Novo botão **Calcular tamanho do atlas** mostra dimensões finais, quantidade de materiais/áreas e fator de redução antes de exportar. O cálculo não modifica a malha. O ZIP inclui `atlas-info.json` com esses dados.

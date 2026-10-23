@@ -182,7 +182,7 @@ Um YTD pode conter várias texturas. O material do colete mantém a referência 
 
 O UV automático separa cada triângulo em uma ilha para impedir sobreposição, inclusive em OBJ sem UV ou com faces sobrepostas. É um ponto inicial editável; não substitui um unwrap artístico. Limite de 21845 triângulos por parte, 100000 vértices após costuras e 10 MB por requisição. MTL e imagens originais do OBJ não são importados. A estrutura é validada automaticamente; aparência e animações no FiveM com assets reais precisam ser verificadas no jogo.
 
-### Atlas único: roupa e OBJ no mesmo mapa (0.6.2)
+### Atlas único: roupa e OBJ no mesmo mapa (0.6.3)
 
 1. Importe o YDD original, posicione o OBJ e una à peça.
 2. Selecione o conjunto e **Associe o YTD original** da roupa.
@@ -193,3 +193,5 @@ O UV automático separa cada triângulo em uma ilha para impedir sobreposição,
 O ZIP inclui uma cópia PNG da imagem final e o guia UV transparente de ambas as malhas. O atlas é quadrado, até 4096×4096. Materiais com imagens idênticas compartilham uma região. A resolução original é preservada quando couber; a opção Ajustar reduz imagens grandes quando necessário, mantendo o UV alinhado. O YTD possui uma única diffuse; os mapas auxiliares compatíveis são reorganizados e incorporados no YDD. Isso trata a substituição da primeira textura aplicada pelo preview de ped do grzy, sem depender de múltiplas diffuses independentes.
 
 **Calcular tamanho do atlas** mostra a resolução final e o fator de redução antes de exportar. Escolha **Ajustar até 4096** (padrão), 2048 ou 1024 para caber no limite, ou **Preservar resolução original** para impedir redução. Reduzir pode perder detalhes finos; `atlas-info.json` registra a opção e o resultado. Mapas auxiliares não encontrados, UVs fora de 0–1 e shaders especiais interrompem o export com diagnóstico. A reorganização automática não faz unwrap artístico nem importa imagens/MTL do OBJ. Validação estrutural e pintura usam fixtures originais; os arquivos reais do usuário e a animação no FiveM ainda precisam ser conferidos.
+
+Na versão 0.6.3, mapas auxiliares de normal/brilho embutidos no YDD ficam limitados a 2048×2048, com mipmaps completos e UV normalizado alinhado à diffuse de até 4096×4096. Isso evita a reserva de duas páginas gráficas de 128 MiB que ultrapassava o limite de leitura de 256 MiB. O cálculo informa essa resolução separadamente e o JSON a registra em `auxiliaryResolution` (zero quando não há mapas auxiliares). A opção Preservar se refere à diffuse; os mapas auxiliares seguem esse limite e podem perder detalhes finos.

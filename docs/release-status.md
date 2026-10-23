@@ -1,4 +1,12 @@
-# Estado da versão 0.6.2 beta
+# Estado da versão 0.6.3 beta
+
+Correção do recurso RSC7 acima de 256 MiB: um atlas normal e outro specular de 4096 com mipmaps ocupavam duas páginas gráficas de 128 MiB, além das páginas de sistema. A diffuse permanece em até 4096 no YTD. Os mapas auxiliares passam a até 2048 com filtro de área, mipmaps completos e o mesmo UV normalizado. A interface informa o limite separado e o JSON inclui auxiliaryResolution. A redução pode perder detalhes de relevo/brilho; Preservar refere-se à diffuse.
+
+Regressão local exporta/reabre um atlas 4096 com ambos os mapas: reserva YDD de 67.118.080 bytes e YTD de 134.225.920 bytes, ambos lidos pelos parsers JavaScript sem alterar o limite de 256 MiB. Confere resolução/mipmaps, pixels da roupa e região neutra do OBJ. Assets sintéticos originais; arquivos reais do usuário e aparência/animação no grzy/FiveM continuam sem validação neste ambiente.
+
+Compilação portable e teste do executável Windows serão acompanhados no workflow desta versão.
+
+# Histórico da versão 0.6.2 beta
 
 Resolve o bloqueio por tamanho do atlas sem aumentar o limite de 16 megapixels. Materiais com as mesmas imagens diffuse/normal/specular compartilham uma área, e a quantidade de colunas é escolhida para minimizar o lado necessário. A resolução possui opções Ajustar até 4096/2048/1024 e Preservar original. Se necessário, Ajustar reduz as imagens com filtro de área (alpha ponderado para diffuse), mantendo o UV e os mapas auxiliares alinhados. Preservar não reduz silenciosamente. O botão Calcular tamanho do atlas mostra dimensões, áreas/materiais e fator de redução antes de exportar; o cálculo não modifica os vértices. O ZIP inclui atlas-info.json. Imagens antigas que deixaram de ser referenciadas não são duplicadas no YDD.
 
