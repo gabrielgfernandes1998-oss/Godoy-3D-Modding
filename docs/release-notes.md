@@ -1,12 +1,9 @@
-# Godoy 3D Modding 0.8.2 beta
+# Godoy 3D Modding 0.8.3 beta
 
-- Preserva o gênero dos assets ao salvar/reabrir projetos, permitindo adicionar masculino/feminino com os mesmos nomes sem misturar associações. A seleção inicial respeita o gênero visualizado.
-- Novo Pack de roupas inspirado no fluxo do grzyClothTool, com identidade visual Godoy: biblioteca por componente/gênero, catálogo pesquisável, grupos/tags, preview 3D e painel de variações.
-- Projetos `.godoypack` incluem modelos/texturas/configurações; abrir/salvar, recuperação de autosave e Ctrl+Z/Ctrl+Y. Duplicar/remover/reordenar peças e exportar ambos os gêneros juntos.
-- Variações com miniaturas, adicionar/associar/substituir YTD, duplicar para criar nova pintura, renomear/reordenar/remover, exportar YTD/PNG e abrir na pintura. Exportar do editor atualiza somente a variação aberta; a original é preservada.
-- Preview de várias categorias sobre ped do GTA pelo CodeWalker ou ped local YDD/GLB. Câmera, wireframe, ocultar ped e alternar peças/variações. Corpo GTA em material neutro, pose estática.
-- Props: 13 categorias de âncoras, nomes externos FiveM próprios e metadados de variação no YMT. Campos de flags, áudio, salto e redução de cabelo gravados nos metadados.
-- Exportação aceita lacunas nos índices de entrada e reindexa os nomes externos sem alterar binários. Divide coleções grandes por 128 drawables/255 texturas por componente e por 255 props. Gera ZIP com META/YMT/manifest e relatório de mapeamento.
-- A edição de malhas/atlas UV aprovada na 0.7.0 permanece disponível.
+- Associar YTD em Malhas e objetos agora aplica a diffuse na pré-visualização da peça, incluindo todos os LODs, sem pintar o OBJ incorporado com a textura da roupa.
+- Preview do pack e das malhas repete texturas com UV fora de 0–1, evitando o esticamento das bordas. A seleção respeita o YTD da variação, com correspondência pelo nome e alternativa para variações renomeadas.
+- Ped da aba de malhas começa opaco. A opção Ped transparente permite consultar o encaixe sem confundir a sobreposição de faces com defeito na geometria. Transparência recortada da roupa no pack usa teste alfa e grava profundidade.
 
-Props exigem assets/rig compatíveis; não corrigem clipping nem pesos automaticamente. Sem paridade integral com grzy: física/primeira pessoa/slots reservados, importação de projetos grzy, otimização DDS em lote, preview animado e builds SP/alt:V não incluídos. Até 80 MB por arquivo, 256 MB por projeto/exportação e 26 variações por peça. Estrutura validada com CodeWalker; aparência/animação com assets reais precisa de teste no FiveM Legacy.
+- Importar peças de outro gênero limpa/troca a referência do preview do pack, evitando combinar roupa feminina com o ped masculino anterior. Enquadrar com ped oculto usa as roupas visíveis.
+
+Preview estático e ped em material neutro. Essas correções não alteram posição, escala, rig ou exportação. O bloqueio do atlas para UV repetido fora de 0–1 continua: encaixar texturas repetidas em uma área menor exige tratamento próprio das faces, não apenas limitar as coordenadas. Aparência e encaixe com assets reais precisam de validação; a captura de tela não permite determinar se existe outro problema de pose ou alinhamento.

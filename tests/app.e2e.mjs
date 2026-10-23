@@ -54,6 +54,8 @@ try {
   await page.click('[data-tab=mesh]');const mesh=page.frameLocator('#mesh iframe');
   await mesh.locator('#ped-file').setInputFiles({name:'mp_m_freemode_01.ydd',mimeType:'application/octet-stream',buffer:Buffer.from(makeYdd())});
   await mesh.locator('#ped-status').filter({hasText:'Ped salvo e carregado'}).waitFor();
+  assert.equal(await mesh.locator('#ped-transparent').isChecked(),false,'ped starts opaque to avoid overlapping transparent faces');
+  await mesh.locator('#ped-transparent').check();await mesh.locator('#ped-transparent').uncheck();
   await mesh.locator('#ped-gender').selectOption('female');
   await mesh.locator('#ped-status').filter({hasText:'Nenhum ped salvo'}).waitFor();
   await mesh.locator('#ped-gender').selectOption('male');
@@ -74,6 +76,8 @@ try {
   const glbDownload=page.waitForEvent('download');await mesh.locator('#export-glb').click();const glb=await glbDownload;const glbPath=path.join(output,'scene.glb');await glb.saveAs(glbPath);
   const bytes=await readFile(glbPath);assert.equal(bytes.readUInt32LE(0),0x46546c67);
   const sceneJson=JSON.parse(bytes.subarray(20,20+bytes.readUInt32LE(12)).toString());
+  assert.ok(sceneJson.materials.some(m=>m.pbrMetallicRoughness?.baseColorTexture),'associated YTD must appear on the preview mesh and GLB copy');
+  assert.ok(sceneJson.samplers.some(s=>s.wrapS===10497&&s.wrapT===10497),'GTA diffuse uses repeating UVs in preview');
   assert.ok(sceneJson.nodes.every(n=>!n.name?.startsWith('Ped ·')),'Ped reference must not be exported');
   const meshFrame=page.frames().find(f=>f.url().endsWith('/mesh.html'));
   await meshFrame.goto(meshFrame.url());
