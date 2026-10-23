@@ -60,6 +60,10 @@ try {
   await mesh.locator('#mesh-file').setInputFiles({name:'jbib_000_u.ydd',mimeType:'application/octet-stream',buffer:Buffer.from(makeYdd())});
   await mesh.locator('#status').filter({hasText:'carregado'}).waitFor();
   await exerciseMeshHistory(page,mesh);
+  await mesh.locator('#tree button').filter({hasText:'jbib_000_u.ydd'}).click();
+  await mesh.locator('#ytd-file').setInputFiles({name:'jbib_diff_000_a_uni.ytd',mimeType:'application/octet-stream',buffer:Buffer.from(makeYtd())});
+  await mesh.locator('#ytd-status').filter({hasText:'jbib_diff_000_a_uni.ytd'}).waitFor();
+
   await mesh.locator('#obj-file').setInputFiles({name:'accessory.obj',mimeType:'text/plain',buffer:Buffer.from('o Accessory\nv 0 0 0\nv 1 0 0\nv 0 1 0\nvt 0 0\nvt 1 0\nvt 0 1\nf 1/1 2/2 3/3\n')});
   await mesh.locator('#status').filter({hasText:'OBJ adicionado'}).waitFor();
   await mesh.locator('#tree button').filter({hasText:'jbib_000_u.ydd'}).first().click();

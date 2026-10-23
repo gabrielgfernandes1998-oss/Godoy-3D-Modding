@@ -1,4 +1,4 @@
-# Godoy 3D Modding 0.5.0 beta
+# Godoy 3D Modding 0.5.1 beta
 
 - Exportação de OBJ incorporado com UV automático sem sobreposição entre faces e textura diffuse própria de 1024×1024 dentro do mesmo YTD da roupa.
 - Novo botão **Associar YTD original para gerar UV** na aba Malhas e objetos. Com OBJ incorporado, exporta um ZIP com YDD, YTD atualizado e guias UV transparentes em PNG.

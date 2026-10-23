@@ -202,7 +202,7 @@ async function restorePed() {
   if(file)await load(file,true,sequence);
   else {clearReference();$('#ped-status').textContent='Nenhum ped salvo para este gênero. Use Importar ped de referência.';}
 }
-const guard=fn=>async()=>{try{await fn();}catch(e){status(e.message);}};
+const guard=fn=>async(...args)=>{try{await fn(...args);}catch(e){status(e.message);}};
 $('#open-mesh').onclick=()=>$('#mesh-file').click();$('#open-ped').onclick=()=>$('#ped-file').click();$('#open-obj').onclick=()=>$('#obj-file').click();
 $('#mesh-file').onchange=e=>{const file=e.target.files[0];e.target.value='';guard(()=>load(file))();};
 $('#ped-file').onchange=e=>guard(async()=> {
