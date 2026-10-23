@@ -1,24 +1,21 @@
-# Referência: grzyClothTool
+# Referência funcional: grzyClothTool e Pack Godoy 0.8.0
 
-Repositório: https://github.com/grzybeek/grzyClothTool
-Commit inspecionado: `6b118754e332414e7026b694b7559bfff56984a4` (master).
-Licença do projeto: GPL-3.0. Nenhum código ou asset desse projeto foi copiado para o Godoy 3D Modding nesta correção.
+Repositório inspecionado: https://github.com/grzybeek/grzyClothTool · master `6b118754e332414e7026b694b7559bfff56984a4` · GPL-3.0. O gerenciador/preview/compilador JS são implementações próprias. O núcleo CodeWalker GPL já é distribuído pelo Godoy com fonte e avisos, conforme a integração existente.
 
-## De onde vêm os peds
+A prioridade pedida foi importar/organizar/exportar, gerenciar/criar variações, preview no ped e props. A tela mantém a linguagem visual do Godoy.
 
-`Helpers/CWHelper.cs` usa GTAFolder para localizar/validar a instalação do GTA V e seleciona `mp_m_freemode_01` ou `mp_f_freemode_01`. `Controls/PreviewWindowHost.xaml.cs` só inicializa o preview quando a pasta do jogo é válida. A renderização depende do CodeWalker incluído no projeto, com seu próprio histórico/licenciamento. O repositório contém placeholders reservedDrawable.ydd/reservedTexture.ytd; eles não são peds completos.
+| Fluxo de referência | Implementação Godoy |
+| --- | --- |
+| Projeto persistente, addons/componentes/gênero | `.godoypack` ZIP com assets, autosave recuperável, categorias e ambos os gêneros |
+| Organização de drawables | Busca, grupo/tags, nomes de exibição, duplicar/remover/reordenar e desfazer/refazer |
+| Texturas/variações | Miniaturas, adicionar/associar/substituir, criar cópia independente, renomear/ordenar/remover, YTD/PNG e envio à pintura |
+| Preview de várias peças | Uma peça por slot, variações e props simultâneos; ped do GTA via CodeWalker ou importado; câmera/wireframe |
+| Props | 13 categorias de âncora, nomes externos com `_p_`, YMT CPedPropMetaData/CPedPropTexData/CAnchorProps e enums |
+| Exportar FiveM e dividir addons grandes | Reindexação externa, divisões por limite de drawable/textura/props, META/YMT/manifest/relatório |
+| Flags/áudio/salto/redução de cabelo | Campos gravados nos metadados; efeito visual/animação conferido no jogo |
 
-Portanto, baixar esses fontes não fornece por si só os modelos de personagem. Integração automática exige um leitor RPF, gerenciamento das dependências do ped e arquivos de uma instalação autorizada GTA V; isso não está implementado no Godoy.
+`Helpers/BuildResourceHelper.cs`, `Models/AddonManager.cs`, `Models/Drawable/GDrawable.cs`, `Models/Texture/GTexture.cs` e `Controls/Drawable/SelectedDrawable.xaml` foram usados para entender os fluxos e convenções. A associação automática exige nomes compatíveis; casos ambíguos ficam disponíveis para associação manual. A renumeração externa acompanha o princípio do builder de referência: preserva os bytes dos assets quando não há operação específica sobre os binários.
 
-## O que foi aproveitado nesta versão
+Não há paridade integral: reserva de slots vazios, importação de projetos grzy, edições em lote de flags, otimização/conversão DDS em lote, física YLD, variantes de primeira pessoa, alternativas/máscaras/cabelo avançadas, preview animado/skin completo e builds Singleplayer/alt:V ainda não estão incluídos. O ped GTA precisa de instalação autorizada; nenhum ped original é redistribuído. Props não corrigem rig ou clipping automaticamente.
 
-A referência motivou distinguir o ped base dos drawables editados e manter os gêneros separados. Implementação original em src/ped-library.js: arquivos YDD/GLB fornecidos pelo usuário são guardados localmente por gênero; a cena de referência é separada da geometria exportável. Não há manequim genérico apresentado como ped original.
-
-## Recursos úteis para evolução
-
-- `Helpers/BuildResourceHelper.cs`: criação de CPedVariationInfo/YMT, propMask, numAvailTex, compInfos, props, variações de primeira pessoa e metadados de cabelo.
-- `Models/AddonManager.cs` e helpers: gestão de addons, componentes, reserva de índices e divisão de coleções maiores.
-- `Helpers/PedAlternativeVariationsHelper.cs`: relação entre máscaras/cabelo e metadados de variação.
-- `Helpers/CWHelper.cs`: reescrita de drawables e configurações de cabelo/salto no formato nativo.
-
-A geração YMT independente do Godoy usa os mesmos campos do formato; a referência confirma a soma de texturas por componente, propMask 1/17 e distribution 255. Isso não acrescenta automaticamente suporte a props, física, rigging ou extração de peds. Essas integrações ainda precisam de implementação e validação próprias, com observância das licenças dos componentes reutilizados.
+Código do Godoy: `src/pack-project.js` (dados/projeto/exportação), `src/pack-builder.js` + CSS (interface), `src/pack-preview.js` (3D), `src/pack.js` + `src/ymt.js` (recurso/metadados). A suíte nativa usa o CodeWalker para ler independentemente um YMT misto de roupas/props e conferir campos, âncoras, variações, enums e valores.

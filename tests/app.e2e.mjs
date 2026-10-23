@@ -23,8 +23,9 @@ try {
   const page=await browser.newPage({viewport:{width:1600,height:1100},acceptDownloads:true});
   const errors=[],requests=[];page.on('pageerror',e=>errors.push(e.message));page.on('dialog',d=>d.accept());page.on('requestfailed',r=>requests.push(r.url()));
   await page.goto(`http://127.0.0.1:${port}`);
+  await page.selectOption('#gender','female');
   await page.locator('#pack-files').setInputFiles([{name:'jbib_000_u.ydd',mimeType:'application/octet-stream',buffer:Buffer.from(makeYdd())},{name:'jbib_diff_000_a_uni.ytd',mimeType:'application/octet-stream',buffer:Buffer.from(makeYtd())}]);
-  await page.selectOption('#gender','female');await page.fill('#pack-name','browser_test');
+  await page.locator('[data-piece]').first().waitFor();await page.fill('#pack-name','browser_test');
   const packDownload=page.waitForEvent('download');await page.click('#build-pack');const pack=await packDownload;
   const packPath=path.join(output,'pack.zip');await pack.saveAs(packPath);
   const archive=unzipSync(await readFile(packPath));assert.ok(archive['stream/mp_f_freemode_01_browser_test.ymt']);assert.ok(archive['fxmanifest.lua']);

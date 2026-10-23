@@ -98,6 +98,7 @@ document.querySelector("#app").innerHTML = `
 createIcons({ icons });
 const $ = (s) => document.querySelector(s);
 let toastTimer;
+let packEditToken=null;
 function toast(message) {
   $("#toast").textContent = message;
   $("#toast").style.display = "block";
@@ -832,6 +833,7 @@ function resetMaterialOptions() {
   }
 }
 function setTextureDictionary(doc, buffer, name) {
+  packEditToken=null;
   const supported = doc.textures.find((t) => t.supported);
   if (!supported)
     throw Error(
@@ -1057,7 +1059,7 @@ $("#export-native").onclick = async () => {
     const data = writeYtd(nativeTextures, edits),
       extension = nativeTextures.embedded ? "ydd" : "ytd";
     if (window.parent !== window && !nativeTextures.embedded) {
-      window.parent.postMessage({type:'godoy-edited-assets',files:[{name:nativeTextureName,bytes:data},{name:modelFilename,bytes:new Uint8Array(modelSource)}]},location.origin === 'null' ? '*' : location.origin);
+      window.parent.postMessage({type:'godoy-edited-assets',packToken:packEditToken,files:[{name:nativeTextureName,bytes:data},{name:modelFilename,bytes:new Uint8Array(modelSource)}]},location.origin === 'null' ? '*' : location.origin);
     }
     download(
       nativeTextureName.replace(/\.(ydd|ytd)$/i, "") + "_editado." + extension,
@@ -1271,6 +1273,7 @@ async function restoreProject(p) {
   changed = false;
 }
 $("#model-file").onchange = async (e) => {
+  packEditToken=null;
   const file = e.target.files[0];
   if (!file) return;
   try {
@@ -1420,3 +1423,16 @@ renderer.setAnimationLoop(() => {
 });
 
 attachAssetBatch({host:document.querySelector('aside.left'),readModel:()=>nativeModel,parseTexture:parseYtd,setTextures:setTextureDictionary,notify:toast,openModel:async file=>{const previous=modelSource;await $("#model-file").onchange({target:{files:[file],value:''}});return modelSource!==previous;}});
+
+window.addEventListener('message',async event=>{
+  if(event.source!==window.parent||event.origin!==location.origin||event.data?.type!=='godoy-pack-edit')return;
+  try {
+    const {model,texture,token}=event.data;
+    if(typeof token!=='string'||token.length>64||[model,texture].some(a=>typeof a?.name!=='string'||!(a.bytes instanceof Uint8Array)||!a.bytes.length||a.bytes.length>80*1024*1024))throw Error('Variação recebida inválida.');
+    const bytes=model.bytes,buffer=texture.bytes.buffer.slice(texture.bytes.byteOffset,texture.bytes.byteOffset+texture.bytes.byteLength);
+    parseYdd(bytes);const dictionary=parseYtd(buffer);
+    await $('#model-file').onchange({target:{files:[new File([bytes],model.name)],value:''}});
+    setTextureDictionary(dictionary,buffer,texture.name);packEditToken=token;
+    toast('Variação do pack aberta. Exportar YTD atualiza somente esta variação.');
+  }catch(error){toast(error.message);}
+});

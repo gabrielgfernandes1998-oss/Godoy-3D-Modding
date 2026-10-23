@@ -38,6 +38,19 @@ jobs:
           python3 -m unittest discover -s tests -v
       - name: Build Windows x64 portable
         run: npm run package:windows
+      - name: Test clothing pack project and variation workflow
+        run: |
+          npx playwright install --with-deps chromium
+          npm run test:pack:browser
+      - name: Retain pack workflow evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pack-workflow-evidence
+          path: |
+            .test-output/pack-manager.png
+            .test-output/pack-browser-results.json
+          if-no-files-found: ignore
       - name: Retain portable artifacts
         uses: actions/upload-artifact@v4
         with:

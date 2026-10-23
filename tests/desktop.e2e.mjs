@@ -8,6 +8,7 @@ import {unzipSync} from 'fflate';
 import {makeYdd,makeYtd,makeYft} from '../modules/vehicles/tests/fixtures.js';
 import {parseYdd} from '../modules/vehicles/src/formats/ydd.js';
 import {parseYtd} from '../modules/vehicles/src/formats/ytd.js';
+import {inspectYmt} from '../src/ymt.js';
 import {exerciseMeshHistory} from './mesh-regression.mjs';
 import {execFileSync} from 'node:child_process';
 const executablePath=process.env.GODOY_DESKTOP_EXE;
@@ -54,9 +55,17 @@ try {
     {name:'jbib_000_u.ydd',mimeType:'application/octet-stream',buffer:Buffer.from(makeYdd())},
     {name:'jbib_diff_000_a_uni.ytd',mimeType:'application/octet-stream',buffer:Buffer.from(makeYtd())},
   ]);
+  await page.locator('[data-piece]').filter({hasText:'jbib_000_u'}).click();await page.locator('#variant-copy').click();
+  await page.locator('#variant-grid button').nth(1).waitFor();
+  await page.locator('#pack-files').setInputFiles([
+    {name:'p_head_019.ydd',mimeType:'application/octet-stream',buffer:Buffer.from(makeYdd())},
+    {name:'p_head_diff_019_a.ytd',mimeType:'application/octet-stream',buffer:Buffer.from(makeYtd())},
+  ]);await page.locator('[data-piece]').nth(1).waitFor();
   const packWait=page.waitForEvent('download');await page.click('#build-pack');
   const pack=await packWait;await pack.saveAs(path.join(output,'pack.zip'));
-  assert.ok(unzipSync(await readFile(path.join(output,'pack.zip')))['stream/mp_m_freemode_01_godoy_pack.ymt']);
+  const packed=unzipSync(await readFile(path.join(output,'pack.zip'))),packMeta=inspectYmt(packed['stream/mp_m_freemode_01_godoy_pack.ymt']);assert.equal(packMeta.props.length,1);assert.equal(packMeta.components[0].drawables[0].textures.length,2);
+  assert.ok(packed['stream/[male]/p_head/mp_m_freemode_01_p_godoy_pack^p_head_diff_000_a.ytd']);
+  const projectPending=page.waitForEvent('download');await page.locator('#save-pack-project').click();const projectDownload=await projectPending;await projectDownload.saveAs(path.join(output,'pack.godoypack'));await page.locator('#new-pack').click();await page.locator('#pack-project-file').setInputFiles(path.join(output,'pack.godoypack'));await page.locator('[data-piece]').nth(1).waitFor();
   await page.click('[data-tab=clothing]');const clothing=page.frameLocator('#clothing iframe');
   await clothing.locator('#batch-files').setInputFiles([
     {name:'jbib_000_u.ydd',mimeType:'application/octet-stream',buffer:Buffer.from(makeYdd())},

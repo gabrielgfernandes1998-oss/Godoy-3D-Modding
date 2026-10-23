@@ -1,4 +1,4 @@
-# Godoy 3D Modding · 0.2.3 beta
+# Godoy 3D Modding · 0.8.0 beta
 
 Studio local de roupas, malhas e pinturas de veículos para GTA V Legacy/FiveM. Developed by Gabriel Godoy.
 
@@ -6,22 +6,22 @@ Studio local de roupas, malhas e pinturas de veículos para GTA V Legacy/FiveM. 
 
 Os downloads são publicados em [GitHub Releases](https://github.com/gabrielgfernandes1998-oss/Godoy-3D-Modding/releases). O workflow [Windows portable release](https://github.com/gabrielgfernandes1998-oss/Godoy-3D-Modding/actions/workflows/portable-release.yml) compila e publica o ZIP e o SHA-256 quando uma tag `v` correspondente à versão do `package.json` é enviada.
 
-Extraia **todo o ZIP** `Godoy-3D-Modding-0.2.3-Windows-x64-Portable.zip` e execute `Godoy3DModding.exe`. Não precisa instalar Node.js, Python ou .NET no computador de uso. Requer driver com suporte a WebGL. O executável não é assinado digitalmente.
+Extraia **todo o ZIP** `Godoy-3D-Modding-0.8.0-Windows-x64-Portable.zip` e execute `Godoy3DModding.exe`. Não precisa instalar Node.js, Python ou .NET no computador de uso. Requer driver com suporte a WebGL. O executável não é assinado digitalmente.
 
-Os arquivos são processados localmente. Salve seus projetos em uma pasta escolhida por você; não há salvamento automático. O pacote não inclui arquivos originais GTA, ped base ou modelos comerciais.
+Os arquivos são processados localmente. Salve seus projetos em uma pasta escolhida por você; o Pack de roupas oferece recuperação de autosave e projeto `.godoypack` com os assets incluídos. O pacote não inclui arquivos originais GTA, ped base ou modelos comerciais.
 
 ## Recursos desta versão
 
 | Módulo | Disponível | Limites |
 | --- | --- | --- |
-| Pack de roupas | Nome, gênero, associação por componente/índice, geração YMT binário e SHOP_PED_APPAREL_META_FILE, fxmanifest, ZIP com stream/[male ou female]/componente | Geração YMT experimental; exige índices contínuos desde 000, variantes _u/uni ou _r/whi. Sem props ou variantes de primeira pessoa. |
+| Pack de roupas | Projetos, importação por arquivo/pasta, associação YDD/YTD, componentes e props, grupos/tags/busca, duplicação/ordenação, variações, preview no ped e geração de coleções YMT/META/manifest | Preview estático; não refaz rig, não simula física nem elimina clipping. Teste no FiveM com seus assets. |
 | Pintura de roupas | YDD/YTD, seleção de drawables/LODs, pintura 3D/UV, camadas, texto, imagem, exportação YTD e texturas embutidas | Baseada no PAINTFIVE; não recompila alterações de geometria. |
 | Associação de arquivos | Importação de conjunto, busca por nome e referências de materiais; escolha manual em caso de empate | Só acessa arquivos selecionados pelo usuário. |
-| Integração editor/pack | Exportar YTD no editor atualiza o conjunto do pack com o nome original e o YDD aberto | O nome precisa seguir a convenção de componentes para gerar o recurso. |
+| Integração editor/pack | Exportar YTD no editor atualiza o conjunto do pack com o nome original e o YDD aberto | Cada variação aberta pelo Pack tem identificação própria; editar a cópia preserva a original. |
 | Malhas e objetos | Peça inteira sobre o ped; posição/rotação/escala gravadas no YDD original; preservar pesos ou prender rigidamente à pelve/cabeça/tronco; desfazer/refazer; GLB e união OBJ nas opções avançadas | Incorpora OBJ num atlas único de roupa + acessório e UV automático em ilhas triangulares, herdando pesos da região próxima. Sem YFT, unwrap artístico, pintura manual de pesos, animação ou colisão. Layouts incompatíveis são recusados. Teste FiveM real pendente. |
 | Pintura de veículos | YFT e _hi.yft visualizáveis, seleção de drawables/LODs, materiais e pintura YTD | Baseada no Godoy-Paint-Car. Não reconstrói bones/fragment physics/damage nem gera novo _hi.yft. |
 
-Não é a implementação completa dos três módulos originais. A exportação nativa de geometria e a validação em FiveM continuam pendentes. O workflow exige um teste do executável em Windows antes de publicar. Consulte [estado da versão](docs/release-status.md).
+Não é a implementação completa dos três módulos originais. O editor já exporta alterações e OBJ em YDD; geometria YFT e validação visual no FiveM com assets reais continuam pendentes. O workflow exige um teste do executável em Windows antes de publicar. Consulte [estado da versão](docs/release-status.md).
 
 ## Criar um pack
 
@@ -36,11 +36,11 @@ feet_000_r.ydd
 feet_diff_000_a_whi.ytd
 ```
 
-3. Os índices de cada componente começam em 000, sem lacunas, e as texturas começam em `a`. Arquivos com prefixo `colecao^` também são aceitos. O índice é preservado; não há renumeração arbitrária de nomes internos.
+3. Organize as peças por componente, gênero, grupo e tags. Os índices de entrada podem ter lacunas: a exportação gera nomes externos consecutivos e preserva os bytes dos modelos/texturas. Arquivos com prefixo `colecao^` também são aceitos. Para props, use por exemplo `p_head_019.ydd` + `p_head_diff_019_a.ytd`.
 4. Gere o ZIP. Ele inclui `fxmanifest.lua`, `mp_m_freemode_01_nome.meta` (ou feminino), YMT e os YDD/YTD organizados em `stream/[male]/jbib/`, etc. O `dlcName` no META e o hash interno do YMT usam o nome da coleção; `fullDlcName` inclui o ped.
 5. Extraia como um recurso na base, adicione `ensure nome_do_recurso` e confira **no servidor FiveM Legacy** antes de distribuir. O `export-report.json` registra componentes e referências externas de textura; referências não resolvidas precisam ser conferidas.
 
-O gerador de YMT cria um recurso RSC7 v2 CPedVariationInfo. Sua estrutura foi lida por um leitor independente CodeWalker; isso não substitui testar os arquivos no jogo. YDD/YTD são analisados e copiados, sem alterar seus bytes. Limites: 80 MB por arquivo, 256 MB por pack, 1–128 drawables e no máximo 255 texturas por componente, até 26 variações por drawable.
+O gerador de YMT cria um recurso RSC7 v2 CPedVariationInfo. Sua estrutura foi lida por um leitor independente CodeWalker; isso não substitui testar os arquivos no jogo. YDD/YTD são analisados e copiados, sem alterar seus bytes. Limites: 80 MB por arquivo, 256 MB de assets por projeto/exportação e até 26 variações por peça. O exportador divide automaticamente em coleções quando ultrapassa 128 drawables ou 255 texturas por componente, ou 255 props no total.
 
 ## Desenvolvimento
 
@@ -201,3 +201,14 @@ Na versão 0.6.3, mapas auxiliares de normal/brilho embutidos no YDD ficam limit
 Ao exportar uma peça com OBJ incorporado e YTD associado, uma janela mostra a textura original e as áreas UV. A roupa começa ocupando o mapa inteiro; cada parte OBJ começa pequena. Selecione a parte, arraste para uma região livre e use o quadrado do canto inferior direito para expandir/reduzir, ou informe X/Y/largura/altura em pixels. É possível mostrar o UV original, alterar a resolução final e desfazer/refazer com Ctrl+Z/Ctrl+Y. Confirme a região reservada e clique **Confirmar UV e exportar YDD + YTD**. Cancelar mantém a cena.
 
 O retângulo do OBJ substitui os pixels daquela região por cinza e recebe as ilhas triangulares para pintura. Escolha uma área não usada pela roupa: o editor não detecta automaticamente pixels/ilhas livres. A roupa no mapa inteiro mantém os UVs originais; com resolução igual à imagem original, mantém os pixels fora das áreas reservadas. Não há recuperação de detalhes já perdidos em uma exportação anterior: reabra o YDD/YTD originais. Os mapas auxiliares continuam limitados a 2048; a diffuse vai até 4096. Dois OBJ não podem ocupar o mesmo retângulo; o mesmo vale para duas imagens diferentes da roupa. É ajuste de área por parte OBJ, sem edição individual de vértices UV nem unwrap artístico. O botão Distribuição automática anterior restaura o empacotamento legado; ele pode reduzir a área da roupa.
+
+## Pack de roupas · Collection Studio (0.8.0)
+
+- **Projeto:** Novo, Abrir/Salvar `.godoypack` com todos os arquivos, recuperação de autosave local e histórico Ctrl+Z/Ctrl+Y. O ZIP de recurso FiveM e o projeto editável são formatos separados.
+- **Organização:** componentes e 13 categorias de props, masculino/feminino no mesmo projeto, nomes de exibição, grupos/tags, busca/filtro, duplicar/remover/reordenar peças. Arquivos com mesmos nomes podem existir em gêneros diferentes. Nomear uma peça como feminina não converte sua malha/rig.
+- **Variações:** miniaturas, adicionar ou associar um YTD já importado, substituir, duplicar para criar uma pintura, renomear/reordenar/remover, exportar YTD/PNG. **Pintar variação** abre a cópia no editor; **Exportar YTD** atualiza somente sua identidade no pack. Para usar uma imagem nova, crie a variação e importe PNG/JPG no editor de pintura. Formatos que o editor não consegue gravar devem ser convertidos antes.
+- **Preview:** vestir uma peça por slot e várias categorias ao mesmo tempo, alternar variações, enquadrar, wireframe e ped visível/oculto. Carregar ped via CodeWalker no portable ou importar YDD/GLB autorizado. Peds separados por gênero; o corpo carregado do GTA usa material neutro. Preview estático, sem simular animação, salto, redução de cabelo ou física.
+- **Exportação:** aceita índices de entrada com lacunas; reindexa nomes externos sem reescrever geometrias/UV/texturas; gera um ZIP com `fxmanifest.lua`, META/YMT e pastas por gênero/componente. Props usam prefixo `mp_*_freemode_01_p_[coleção]` e âncoras/variações próprias no YMT. Divide coleções grandes automaticamente. O relatório preserva o vínculo entre nome de exibição, índice final, grupo, tags e variações.
+- **Configuração:** vínculo `_u/uni` ou `_r/whi`, flags, áudio e metadados de salto/cabelo. Props exigem assets próprios com ancoragem/rig compatíveis; classificá-los não corrige atravessamento, pesos ou recorte da roupa automaticamente. O preview não substitui a validação no FiveM.
+
+A referência funcional e as diferenças restantes estão em [grzyClothTool-reference.md](docs/grzyClothTool-reference.md). A geração de metadados foi conferida pelo leitor independente CodeWalker, incluindo estruturas, campos, enums, âncoras e variações. Rodar `npm run test:pack:browser` exercita projeto, variação independente, pintura e exportação no navegador.

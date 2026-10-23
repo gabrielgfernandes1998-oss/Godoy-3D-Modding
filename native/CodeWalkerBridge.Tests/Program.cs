@@ -253,3 +253,21 @@ void TestManualAtlas() {
  bool refused=false;try{YddAtlas.Build(Fixture(),bad);}catch(Exception){refused=true;}Check(refused,"native bridge refuses out-of-bounds manual UV area");
 }
 TestManualAtlas();Console.WriteLine("Manual atlas: original UV unchanged, source pixels outside reserved area, positioned/scaled OBJ, all LODs and invalid bounds PASS");
+
+// Cross-check the JS pack compiler against CodeWalker's independent metadata reader.
+{
+ var ymt=new YmtFile();ymt.Load(File.ReadAllBytes("tests/fixtures/native-pack-props.ymt"));
+ var meta=ymt.Meta;Check(meta is not null,"pack YMT opened by CodeWalker");
+ var data=MetaTypes.ConvertData<CPedVariationInfo>(meta.GetRootBlock().Data);var variation=new MCPedVariationInfo();variation.Load(meta,data);
+ Check(variation.ComponentIndices[6]==0&&variation.ComponentData3.Length==1,"mixed pack retains component availability");
+ Check(variation.PropInfo.PropMetaData.Length==1&&variation.PropInfo.Anchors.Length==1,"props and anchors decoded by independent reader");
+ var prop=variation.PropInfo.PropMetaData[0];Check(prop.Data.anchorId==0&&prop.Data.propId==0&&prop.Data.propFlags==3,"prop anchor/index/flags preserved");
+ Check(prop.TexData.Length==2&&prop.TexData[1].texId==1&&prop.TexData[1].distribution==255,"all prop texture variants registered");
+ Check(Math.Abs(prop.Data.expressionMods.f0+.2)<.00001&&Math.Abs(variation.CompInfos[0].Data.pedXml_expressionMods.f4-.15)<.00001,"hair reduction and heels metadata decoded");
+ Check(variation.CompInfos[0].Data.flags==7,"component flags retained");
+ foreach(var structure in meta.StructureInfos){var expected=MetaTypes.GetStructureInfo(structure.StructureNameHash);if(expected is null)continue;Check(expected.StructureSize==structure.StructureSize,"YMT structure sizes agree with CodeWalker");
+  foreach(var field in structure.Entries){if((uint)field.EntryNameHash==256)continue;var match=expected.Entries.FirstOrDefault(e=>e.EntryNameHash==field.EntryNameHash);Check(match.EntryNameHash==field.EntryNameHash&&match.DataOffset==field.DataOffset&&match.DataType==field.DataType&&match.ReferenceKey==field.ReferenceKey&&match.ReferenceTypeIndex==field.ReferenceTypeIndex,$"YMT schema field {structure.StructureNameHash}.{field.EntryNameHash} agrees with CodeWalker ({match.DataType} vs {field.DataType}; key {match.ReferenceKey}/{field.ReferenceKey}; index {match.ReferenceTypeIndex}/{field.ReferenceTypeIndex})");}}
+ Check(meta.EnumInfos.Count==3,"component/anchor/render enum metadata included");
+ foreach(var enumeration in meta.EnumInfos){var expected=MetaTypes.GetEnumInfo(enumeration.EnumNameHash);Check(expected.EnumKey==enumeration.EnumKey&&expected.Entries.Length==enumeration.Entries.Length,"enum schema agrees with CodeWalker");for(int i=0;i<expected.Entries.Length;i++)Check(expected.Entries[i].EntryNameHash==enumeration.Entries[i].EntryNameHash&&expected.Entries[i].EntryValue==enumeration.Entries[i].EntryValue,"enum entries agree with CodeWalker");}
+ Console.WriteLine("Pack compiler: CodeWalker reads mixed clothing/props YMT, anchors, variants, hair/heel values and flags PASS");
+}

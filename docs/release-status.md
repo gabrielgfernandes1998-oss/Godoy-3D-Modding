@@ -1,3 +1,11 @@
+# Estado da versão 0.8.0 beta
+
+Novo gerenciador de packs: projetos com assets, autosave recuperável, histórico, componentes/gêneros, props, grupos/tags, ordenação/duplicação/remoção, variações independentes e integração de pintura, preview estático no ped e exportação multi-coleção FiveM. Convenções de props e enums incluídas no compilador YMT.
+
+Validação local: testes de importação com lacunas, ambos os gêneros com mesmos basenames, projeto completo round-trip, variações, limite 128/255 e divisão de coleções, âncoras/nomes de props e entradas inválidas. O CodeWalker lê um YMT misto e confere structs/campos/tipos/referências/enums, componentes, props, texturas, salto/cabelo e flags. O navegador cria uma cópia, pinta, confirma a original inalterada, salva/reabre projeto e exporta o pack com props. Também verifica ped local, grupos/tags, ordenação de histórico e os fluxos dos outros módulos. Compilação portable e teste Windows serão acompanhados no workflow desta versão.
+
+Preview estático com corpo neutro; props precisam de rig/âncoras corretos e não impedem clipping automaticamente. Testes usam fixtures originais sintéticas. Aparência e animação com os assets reais do usuário no FiveM/grzy ainda não foram executadas neste ambiente. A cobertura funcional e diferenças do grzy estão em grzyClothTool-reference.md.
+
 # Estado da versão 0.7.0 beta
 
 Janela de posicionamento manual do UV antes da exportação. A roupa começa no mapa inteiro e os OBJ em áreas pequenas. Mostra a textura de referência, ilhas OBJ, UV original opcional, medidas em pixels, movimento/escala por ponteiro e histórico próprio Ctrl+Z/Ctrl+Y. Confirmação reserva os pixels selecionados e exporta YDD/YTD/PNGs/JSON; cancelar mantém a cena. A transformação UV é aplicada a todos os LODs. Mapas auxiliares conservam o limite de 2048.
