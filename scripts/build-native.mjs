@@ -1,0 +1,14 @@
+import {execFileSync} from 'node:child_process';
+import {readFile,readdir,copyFile} from 'node:fs/promises';
+import path from 'node:path';
+const dotnet=process.env.GODOY_DOTNET||'dotnet';
+const destination=path.resolve('native/publish/native-bridge');
+execFileSync(dotnet,['publish','native/CodeWalkerBridge/CodeWalkerBridge.csproj','-c','Release','-r','win-x64','--self-contained','true','-o',destination],{stdio:'inherit'});
+const deps=JSON.parse(await readFile(path.join(destination,'Godoy.CodeWalkerBridge.deps.json'),'utf8'));
+const runtime=Object.keys(deps.libraries).find(name=>name.toLowerCase().startsWith('microsoft.netcore.app.runtime.win-x64/'));
+const cache=execFileSync(dotnet,['nuget','locals','global-packages','--list'],{encoding:'utf8'}).trim();
+const directory=cache.slice(cache.indexOf(':')+1).trim();
+const packageRoot=path.join(directory,'microsoft.netcore.app.runtime.win-x64');
+const versions=await readdir(packageRoot);
+const version=runtime?.split('/')[1]??versions.sort((a,b)=>a.localeCompare(b,undefined,{numeric:true})).at(-1);
+for(const file of ['LICENSE.TXT','THIRD-PARTY-NOTICES.TXT'])await copyFile(path.join(packageRoot,version,file),path.join(destination,'DOTNET-'+file));

@@ -1,4 +1,4 @@
-# Godoy 3D Modding · 0.2.1 beta
+# Godoy 3D Modding · 0.2.2 beta
 
 Studio local de roupas, malhas e pinturas de veículos para GTA V Legacy/FiveM. Developed by Gabriel Godoy.
 
@@ -6,7 +6,7 @@ Studio local de roupas, malhas e pinturas de veículos para GTA V Legacy/FiveM. 
 
 Os downloads são publicados em [GitHub Releases](https://github.com/gabrielgfernandes1998-oss/Godoy-3D-Modding/releases). O workflow [Windows portable release](https://github.com/gabrielgfernandes1998-oss/Godoy-3D-Modding/actions/workflows/portable-release.yml) compila e publica o ZIP e o SHA-256 quando uma tag `v` correspondente à versão do `package.json` é enviada.
 
-Extraia **todo o ZIP** `Godoy-3D-Modding-0.2.1-Windows-x64-Portable.zip` e execute `Godoy3DModding.exe`. Não precisa instalar Node.js, Python ou .NET no computador de uso. Requer driver com suporte a WebGL. O executável não é assinado digitalmente.
+Extraia **todo o ZIP** `Godoy-3D-Modding-0.2.2-Windows-x64-Portable.zip` e execute `Godoy3DModding.exe`. Não precisa instalar Node.js, Python ou .NET no computador de uso. Requer driver com suporte a WebGL. O executável não é assinado digitalmente.
 
 Os arquivos são processados localmente. Salve seus projetos em uma pasta escolhida por você; não há salvamento automático. O pacote não inclui arquivos originais GTA, ped base ou modelos comerciais.
 
@@ -84,6 +84,24 @@ Integra os projetos do autor [PAINTFIVE](https://github.com/gabrielgfernandes199
 
 O carregador desktop anterior chamava `net.fetch(file://...)`, que era bloqueado pelo próprio filtro de rede. O protocolo local agora lê os assets diretamente do ASAR e serve seus tipos MIME corretos, mantendo sandbox, CSP e bloqueio de arquivos arbitrários. Falhas de carregamento registram `startup.log` na pasta de logs do aplicativo.
 
-A aba Malhas agora mantém um ped de referência por gênero em uma biblioteca local (IndexedDB). Importe um YDD/GLB autorizado uma vez; alterne masculino/feminino e mostre ou oculte a referência. O ped é excluído da exportação GLB. Não há extração automática de arquivos RPF.
+A aba Malhas agora mantém um ped de referência por gênero em uma biblioteca local (IndexedDB). Importe um YDD/GLB autorizado uma vez; alterne masculino/feminino e mostre ou oculte a referência. O ped é excluído da exportação GLB. Na 0.2.2 há uma ponte externa para ler os componentes base do ped em x64v.rpf, usando o CodeWalker e o GTA V Legacy selecionados pelo usuário.
 
 O repositório grzyClothTool foi examinado como referência. Seus peds vêm da instalação local do GTA V; não são modelos completos incluídos no repositório. Veja [análise da referência](docs/grzyClothTool-reference.md).
+
+## OBJ, histórico e CodeWalker (0.2.2)
+
+A importação de OBJ mantém a câmera e a cena existentes. **Enquadrar cena inteira** mostra os modelos e o ped; **Centralizar seleção** aproxima apenas o objeto escolhido. Objetos OBJ preservam suas unidades e coordenadas; ajuste a escala se o arquivo vier em centímetros/milímetros.
+
+**Ctrl+Z** desfaz importação, transformação por campos/gizmo e união de malhas. **Ctrl+Y** ou **Ctrl+Shift+Z** refazem. O histórico retém até 32 operações. Dentro de campos de texto, os atalhos continuam editando o texto. A união é reversível, preservando a geometria anterior até sair do histórico.
+
+No portable Windows, em **Malhas → CodeWalker · ped do GTA**:
+
+1. Clique **Configurar CodeWalker + GTA V** e escolha a pasta que contém `CodeWalker.Core.dll` e as DLLs do próprio CodeWalker.
+2. Escolha sua instalação **GTA V Legacy**, contendo `GTA5.exe` e `x64v.rpf`.
+3. Selecione masculino/feminino e clique **Carregar ped deste gênero do GTA**.
+
+A ponte .NET usa a biblioteca local para ler os componentes base de cabeça, tronco, pernas, pés e mãos em `x64v.rpf`; o preview é estático e pode informar componentes ausentes. A cópia é guardada na biblioteca local. O jogo e seus RPFS não são modificados. CodeWalker, suas dependências e arquivos GTA não são distribuídos no nosso ZIP. O runtime .NET necessário à ponte está incluído; seus avisos de licença ficam em `resources/native-bridge/`.
+
+A conexão/carregamento da biblioteca e o round-trip YDD foram exercitados com CodeWalker.Core real e um drawable de referência reservado do grzyClothTool, somente fora do pacote. A extração do ped de uma instalação GTA real ainda exige validação no computador do usuário: não existe uma instalação GTA neste ambiente. A ponte não aplica animações/skinning e **ainda não recompila o OBJ editado em YDD/YFT**; essa etapa continua exigindo um pipeline de rigging e escrita nativa. Não substitua um recurso FiveM pelo GLB.
+
+Para compilar o portable dos fontes agora é necessário também **.NET SDK 8** no host de build. `npm run package:windows` compila a ponte para Windows x64, gera o frontend e empacota tudo. O usuário final não precisa instalar o SDK/runtime .NET.

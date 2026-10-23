@@ -1,4 +1,4 @@
-# Arquitetura da versão 0.2.1
+# Arquitetura da versão 0.2.2
 
 ## Implementado
 
@@ -31,8 +31,18 @@ A estrutura binária foi conferida por leitor independente, sem incorporar a bib
 
 ## Evolução nativa pendente
 
-Para modificar a geometria de YDD/YFT é necessário um adaptador nativo separado. Python/FastAPI pode orquestrar jobs no cloud; C#/.NET ou Blender/Sollumz podem processar a representação intermediária, após selecionar um compilador redistribuível e validar seu suporte de plataforma/licença. Não existe atualmente um backend nativo oculto no portable.
+Para modificar a geometria de YDD/YFT é necessário um adaptador nativo separado. Python/FastAPI pode orquestrar jobs no cloud; C#/.NET ou Blender/Sollumz podem processar a representação intermediária, após selecionar um compilador redistribuível e validar seu suporte de plataforma/licença. A 0.2.2 inclui uma ponte explícita para carregar CodeWalker.Core externo e ler peds; a compilação da cena editada com rigging ainda não está implementada.
 
 Contrato necessário: representar malhas, LODs, bones, skin weights, materiais, UVs e texturas; preservar campos não editados; compilar os recursos; reabrir e comparar as saídas. OBJ não carrega skinning: unir triângulos não cria os pesos necessários. Para veículos, conservar bounds, colisões, fragmentos, física e damage; _hi.yft não pode ser uma cópia arbitrária do arquivo principal. O editor atual mostra drawables/LODs e geometrias, não uma reconstrução completa da árvore física/bones.
 
-Não foi distribuído o CodeWalker.Core: a distribuição consultada declara uso educacional. Ele foi usado exclusivamente como leitor de verificação temporário fora do repositório. A escolha de um compilador nativo para redistribuição permanece uma decisão técnica a concluir com fixtures reais.
+Não foi distribuído o CodeWalker.Core: a distribuição consultada declara uso educacional. Até 0.2.1 ele foi usado como leitor de verificação temporário; a 0.2.2 também permite conectar uma instalação externa do usuário pelo adaptador descrito abaixo. A escolha de um compilador nativo para redistribuição permanece uma decisão técnica a concluir com fixtures reais.
+
+## 0.2.2: histórico e ponte local CodeWalker
+
+`src/scene-history.js` mantém comandos de importação, transformação e união, com undo/redo e checkpoints de gravação. A cena retém os recursos usados pelo histórico; geometria/material/textura sem referência é descartada ao expirar uma operação ou abandonar um ramo de redo. Importar OBJ não reposiciona a câmera quando a cena já contém modelos/ped.
+
+`desktop/preload.cjs` expõe apenas status, configuração por diálogo e solicitação de ped por gênero. `desktop/native-bridge.cjs` valida origem/argumentos e executa um helper externo ao ASAR, com timeout e limites de saída. Não há IPC genérico de filesystem ou comandos.
+
+`native/CodeWalkerBridge` é um executável .NET 8 original, compilado self-contained para win-x64. Ele carrega dinamicamente a CodeWalker.Core.dll fornecida pelo usuário, com dependências da mesma pasta, e lê a instalação GTA V Legacy selecionada. O comando de ped verifica GTA5.exe/x64v.rpf, inicializa a leitura via CodeWalker, busca os componentes do ped masculino/feminino no RPF base e devolve cópias YDD serializadas. A interface importa os componentes numa referência separada da geometria editável. A ponte também possui probe/roundtrip YDD para verificação; não é ainda um compilador da cena OBJ com skinning.
+
+Nenhuma DLL ou asset do CodeWalker/grzy/GTA é redistribuído. As licenças originais continuam aplicáveis às instalações externas. O pacote contém somente nosso adaptador e o runtime .NET com seus avisos de licença.

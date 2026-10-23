@@ -1,4 +1,10 @@
-# Estado da versão 0.2.1 beta
+# Estado da versão 0.2.2 beta
+
+A versão adiciona a correção de câmera ao importar OBJ, histórico de cena e ponte CodeWalker local. Testes de regressão verificam pixels do modelo/ped ainda visíveis após importar um OBJ distante, desfazer/refazer a importação, transformar, desfazer/refazer a transformação e desfazer/refazer a união. A versão usa a biblioteca CodeWalker externa, selecionada pelo usuário; não redistribui essa DLL ou dados GTA.
+
+A conexão com CodeWalker.Core e um round-trip de YDD reservado foram testados por execução real da ponte .NET em Linux. O recurso usado para isso é o reservedDrawable.ydd do grzyClothTool, mantido somente em /tmp e não copiado para o projeto/pacote. A extração do ped em x64v.rpf não foi validada numa instalação real GTA, indisponível neste ambiente. O teste Windows verifica que o helper self-contained inicia e reporta a ausência de CodeWalker corretamente; não simula uma instalação GTA como se fosse real.
+
+## Histórico da 0.2.1
 
 A versão 0.2.0 apresentou uma falha de inicialização desktop (tela vazia), reproduzida no Electron com `ERR_BLOCKED_BY_CLIENT`. A verificação anterior no navegador HTTP não detectava esse problema. A versão 0.2.1 serve assets diretamente do ASAR e adiciona testes do runtime desktop e um gate de Windows no workflow de publicação.
 

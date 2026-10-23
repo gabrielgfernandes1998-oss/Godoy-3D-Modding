@@ -1,7 +1,8 @@
-const {app,BrowserWindow,dialog,protocol,session}=require('electron');
+const {app,BrowserWindow,dialog,protocol,session,ipcMain}=require('electron');
 const path=require('node:path');
 const fs=require('node:fs');
 const {createAssetHandler}=require('./desktop/assets.cjs');
+const {registerNativeBridge}=require('./desktop/native-bridge.cjs');
 protocol.registerSchemesAsPrivileged([{scheme:'godoy',privileges:{standard:true,secure:true,supportFetchAPI:true,stream:true}}]);
 app.setName('Godoy 3D Modding');
 app.setAppUserModelId('com.gabrielgodoy.modding');
@@ -19,7 +20,8 @@ app.whenReady().then(()=> {
     const allowed=['godoy:','blob:','data:','devtools:'];
     callback({cancel:!allowed.some(prefix=>details.url.startsWith(prefix))});
   });
-  window=new BrowserWindow({width:1600,height:1060,minWidth:1100,minHeight:800,title:'Godoy 3D Modding',backgroundColor:'#171218',autoHideMenuBar:true,icon:path.join(root,'branding/icon.png'),webPreferences:{nodeIntegration:false,contextIsolation:true,sandbox:true}});
+  window=new BrowserWindow({width:1600,height:1060,minWidth:1100,minHeight:800,title:'Godoy 3D Modding',backgroundColor:'#171218',autoHideMenuBar:true,icon:path.join(root,'branding/icon.png'),webPreferences:{nodeIntegration:false,contextIsolation:true,sandbox:true,preload:path.join(__dirname,'desktop/preload.cjs')}});
+  registerNativeBridge({app,ipcMain,dialog,getWindow:()=>window});
   window.webContents.setWindowOpenHandler(()=>({action:'deny'}));
   window.webContents.on('did-fail-load',(_event,code,description,url,isMainFrame)=> {
     log(`Load failed: ${code} ${description} ${url}`);

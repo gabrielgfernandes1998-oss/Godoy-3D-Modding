@@ -7,6 +7,7 @@ import os from 'node:os';
 import {unzipSync} from 'fflate';
 import {makeYdd,makeYtd,makeYft} from '../modules/vehicles/tests/fixtures.js';
 import {parseYtd} from '../modules/vehicles/src/formats/ytd.js';
+import {exerciseMeshHistory} from './mesh-regression.mjs';
 const output=await mkdtemp(path.join(os.tmpdir(),'godoy-app-e2e-'));
 const port=4211,server=spawn(process.execPath,['node_modules/vite/bin/vite.js','preview','--host','127.0.0.1','--port',String(port),'--strictPort'],{stdio:['ignore','pipe','pipe']});
 let logs='',browser;server.stdout.on('data',d=>logs+=d);server.stderr.on('data',d=>logs+=d);
@@ -58,6 +59,7 @@ try {
   await mesh.locator('#ped-status').filter({hasText:'Ped carregado'}).waitFor();
   await mesh.locator('#mesh-file').setInputFiles({name:'jbib_000_u.ydd',mimeType:'application/octet-stream',buffer:Buffer.from(makeYdd())});
   await mesh.locator('#status').filter({hasText:'carregado'}).waitFor();
+  await exerciseMeshHistory(page,mesh);
   await mesh.locator('#obj-file').setInputFiles({name:'accessory.obj',mimeType:'text/plain',buffer:Buffer.from('o Accessory\nv 0 0 0\nv 1 0 0\nv 0 1 0\nvt 0 0\nvt 1 0\nvt 0 1\nf 1/1 2/2 3/3\n')});
   await mesh.locator('#status').filter({hasText:'OBJ adicionado'}).waitFor();
   await mesh.locator('#tree button').filter({hasText:'mesh_0'}).first().click();

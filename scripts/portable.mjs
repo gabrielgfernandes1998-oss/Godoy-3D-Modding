@@ -5,13 +5,15 @@ import {createHash} from 'node:crypto';
 import path from 'node:path';
 const root=process.cwd(),{version}=JSON.parse(await readFile('package.json','utf8'));
 const stage=path.join(root,'.portable-stage');
+const native=path.join(root,'native/publish/native-bridge');
+await stat(path.join(native,'Godoy.CodeWalkerBridge.exe'));
 await rm(stage,{recursive:true,force:true});await mkdir(stage,{recursive:true});
 try {
   await cp('dist',path.join(stage,'dist'),{recursive:true});
   await copyFile('electron.cjs',path.join(stage,'electron.cjs'));
   await cp('desktop',path.join(stage,'desktop'),{recursive:true});
   await writeFile(path.join(stage,'package.json'),JSON.stringify({name:'godoy-3d-modding',version,main:'electron.cjs',author:'Gabriel Godoy',description:'Godoy 3D Modding',private:true}));
-  const paths=await packager({dir:stage,name:'Godoy 3D Modding',executableName:'Godoy3DModding',platform:'win32',arch:'x64',electronVersion:'45.0.0',out:path.join(root,'release'),overwrite:true,asar:true,prune:true,download:{cacheRoot:process.env.GODOY_ELECTRON_CACHE||'/tmp/godoy-electron-cache'}});
+  const paths=await packager({dir:stage,name:'Godoy 3D Modding',executableName:'Godoy3DModding',platform:'win32',arch:'x64',electronVersion:'45.0.0',out:path.join(root,'release'),overwrite:true,asar:true,prune:true,extraResource:[native],download:{cacheRoot:process.env.GODOY_ELECTRON_CACHE||'/tmp/godoy-electron-cache'}});
   for(const directory of paths) {
     for(const file of ['README.md','THIRD_PARTY_NOTICES.txt'])await copyFile(file,path.join(directory,file));
     await cp('docs',path.join(directory,'docs'),{recursive:true});

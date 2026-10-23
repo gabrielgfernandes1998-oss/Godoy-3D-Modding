@@ -7,6 +7,7 @@ import path from 'node:path';
 import {unzipSync} from 'fflate';
 import {makeYdd,makeYtd,makeYft} from '../modules/vehicles/tests/fixtures.js';
 import {parseYtd} from '../modules/vehicles/src/formats/ytd.js';
+import {exerciseMeshHistory} from './mesh-regression.mjs';
 const executablePath=process.env.GODOY_DESKTOP_EXE;
 if(!executablePath||!existsSync(executablePath))throw Error('Informe GODOY_DESKTOP_EXE com o executável Electron/portable.');
 const output=await mkdtemp(path.join(os.tmpdir(),'godoy-desktop-'));
@@ -33,6 +34,16 @@ try {
   });
   assert.equal(html.status,200);assert.match(html.type,/text\/html/);assert.match(html.body,/script/);
   assert.equal(await page.evaluate(()=>typeof window.require),'undefined');
+  assert.equal(await page.evaluate(()=>typeof window.godoyNative?.loadPed),'function');
+  if(process.platform==='win32') {
+    const result=await desktop.evaluate(()=> {
+      const {execFileSync}=require('node:child_process'),path=require('node:path'),os=require('node:os');
+      const executable=path.join(process.resourcesPath,'native-bridge','Godoy.CodeWalkerBridge.exe');
+      try {execFileSync(executable,[],{input:JSON.stringify({command:'probe',codewalkerDirectory:os.tmpdir()}),encoding:'utf8',windowsHide:true});throw Error('Missing CodeWalker must not report success');}
+      catch(error){if(!error.stdout)throw error;return JSON.parse(error.stdout);}
+    });
+    assert.equal(result.ok,false);assert.match(result.error,/CodeWalker.Core.dll/);
+  }
   const blocked=await page.evaluate(async()=> {try{await fetch('file:///etc/passwd');return false;}catch{return true;}});
   assert.ok(blocked,'Renderer must not have arbitrary file access');
   await page.locator('#pack-files').setInputFiles([
@@ -67,6 +78,7 @@ try {
   await mesh.locator('#ped-status').filter({hasText:'Ped carregado: mp_m_freemode_01.ydd'}).waitFor();
   await mesh.locator('#mesh-file').setInputFiles({name:'jbib_000_u.ydd',mimeType:'application/octet-stream',buffer:Buffer.from(makeYdd())});
   await mesh.locator('#status').filter({hasText:'carregado'}).waitFor();
+  await exerciseMeshHistory(page,mesh);
   assert.deepEqual(errors,[]);assert.deepEqual(failures,[]);
   await page.click('[data-tab=pack]');await mkdir('.test-output',{recursive:true});
   await page.screenshot({path:`.test-output/desktop-${process.platform}.png`});
