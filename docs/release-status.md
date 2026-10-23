@@ -1,4 +1,12 @@
-# Estado da versão 0.6.0 beta
+# Estado da versão 0.6.1 beta
+
+Corrige o bloqueio do atlas para o sampler opaco `0x8ab98831` referenciando `givemechecker` sem imagem atribuída. Esse nome é o fallback de `FbxConverter.GetTextureBaseParam` no CodeWalker. Quando não existe imagem no parâmetro, no YTD ou no dicionário embutido, o slot desconhecido mantém hash e referência sem ser tratado como um mapa UV real. Normal/specular não atribuídos recebem regiões neutras no atlas auxiliar; secondary diffuse provisória ausente é preservada. Uma imagem real chamada givemechecker continua sujeita às verificações de compatibilidade.
+
+Validação no [run 39989334222](https://github.com/gabrielgfernandes1998-oss/Godoy-3D-Modding/actions/runs/39989334222): 53 testes JavaScript, 7 Python e suíte nativa .NET passaram. A fixture própria `native-clothing-checker.ydd` reproduz o hash e nome do erro reportado. O teste nativo salva/reabre a fixture, gera atlas, confere preservação do slot em todos os LODs, normal neutro, secondary diffuse provisória e proteção para checker com imagem real. O executável Windows empacotado usou essa fixture pela UI, exportou o ZIP, reabriu YDD/YTD, pintou o OBJ e verificou que a metade da roupa ficou intacta. O arquivo real do usuário não foi disponibilizado; a validação reproduz o caso com dados sintéticos.
+
+[Release 0.6.1](https://github.com/gabrielgfernandes1998-oss/Godoy-3D-Modding/releases/tag/v0.6.1) publicada, baixada e checksum conferido: 200,615,656 bytes; SHA-256 `a35773860db74f168ddc869f09efcb80eac96371f36fddb9392c5c19792c2b44`.
+
+# Histórico da versão 0.6.0 beta
 
 Atlas único de roupa e OBJ implementado. A diffuse original ocupa a região esquerda com seus pixels preservados, e as ilhas dos OBJ incorporados ficam na direita. Os UVs são atualizados em todos os LODs, mantendo posição/rig e o mesmo sampler principal. O YTD contém uma única entrada diffuse; mapas normais/speculares disponíveis são reorganizados e incorporados no YDD, com regiões neutras para o OBJ. Paletas compatíveis permanecem disponíveis. A saída ZIP inclui YDD/YTD, `UV/atlas-textura.png` e o guia transparente `UV/atlas-uv.png`.
 
