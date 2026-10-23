@@ -8,6 +8,7 @@ import {unzipSync} from 'fflate';
 import {makeYdd,makeYtd,makeYft} from '../modules/vehicles/tests/fixtures.js';
 import {parseYtd} from '../modules/vehicles/src/formats/ytd.js';
 import {exerciseMeshHistory} from './mesh-regression.mjs';
+import {execFileSync} from 'node:child_process';
 const executablePath=process.env.GODOY_DESKTOP_EXE;
 if(!executablePath||!existsSync(executablePath))throw Error('Informe GODOY_DESKTOP_EXE com o executável Electron/portable.');
 const output=await mkdtemp(path.join(os.tmpdir(),'godoy-desktop-'));
@@ -36,12 +37,11 @@ try {
   assert.equal(await page.evaluate(()=>typeof window.require),'undefined');
   assert.equal(await page.evaluate(()=>typeof window.godoyNative?.loadPed),'function');
   if(process.platform==='win32') {
-    const result=await desktop.evaluate(()=> {
-      const {execFileSync}=require('node:child_process'),path=require('node:path'),os=require('node:os');
-      const executable=path.join(process.resourcesPath,'native-bridge','Godoy.CodeWalkerBridge.exe');
-      try {execFileSync(executable,[],{input:JSON.stringify({command:'probe',codewalkerDirectory:os.tmpdir()}),encoding:'utf8',windowsHide:true});throw Error('Missing CodeWalker must not report success');}
-      catch(error){if(!error.stdout)throw error;return JSON.parse(error.stdout);}
-    });
+    const resourcesPath=await desktop.evaluate(()=>process.resourcesPath);
+    const executable=path.join(resourcesPath,'native-bridge','Godoy.CodeWalkerBridge.exe');
+    let result;
+    try {execFileSync(executable,[],{input:JSON.stringify({command:'probe',codewalkerDirectory:path.join(output,'missing-codewalker')}),encoding:'utf8',windowsHide:true});throw Error('Missing CodeWalker must not report success');}
+    catch(error){if(!error.stdout)throw error;result=JSON.parse(error.stdout);}
     assert.equal(result.ok,false);assert.match(result.error,/CodeWalker.Core.dll/);
   }
   const blocked=await page.evaluate(async()=> {try{await fetch('file:///etc/passwd');return false;}catch{return true;}});
@@ -84,6 +84,7 @@ try {
   await page.screenshot({path:`.test-output/desktop-${process.platform}.png`});
   await writeFile(`.test-output/desktop-${process.platform}.json`,JSON.stringify({status:'passed',platform:process.platform,executable:executablePath,app:process.env.GODOY_DESKTOP_APP??'packaged executable',checks:['custom protocol assets','sandbox retained','pack download','clothing 3D paint / YTD export','editor-to-pack transfer','vehicle YFT import','mesh YDD import']},null,2));
 } catch(error) {
+  if(process.env.GITHUB_ACTIONS)console.error('::error title=Packaged desktop regression::'+String(error.stack??error.message).replaceAll('%','%25').replaceAll('\r','%0D').replaceAll('\n','%0A'));
   await mkdir('.test-output',{recursive:true});
   const page=desktop?.windows()[0];
   await page?.screenshot({path:`.test-output/desktop-${process.platform}.png`}).catch(()=>{});

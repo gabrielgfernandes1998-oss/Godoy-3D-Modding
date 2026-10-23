@@ -1,4 +1,4 @@
-# Godoy 3D Modding · 0.2.2 beta
+# Godoy 3D Modding · 0.2.3 beta
 
 Studio local de roupas, malhas e pinturas de veículos para GTA V Legacy/FiveM. Developed by Gabriel Godoy.
 
@@ -6,7 +6,7 @@ Studio local de roupas, malhas e pinturas de veículos para GTA V Legacy/FiveM. 
 
 Os downloads são publicados em [GitHub Releases](https://github.com/gabrielgfernandes1998-oss/Godoy-3D-Modding/releases). O workflow [Windows portable release](https://github.com/gabrielgfernandes1998-oss/Godoy-3D-Modding/actions/workflows/portable-release.yml) compila e publica o ZIP e o SHA-256 quando uma tag `v` correspondente à versão do `package.json` é enviada.
 
-Extraia **todo o ZIP** `Godoy-3D-Modding-0.2.2-Windows-x64-Portable.zip` e execute `Godoy3DModding.exe`. Não precisa instalar Node.js, Python ou .NET no computador de uso. Requer driver com suporte a WebGL. O executável não é assinado digitalmente.
+Extraia **todo o ZIP** `Godoy-3D-Modding-0.2.3-Windows-x64-Portable.zip` e execute `Godoy3DModding.exe`. Não precisa instalar Node.js, Python ou .NET no computador de uso. Requer driver com suporte a WebGL. O executável não é assinado digitalmente.
 
 Os arquivos são processados localmente. Salve seus projetos em uma pasta escolhida por você; não há salvamento automático. O pacote não inclui arquivos originais GTA, ped base ou modelos comerciais.
 
@@ -84,11 +84,11 @@ Integra os projetos do autor [PAINTFIVE](https://github.com/gabrielgfernandes199
 
 O carregador desktop anterior chamava `net.fetch(file://...)`, que era bloqueado pelo próprio filtro de rede. O protocolo local agora lê os assets diretamente do ASAR e serve seus tipos MIME corretos, mantendo sandbox, CSP e bloqueio de arquivos arbitrários. Falhas de carregamento registram `startup.log` na pasta de logs do aplicativo.
 
-A aba Malhas agora mantém um ped de referência por gênero em uma biblioteca local (IndexedDB). Importe um YDD/GLB autorizado uma vez; alterne masculino/feminino e mostre ou oculte a referência. O ped é excluído da exportação GLB. Na 0.2.2 há uma ponte externa para ler os componentes base do ped em x64v.rpf, usando o CodeWalker e o GTA V Legacy selecionados pelo usuário.
+A aba Malhas agora mantém um ped de referência por gênero em uma biblioteca local (IndexedDB). Importe um YDD/GLB autorizado uma vez; alterne masculino/feminino e mostre ou oculte a referência. O ped é excluído da exportação GLB. Na 0.2.3 há uma ponte externa para ler os componentes base do ped em x64v.rpf, usando o CodeWalker e o GTA V Legacy selecionados pelo usuário.
 
 O repositório grzyClothTool foi examinado como referência. Seus peds vêm da instalação local do GTA V; não são modelos completos incluídos no repositório. Veja [análise da referência](docs/grzyClothTool-reference.md).
 
-## OBJ, histórico e CodeWalker (0.2.2)
+## OBJ, histórico e CodeWalker (0.2.3)
 
 A importação de OBJ mantém a câmera e a cena existentes. **Enquadrar cena inteira** mostra os modelos e o ped; **Centralizar seleção** aproxima apenas o objeto escolhido. Objetos OBJ preservam suas unidades e coordenadas; ajuste a escala se o arquivo vier em centímetros/milímetros.
 

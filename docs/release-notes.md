@@ -1,4 +1,4 @@
-# Godoy 3D Modding 0.2.2 beta
+# Godoy 3D Modding 0.2.3 beta
 
 - Corrige o enquadramento ao adicionar OBJ: a cena e a câmera existentes permanecem; há um botão para enquadrar a cena inteira.
 - Adiciona Ctrl+Z, Ctrl+Y e Ctrl+Shift+Z para importações, transformações numéricas/gizmo e união de malhas, com histórico de 32 operações.
