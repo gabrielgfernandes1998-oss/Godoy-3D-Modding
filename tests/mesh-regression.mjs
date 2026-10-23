@@ -25,4 +25,12 @@ export async function exerciseMeshHistory(page,mesh) {
   await page.keyboard.press('Control+y');await obj.waitFor({state:'detached'});
   // Restore the original scene so the rest of the suite can use it.
   await page.keyboard.press('Control+z');await page.keyboard.press('Control+z');await page.keyboard.press('Control+z');await obj.waitFor({state:'detached'});
+  await mesh.locator('#attachment-bone').selectOption('pelvis');
+  await page.click('[data-tab=mesh]');await page.keyboard.press('Control+z');
+  await mesh.locator('#attachment-bone option[value=preserve]:checked').waitFor({state:'attached'});
+  await page.keyboard.press('Control+y');
+  await mesh.locator('#attachment-bone option[value=pelvis]:checked').waitFor({state:'attached'});
+  await page.keyboard.press('Control+z');
+  await mesh.locator('#attachment-bone option[value=preserve]:checked').waitFor({state:'attached'});
+
 }

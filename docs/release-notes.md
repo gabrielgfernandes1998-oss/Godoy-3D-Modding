@@ -1,4 +1,4 @@
-# Godoy 3D Modding 0.3.0 beta
+# Godoy 3D Modding 0.3.1 beta
 
 - Seleção da peça inteira no mesmo viewport do ped, sem árvore de drawables/LODs.
 - Exportação nativa YDD: grava posição, rotação e escala em todos os LODs e transforma normais/tangentes.

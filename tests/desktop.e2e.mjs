@@ -92,8 +92,9 @@ try {
     assert.equal(await mesh.locator('#tree button').filter({hasText:/LOD|mesh_0/}).count(),0);
     await mesh.locator('#attachment-bone').selectOption('pelvis');
     await page.click('[data-tab=mesh]');await page.keyboard.press('Control+z');
+    await mesh.locator('#attachment-bone option[value=preserve]:checked').waitFor({state:'attached'});
     assert.equal(await mesh.locator('#attachment-bone').inputValue(),'preserve');
-    await page.keyboard.press('Control+y');assert.equal(await mesh.locator('#attachment-bone').inputValue(),'pelvis');
+    await page.keyboard.press('Control+y');await mesh.locator('#attachment-bone option[value=pelvis]:checked').waitFor({state:'attached'});assert.equal(await mesh.locator('#attachment-bone').inputValue(),'pelvis');
     await mesh.locator('#position-y').fill('-1');await mesh.locator('#apply-transform').click();
     const pending=page.waitForEvent('download');await mesh.locator('#export-ydd').click();
     const exported=await pending;assert.equal(exported.suggestedFilename(),'accs_000_u.ydd');
