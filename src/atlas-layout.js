@@ -15,6 +15,8 @@ export async function editAtlasLayout({plan,additions,textures,previous,geometri
   let layout=structuredClone(previous?.sources?.length===plan.regions&&previous?.additions?.length===additions.length?previous:initialLayout(plan,additions.length)),selected=layout.sources.length,drag=null,index=0,history=[structuredClone(layout)];
   const sourceTextures=Array.from({length:plan.regions},(_,i)=>textures.find(t=>t.name===plan.sourceNames?.[i])??textures[0]);
   const images=sourceTextures.map(t=>{const c=document.createElement('canvas');c.width=t.width;c.height=t.height;c.getContext('2d').putImageData(new ImageData(t.decode(),t.width,t.height),0,0);return c;});
+  const repeatingRegions=new Set(geometries.filter(({geometry})=>geometry.uvs.some(v=>v<0||v>1)).map(({region})=>region));
+  const repetitionFits=()=>[...repeatingRegions].every(i=>{const r=layout.sources[i];return r&&r.x===0&&r.y===0&&r.width===layout.size&&r.height===layout.size;});
   const all=()=>[...layout.sources,...layout.additions];
   function save(){if(JSON.stringify(history[index])===JSON.stringify(layout))return;history=history.slice(0,index+1);history.push(structuredClone(layout));index++;}
   function draw(){
@@ -27,7 +29,7 @@ export async function editAtlasLayout({plan,additions,textures,previous,geometri
     all().forEach((r,i)=>{ctx.strokeStyle=i<layout.sources.length?'#59bcff':'#ffb84d';ctx.lineWidth=i===selected?3:1;ctx.strokeRect(r.x*scale,r.y*scale,r.width*scale,r.height*scale);});
     ctx.fillStyle='#fff';ctx.fillRect((r.x+r.width)*scale-6,(r.y+r.height)*scale-6,12,12);
     const original=textures[0];$('#uv-density').textContent=`Original: ${original.width} × ${original.height}. Roupa: ${layout.sources[0].width} × ${layout.sources[0].height} px. Área selecionada: ${r.width} × ${r.height} px.${layout.sources.some(a=>a.width<original.width||a.height<original.height)?' Atenção: a área da roupa reduz detalhes.':''}`;
-    $('#uv-error').textContent=validLayout(layout)?'':'Mantenha todas as áreas dentro do mapa, com pelo menos 4 px e sem sobrepor dois OBJ ou duas áreas da roupa.';$('#uv-confirm').disabled=!validLayout(layout);$('#uv-undo').disabled=index===0;$('#uv-redo').disabled=index===history.length-1;
+    $('#uv-error').textContent=validLayout(layout)?'':'Mantenha todas as áreas dentro do mapa, com pelo menos 4 px e sem sobrepor dois OBJ ou duas áreas da roupa.';if(!repetitionFits())$('#uv-error').textContent='A roupa usa UV repetido fora de 0–1. Use Roupa no mapa inteiro para preservar essa repetição. Múltiplas áreas repetidas exigem preparar as malhas antes de unir.';$('#uv-confirm').disabled=!validLayout(layout)||!repetitionFits();$('#uv-undo').disabled=index===0;$('#uv-redo').disabled=index===history.length-1;
   }
   $('#uv-wire').onchange=draw;
   $('#uv-region').onchange=e=>{selected=Number(e.target.value);draw();};
@@ -42,5 +44,5 @@ export async function editAtlasLayout({plan,additions,textures,previous,geometri
   canvas.onpointerdown=e=>{canvas.focus();const p=point(e),r=all()[selected],tolerance=12*layout.size/canvas.getBoundingClientRect().width;const resize=Math.abs(p.x-r.x-r.width)<tolerance&&Math.abs(p.y-r.y-r.height)<tolerance;if(!resize){const hit=all().findLastIndex(r=>p.x>=r.x&&p.x<=r.x+r.width&&p.y>=r.y&&p.y<=r.y+r.height);if(hit<0)return;selected=hit;}drag={...p,rect:{...all()[selected]},resize};canvas.setPointerCapture(e.pointerId);draw();};
   canvas.onpointermove=e=>{if(!drag)return;const p=point(e),r=all()[selected],d=drag.rect;if(drag.resize){r.width=Math.max(4,Math.min(layout.size-r.x,Math.round(d.width+p.x-drag.x)));r.height=Math.max(4,Math.min(layout.size-r.y,Math.round(d.height+p.y-drag.y)));}else{r.x=Math.max(0,Math.min(layout.size-r.width,Math.round(d.x+p.x-drag.x)));r.y=Math.max(0,Math.min(layout.size-r.height,Math.round(d.y+p.y-drag.y)));}draw();};
   canvas.onpointerup=()=>{if(drag){drag=null;save();draw();}};
-  draw();dialog.showModal();return new Promise(resolve=>{const finish=value=>{dialog.close();dialog.remove();resolve(value);};$('#uv-cancel').onclick=()=>finish(null);dialog.oncancel=e=>{e.preventDefault();finish(null);};$('#uv-confirm').onclick=()=>{if(!$('#uv-reserved').checked){$('#uv-error').textContent='Confira a região reservada e marque a confirmação antes de exportar.';return;}if(validLayout(layout))finish(layout);};});
+  draw();dialog.showModal();return new Promise(resolve=>{const finish=value=>{dialog.close();dialog.remove();resolve(value);};$('#uv-cancel').onclick=()=>finish(null);dialog.oncancel=e=>{e.preventDefault();finish(null);};$('#uv-confirm').onclick=()=>{if(!$('#uv-reserved').checked){$('#uv-error').textContent='Confira a região reservada e marque a confirmação antes de exportar.';return;}if(validLayout(layout)&&repetitionFits())finish(layout);};});
 }

@@ -93,10 +93,10 @@ try {
   // covered by the packaged Windows test and the native all-LOD round trip.
   await page.evaluate(()=>{window.godoyNative.exportYdd=async()=>({width:512,height:512,regions:1,materials:1,sourceWidth:4,sourceHeight:4,divisor:1,columns:1,reduced:false,fits:true});});
   await meshFrame.goto(meshFrame.url());
-  await mesh.locator('#mesh-file').setInputFiles('tests/fixtures/native-clothing.ydd');
-  await mesh.locator('#status').filter({hasText:'native-clothing.ydd carregado'}).waitFor();
+  await mesh.locator('#mesh-file').setInputFiles('tests/fixtures/native-clothing-tiled.ydd');
+  await mesh.locator('#status').filter({hasText:'native-clothing-tiled.ydd carregado'}).waitFor();
   await mesh.locator('#obj-file').setInputFiles({name:'uv-cross.obj',mimeType:'text/plain',buffer:Buffer.from('v 0 0 0\nv 0.1 0 0\nv 0 0.1 0\nf 1 2 3\n')});
-  await mesh.locator('#merge-target').selectOption({label:'native-clothing.ydd'});await mesh.locator('#merge').click();
+  await mesh.locator('#merge-target').selectOption({label:'native-clothing-tiled.ydd'});await mesh.locator('#merge').click();
   await mesh.locator('#ytd-file').setInputFiles('tests/fixtures/native-clothing.ytd');
   await mesh.locator('#export-ydd').click();await mesh.locator('#uv-layout-canvas').waitFor();
   assert.equal(await mesh.locator('#uv-width').inputValue(),'64');
@@ -109,6 +109,10 @@ try {
   await mesh.locator('#uv-confirm').click();await mesh.locator('#uv-error').filter({hasText:'marque a confirmação'}).waitFor();
   await mesh.locator('#uv-layout-canvas').focus();await page.keyboard.press('Control+z');assert.equal(await mesh.locator('#uv-x').inputValue(),'448','Ctrl+Z undoes UV drag');await page.keyboard.press('Control+y');
   await mesh.locator('#uv-region').selectOption('0');assert.equal(await mesh.locator('#uv-width').inputValue(),'512','clothing occupies full canvas by default');
+  await mesh.locator('#uv-width').fill('256');await mesh.locator('#uv-width').dispatchEvent('change');
+  assert.equal(await mesh.locator('#uv-confirm').isDisabled(),true,'repeating source cannot be packed into a subrectangle without clipping');
+  assert.match(await mesh.locator('#uv-error').textContent(),/UV repetido/);
+  await mesh.locator('#uv-original').click();assert.equal(await mesh.locator('#uv-confirm').isDisabled(),false,'full-map repeated source can export');
   await page.screenshot({path:'.test-output/atlas-layout.png',fullPage:true});
   await mesh.locator('#uv-cancel').click();await mesh.locator('#status').filter({hasText:'Exportação cancelada'}).waitFor();
   assert.deepEqual(errors,[]);assert.deepEqual(requests,[]);

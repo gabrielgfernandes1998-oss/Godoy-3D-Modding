@@ -109,7 +109,7 @@ try {
 
     await mesh.locator('#ped-file').setInputFiles({name:'mp_m_freemode_01.ydd',mimeType:'application/octet-stream',buffer:original});
     await mesh.locator('#ped-status').filter({hasText:'Ped salvo e carregado'}).waitFor();
-    await mesh.locator('#mesh-file').setInputFiles({name:'accs_000_u.ydd',mimeType:'application/octet-stream',buffer:original});
+    await mesh.locator('#mesh-file').setInputFiles({name:'accs_000_u.ydd',mimeType:'application/octet-stream',buffer:await readFile('tests/fixtures/native-clothing-tiled.ydd')});
     await mesh.locator('#tree button').filter({hasText:'accs_000_u.ydd'}).click();
     assert.equal(await mesh.locator('#tree button').filter({hasText:/LOD|mesh_0/}).count(),0);
     await mesh.locator('#attachment-bone').selectOption('pelvis');
@@ -161,7 +161,8 @@ try {
     for(let lod=0;lod<2;lod++) {
       const geometries=doc.drawables[0].readLod(lod);assert.equal(geometries.length,2,'Joined OBJ must exist inside the exported YDD at every LOD');
       assert.ok(Math.abs(geometries[0].positions[1]-1)<1e-6);
-      const originalDoc=parseYdd(await readFile('tests/fixtures/native-clothing-checker.ydd'));assert.deepEqual(geometries[0].uvs,originalDoc.drawables[0].readLod(lod)[0].uvs,'Full-map placement must preserve original clothing UVs');
+      assert.ok(geometries[0].uvs.some(v=>v<0||v>1),'repeating UVs must survive native export without clamping');
+      const originalDoc=parseYdd(await readFile('tests/fixtures/native-clothing-tiled.ydd'));assert.deepEqual(geometries[0].uvs,originalDoc.drawables[0].readLod(lod)[0].uvs,'Full-map placement must preserve original clothing UVs');
       assert.ok(Math.abs(geometries[1].positions[0]-.1)<1e-6&&Math.abs(geometries[1].positions[1]-1)<1e-6,'Joined OBJ must keep its scene position');
     }
     await page.click('[data-tab=clothing]');

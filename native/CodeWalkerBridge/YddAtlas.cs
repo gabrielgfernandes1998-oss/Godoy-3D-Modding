@@ -143,8 +143,14 @@ static class YddAtlas {
                 if(!visited.Add(data))throw new Exception("Buffers UV compartilhados não suportados pelo atlas.");
                 for(int i=0;i<data.VertexCount;i++) {
                     Vector2 uv=data.Info.GetComponentType(6) switch {VertexComponentType.Float2=>data.GetVector2(i,6),VertexComponentType.Half2=>(Vector2)data.GetHalf2(i,6),_=>throw new Exception("Atlas exige UV Float2 ou Half2.")};
-                    if(!float.IsFinite(uv.X)||!float.IsFinite(uv.Y)||uv.X<0||uv.Y<0||uv.X>1||uv.Y>1)throw new Exception("UV original fora de 0–1: prepare as ilhas no editor antes de gerar o atlas; repetição não é recortada automaticamente.");
+                    if(!float.IsFinite(uv.X)||!float.IsFinite(uv.Y))throw new Exception("UV original contém coordenadas não finitas.");
                     var rect=plan.sourceRects?[tile.index];
+                    // With the original image covering the complete atlas, GTA's
+                    // texture wrapping remains valid. Keep coordinates exactly,
+                    // including triangles crossing tile boundaries and negative UVs.
+                    // Folding individual vertices into 0–1 would deform those faces.
+                    if(rect is not null&&rect.x==0&&rect.y==0&&rect.width==width&&rect.height==height)continue;
+                    if(uv.X<0||uv.Y<0||uv.X>1||uv.Y>1)throw new Exception("UV original fora de 0–1: clique Roupa no mapa inteiro no ajuste UV para preservar a repetição. Reduzir a área da roupa exige recorte das faces repetidas.");
                     uv=rect is null?new Vector2((tile.index%grid*cellW+.5f+uv.X*(Math.Max(1,tile.diffuse.Width/plan.divisor)-1))/width,(tile.index/grid*cellH+.5f+uv.Y*(Math.Max(1,tile.diffuse.Height/plan.divisor)-1))/height):new Vector2((rect.x+uv.X*rect.width)/width,(rect.y+uv.Y*rect.height)/height);
                     if(data.Info.GetComponentType(6)==VertexComponentType.Float2)data.SetVector2(i,6,uv);else data.SetHalf2(i,6,new Half2(uv.X,uv.Y));
                 }

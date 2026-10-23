@@ -1,3 +1,17 @@
+# Estado da versão 0.8.4 beta
+
+Corrige o bloqueio de exportação com UVs negativos/acima de 1 quando a roupa ocupa o mapa inteiro. Mantém as coordenadas exatas, inclusive faces que cruzam os limites, preservando a repetição no shader. Reduzir a fonte repetida para uma subárea ainda é recusado, com orientação no editor antes da exportação. Reservar a área do OBJ substitui aqueles pixels como já ocorria no fluxo manual.
+
+Validação nativa: YDD/YTD com OBJ reabertos; UV negativo e acima de 1 exatos em todos os LODs; UV não finito recusado; autoatlas de fonte repetida em subárea continua protegido. Teste Windows atualizado para exportar o fixture repetido e conferir os UVs, geometria e YTD. Teste de navegador verifica o aviso de redução e recuperação com Roupa no mapa inteiro.
+
+# Estado da versão 0.8.3 beta
+
+Corrige a diffuse ausente ao associar YTD na aba de malhas, repetição de UV no preview, sobreposição de transparência no pack e referência de ped de outro gênero ao importar peças. O ped de malhas começa opaco e possui controle separado de transparência. Enquadrar com ped oculto usa a roupa.
+
+Validação local: 66 testes JavaScript, build e testes de navegador do app completo e do pack passaram. O teste de navegador verifica que a cópia GLB contém a textura associada e amostragem com repetição nos dois eixos, além do controle de transparência do ped. Exportação nativa e coordenadas dos modelos não foram alteradas.
+
+O preview permanece estático e o corpo usa material neutro. A captura não permite validar um possível defeito adicional de alinhamento/pose com o YDD real. O bloqueio do atlas para UV original fora de 0–1 permanece; repetir uma textura no preview não resolve o recorte/reempacotamento das faces na exportação.
+
 # Estado da versão 0.8.2 beta
 
 Inclui correção de persistência do gênero dos assets no round-trip do projeto e seleção coerente com o gênero visualizado. Regressão específica salva masculino, reabre com visualização feminina e importa arquivos homônimos sem misturar peças/texturas.

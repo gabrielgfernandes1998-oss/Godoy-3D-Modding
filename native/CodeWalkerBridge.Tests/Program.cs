@@ -144,6 +144,25 @@ var normalPixels=CodeWalker.Utils.DDSIO.GetPixels(normal,0);
 Check(normalPixels[0]==250&&normalPixels[1]==100&&normalPixels[2]==90,"normal source pixels preserved");
 Check(normalPixels[(100*512+400)*4]==255&&normalPixels[(100*512+400)*4+1]==128&&normalPixels[(100*512+400)*4+2]==128,"OBJ neutral normal region");
 bool tiledRejected=false;try{var tiled=Fixture();tiled.Drawables[0].AllModels[0].Geometries[0].VertexData.SetVector2(0,6,new Vector2(2,0));YddAtlas.Build(tiled,atlasRequest);}catch(Exception e){tiledRejected=e.Message.Contains("fora de 0–1");}Check(tiledRejected,"tiled UV rejected rather than destroyed");
+// Repeating UVs are valid when the source still occupies the entire texture.
+var repeating=Fixture();
+foreach(var model in repeating.Drawables[0].AllModels) {
+ model.Geometries[0].VertexData.SetVector2(0,6,new Vector2(-1.25f,2.5f));
+ model.Geometries[0].VertexData.SetVector2(1,6,new Vector2(2.25f,-.5f));
+}
+File.WriteAllBytes("tests/fixtures/native-clothing-tiled.ydd",repeating.Save());
+var repeatingRequest=JsonSerializer.SerializeToElement(new{matrix=Matrix.Identity.ToArray(),bone="preserve",atlas=true,ytdData=Convert.ToBase64String(originalYtd),additions=new[]{addition},atlasLayout=new{size=512,sources=new[]{new{x=0,y=0,width=512,height=512}},additions=new[]{new{x=400,y=400,width=64,height=64}}}});
+var repeatingYtd=new YtdFile();repeatingYtd.Load(YddAtlas.Build(repeating,repeatingRequest));
+var repeatingOutput=new YddFile();repeatingOutput.Load(YddEditor.Export(repeating,repeatingRequest,null));
+foreach(var model in repeatingOutput.Drawables[0].AllModels) {
+ Check(model.Geometries.Length==2,"repeating source and OBJ exported together");
+ Check(model.Geometries[0].VertexData.GetVector2(0,6)==new Vector2(-1.25f,2.5f),"negative and repeated UV unchanged after native round trip");
+ Check(model.Geometries[0].VertexData.GetVector2(1,6)==new Vector2(2.25f,-.5f),"triangle crossing repeat boundaries remains intact at all LODs");
+}
+Check(repeatingYtd.TextureDict.Textures.data_items.Length==1,"repeating UV export still uses single YTD diffuse");
+var nonFinite=Fixture();nonFinite.Drawables[0].AllModels[0].Geometries[0].VertexData.SetVector2(0,6,new Vector2(float.NaN,0));
+bool invalidUvRejected=false;try{YddAtlas.Build(nonFinite,repeatingRequest);}catch(Exception e){invalidUvRejected=e.Message.Contains("não finitas");}Check(invalidUvRejected,"nonfinite UV rejected even for full-map source");
+Console.WriteLine("Repeating negative/out-of-range UV native YDD+YTD round trip with OBJ at all LODs PASS");
 Console.WriteLine("Unified atlas: single diffuse override, original pixels, disjoint all-LOD UV, embedded auxiliary maps, unchanged positions/rig PASS");
 
 var embeddedSource=Fixture();var embeddedDictionary=new TextureDictionary();embeddedDictionary.BuildFromTextureList(new List<Texture>{YddTextures.Solid("original_diffuse",4,1,2,3)});embeddedSource.Drawables[0].ShaderGroup.TextureDictionary=embeddedDictionary;
