@@ -1,4 +1,6 @@
-# Estado da versão 0.8.0 beta
+# Estado da versão 0.8.1 beta
+
+Inclui correção de persistência do gênero dos assets no round-trip do projeto e seleção coerente com o gênero visualizado. Regressão específica salva masculino, reabre com visualização feminina e importa arquivos homônimos sem misturar peças/texturas.
 
 Novo gerenciador de packs: projetos com assets, autosave recuperável, histórico, componentes/gêneros, props, grupos/tags, ordenação/duplicação/remoção, variações independentes e integração de pintura, preview estático no ped e exportação multi-coleção FiveM. Convenções de props e enums incluídas no compilador YMT.
 

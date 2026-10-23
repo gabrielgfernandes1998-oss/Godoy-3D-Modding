@@ -38,3 +38,9 @@ test('same basenames can be imported for both genders without mixing texture var
  assert.equal(p.items.length,2);assert.equal(p.assets.length,4);assert(p.items.every(i=>i.textures.length===1));assert.notEqual(p.items[0].textures[0].asset,p.items[1].textures[0].asset);
  const b=buildManagedPack(p);assert.equal(b.collections,2);assert(b.archive['stream/mp_f_freemode_01_godoy_pack.ymt']);assert(b.archive['stream/mp_m_freemode_01_godoy_pack.ymt']);
 });
+
+test('project round trip preserves asset gender before importing identical female filenames',()=>{
+ let p=importPackAssets(newPackProject(),files()).project;p.gender='female';
+ p=loadPackProject(savePackProject(p));assert.equal(p.assets[0].importGender,'male');
+ p=importPackAssets(p,files()).project;assert.equal(p.items.length,2);assert.equal(p.assets.length,4);assert.equal(p.items.filter(i=>i.gender==='female').length,1);
+});
