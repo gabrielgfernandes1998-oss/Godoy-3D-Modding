@@ -1,10 +1,10 @@
-# Godoy 3D Modding 0.6.1 beta
+# Godoy 3D Modding 0.6.2 beta
 
-- Corrige bloqueio do sampler `0x8ab98831` com `givemechecker` sem imagem: preserva o slot/hash como referência provisória de importação FBX. Normal/specular não atribuídos com esse placeholder recebem mapas neutros; texturas reais com o mesmo nome continuam protegidas.
-- Atlas único de roupa + OBJ: remapeia o UV original para a região esquerda e reserva a direita para as ilhas dos objetos incorporados, em todos os LODs. Mantém posições, ossos e pesos.
-- Um único item diffuse no YTD exportado, com o nome principal da roupa. A primeira textura usada pelo override de ped/grzy é o próprio atlas; não há mapas neutros disputando essa posição.
-- Preserva os pixels da diffuse original na resolução original dentro do atlas. Normal/specular disponíveis são reorganizados e incorporados no YDD; a região do OBJ recebe mapas neutros. Paletas reconhecidas são preservadas.
-- **Exportar YDD + atlas UV** baixa ZIP com YDD, YTD, `UV/atlas-textura.png`, `UV/atlas-uv.png` transparente e instruções. Em Pintura de roupas, roupa e OBJ são editados na mesma textura.
-- Mantém as correções de ped via IPC e hashes GTA da 0.5.2.
+- Corrige o bloqueio de tamanho do atlas com ajuste automático de resolução: opções **Ajustar até 4096**, **2048**, **1024** e **Preservar resolução original**. A redução, quando necessária, é informada na tela e usa filtro de área com alpha, mantendo UVs e mapas auxiliares alinhados.
+- Materiais que usam imagens idênticas compartilham a mesma região UV. O empacotador escolhe a quantidade de colunas que exige o menor atlas, evitando cópias e espaço desperdiçado.
+- Novo botão **Calcular tamanho do atlas** mostra dimensões finais, quantidade de materiais/áreas e fator de redução antes de exportar. O cálculo não modifica a malha. O ZIP inclui `atlas-info.json` com esses dados.
+- O modo **Preservar** mantém os pixels quando couber; se o atlas necessário exceder 4096×4096, mostra o tamanho exigido e orienta escolher Ajustar. O limite de 16 megapixels foi mantido.
+- Remove do YDD imagens originais que deixaram de ser referenciadas após o atlas, mantendo mapas auxiliares e paletas necessários.
+- Inclui as correções de placeholder givemechecker, ped por IPC e atlas único das versões anteriores.
 
-Limites: atlas quadrado de até 4096×4096 (16 megapixels), sem reduzir automaticamente a resolução da roupa; dados regravados em BGRA8 com mipmaps. Área do OBJ começa cinza; não importa MTL/imagens OBJ. O UV do OBJ usa ilhas triangulares. Requer UV original em 0–1 e shaders com diffuse/normal/specular e paleta reconhecidos; samplers especiais, mapas auxiliares ausentes e UVs repetidos são recusados com mensagem para preservar o material. Limites da união: 21845 triângulos por parte, 100000 vértices no total, 32 partes e 10 MB. Não faz solda booleana, decimação nem colisão. A aparência/animação com os arquivos reais do usuário ainda precisa de validação no grzy/FiveM.
+Limites restantes: redução pode perder detalhes finos, explicitada na opção e no cálculo; atlas quadrado até 4096×4096. OBJ inicia cinza e com ilhas triangulares. UV original fora de 0–1, mapas auxiliares realmente ausentes e samplers especiais continuam sendo recusados para preservar o material. Sem MTL/imagens OBJ, colisão ou decimação. Aparência/animação com arquivos reais no grzy/FiveM ainda exige validação no computador do usuário.

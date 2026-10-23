@@ -31,7 +31,7 @@ try {
     if(command=="probe") {
         _=Type("GTA5Keys");
         result=new {ok=true,version=assembly.GetName().Version?.ToString(),capabilities=new[]{"ped-base-rpf","ydd-roundtrip","ydd-edit","ydd-obj"}};
-    } else if(command=="edit-ydd") {
+    } else if(command=="edit-ydd"||command=="plan-atlas") {
         var bytes=Convert.FromBase64String(Text("data"));
         if(bytes.Length>80*1024*1024)throw new Exception("YDD acima de 80 MB.");
         var file=Activator.CreateInstance(yddType)!;Call(file,"Load",bytes);
@@ -41,9 +41,12 @@ try {
             if(pedBytes.Length>80*1024*1024)throw new Exception("Ped acima de 80 MB.");
             donor=Activator.CreateInstance(yddType)!;Call(donor,"Load",pedBytes);
         }
+        if(command=="plan-atlas")result=new {ok=true,plan=YddAtlas.Plan((CodeWalker.GameFiles.YddFile)file,root)};
+        else {
         var ytd=root.TryGetProperty("atlas",out var atlas)&&atlas.GetBoolean()?YddAtlas.Build((CodeWalker.GameFiles.YddFile)file,root):YddTextures.Build(root);
         var saved=YddEditor.Export(file,root,donor);
         result=new {ok=true,data=Convert.ToBase64String(saved),ytdData=ytd is null?null:Convert.ToBase64String(ytd)};
+        }
     } else if(command=="roundtrip") {
         var bytes=Convert.FromBase64String(Text("data"));
         if(bytes.Length>80*1024*1024)throw new Exception("YDD acima de 80 MB.");

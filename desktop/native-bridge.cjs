@@ -66,7 +66,8 @@ function registerNativeBridge({app,ipcMain,dialog,getWindow}) {
     busy=true;
     try {
       const config=await resolveConfig();
-      const result=await runBridge(executable,{command:'edit-ydd',codewalkerDirectory:config.codewalkerDirectory,data,pedData,ytdData:request.ytdBytes?bytes(request.ytdBytes):undefined,atlas:request.atlas===true,additions,matrix:request.matrix,bone:request.bone});
+      const result=await runBridge(executable,{command:request.atlasPlan===true?'plan-atlas':'edit-ydd',codewalkerDirectory:config.codewalkerDirectory,data,pedData,ytdData:request.ytdBytes?bytes(request.ytdBytes):undefined,atlas:request.atlas===true,atlasMaxResolution:request.atlasMaxResolution??4096,additions,matrix:request.matrix,bone:request.bone});
+      if(request.atlasPlan===true)return result.plan;
       if(typeof result.data!=='string'||result.data.length>112*1024*1024)throw Error('YDD de saída inválido.');
       if(request.ytdBytes) {
         if(typeof result.ytdData!=='string'||result.ytdData.length>112*1024*1024)throw Error('YTD de saída inválido.');

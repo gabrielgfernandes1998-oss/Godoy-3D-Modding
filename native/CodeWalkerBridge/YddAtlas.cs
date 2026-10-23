@@ -2,6 +2,7 @@ using CodeWalker.GameFiles;
 using CodeWalker.Utils;
 using SharpDX;
 using System.Text.Json;
+using System.Security.Cryptography;
 
 // One diffuse for ped preview/runtime overrides. Auxiliary atlases stay embedded in YDD.
 static class YddAtlas {
@@ -17,7 +18,9 @@ static class YddAtlas {
         float padding=.015f;
         return new Vector2(.5f+((part%grid+padding+uv.X*(1-2*padding))/grid)*.5f,(part/grid+padding+uv.Y*(1-2*padding))/grid);
     }
-    public static byte[] Build(YddFile ydd,JsonElement request) {
+    sealed record Tile(Texture diffuse,Texture? normal,Texture? spec,int index);
+    public sealed record AtlasPlan(int width,int height,int requiredSize,int divisor,int columns,int regions,int materials,int sourceWidth,int sourceHeight,int limit,bool reduced,bool fits);
+    static (YtdFile ytd,Dictionary<ShaderFX,Tile> tiles) Gather(YddFile ydd,JsonElement request) {
         var parts=request.GetProperty("additions");
         if(parts.ValueKind!=JsonValueKind.Array||parts.GetArrayLength()<1||parts.GetArrayLength()>32)throw new Exception("Atlas exige 1–32 partes OBJ.");
         var bytes=Convert.FromBase64String(request.GetProperty("ytdData").GetString()!);
@@ -28,7 +31,16 @@ static class YddAtlas {
         // FbxConverter uses this name when no texture was assigned. Only absent
         // placeholders are exempt: an actual checker image still needs UV handling.
         bool MissingPlaceholder(Drawable drawable,TextureBase reference)=>string.Equals(reference.Name,"givemechecker",StringComparison.OrdinalIgnoreCase)&&Resolve(drawable,reference) is null;
-        var tiles=new Dictionary<ShaderFX,(Texture diffuse,Texture? normal,Texture? spec,int index)>();
+        var tiles=new Dictionary<ShaderFX,Tile>();
+        var regions=new Dictionary<(string,string,string),int>();var identities=new Dictionary<Texture,string>();
+        string Identity(Texture? texture) {
+            if(texture is null)return "";
+            if(!identities.TryGetValue(texture,out var key)) {
+                if(texture.Width<1||texture.Height<1||texture.Width>8192||texture.Height>8192||texture.Data?.FullData is null)throw new Exception("Dimensões/dados da textura inválidos para atlas.");
+                key=$"{texture.Width}:{texture.Height}:{texture.Format}:{texture.Stride}:"+Convert.ToHexString(SHA256.HashData(texture.Data.FullData));identities[texture]=key;
+            }
+            return key;
+        }
         foreach(var drawable in ydd.Drawables)foreach(var model in drawable.AllModels)foreach(var geometry in model.Geometries) {
             var shader=geometry.Shader??throw new Exception("Geometria sem material nativo para atlas.");
             if(tiles.ContainsKey(shader))continue;
@@ -47,21 +59,45 @@ static class YddAtlas {
                 if(MissingPlaceholder(drawable,other))continue; // Preserve opaque slot/hash/reference, not an image to atlas.
                 if(!new[]{"DiffuseSampler","BumpSampler","NormalSampler","SpecSampler","TintPaletteSampler"}.Any(name=>Is(hash,name)))throw new Exception($"Sampler 0x{hash:x8} ('{other.Name}') exige tratamento específico de UV. Atlas cancelado para preservar o material.");
             }
-            tiles.Add(shader,(diffuse,Auxiliary("BumpSampler")??Auxiliary("NormalSampler"),Auxiliary("SpecSampler"),tiles.Count));
+            var normal=Auxiliary("BumpSampler")??Auxiliary("NormalSampler");var spec=Auxiliary("SpecSampler");
+            var identity=(Identity(diffuse),Identity(normal),Identity(spec));
+            if(!regions.TryGetValue(identity,out int region)){region=regions.Count;regions[identity]=region;}
+            tiles.Add(shader,new Tile(diffuse,normal,spec,region));
         }
         if(tiles.Count==0)throw new Exception("YDD sem materiais para atlas.");
-        int grid=(int)Math.Ceiling(Math.Sqrt(tiles.Count));
-        int cellW=Pow2(tiles.Values.Max(t=>(int)t.diffuse.Width)),cellH=Pow2(tiles.Values.Max(t=>(int)t.diffuse.Height));
-        int leftW=Pow2(Math.Max(256,cellW*grid));
-        int side=Pow2(Math.Max(leftW*2,Math.Max(256,cellH*(int)Math.Ceiling(tiles.Count/(double)grid)))),width=side,height=side;
-        if(width>8192||height>8192||(long)width*height>16777216)throw new Exception("Atlas excede 8192 pixels ou 16 megapixels. Reduza a resolução das texturas originais antes de exportar.");
+        return (ytd,tiles);
+    }
+    static AtlasPlan Layout(Dictionary<ShaderFX,Tile> tiles,JsonElement request) {
+        int limit=request.TryGetProperty("atlasMaxResolution",out var option)?option.GetInt32():4096;
+        if(!new[]{0,1024,2048,4096}.Contains(limit))throw new Exception("Escolha resolução máxima de 1024, 2048 ou 4096, ou preservar original.");
+        int regions=tiles.Values.Max(t=>t.index)+1,sourceW=tiles.Values.Max(t=>(int)t.diffuse.Width),sourceH=tiles.Values.Max(t=>(int)t.diffuse.Height);
+        (int size,int columns) Size(int divisor) {
+            int cellW=Pow2(Math.Max(1,sourceW/divisor)),cellH=Pow2(Math.Max(1,sourceH/divisor));
+            int best=int.MaxValue,columns=1;
+            for(int c=1;c<=regions;c++) {
+                int size=Pow2(Math.Max(512,Math.Max(cellW*c*2,cellH*((regions+c-1)/c))));
+                if(size<best){best=size;columns=c;}
+            }
+            return (best,columns);
+        }
+        var original=Size(1);int divisor=1;var output=original;
+        if(limit!=0)while(output.size>limit){divisor*=2;output=Size(divisor);}
+        return new AtlasPlan(output.size,output.size,original.size,divisor,output.columns,regions,tiles.Count,sourceW,sourceH,limit,divisor>1,output.size<=4096);
+    }
+    public static AtlasPlan Plan(YddFile ydd,JsonElement request) {var (_,tiles)=Gather(ydd,request);return Layout(tiles,request);}
+    public static byte[] Build(YddFile ydd,JsonElement request) {
+        var (ytd,tiles)=Gather(ydd,request);var dictionary=ytd.TextureDict;var plan=Layout(tiles,request);
+        if(!plan.fits)throw new Exception($"Preservar a resolução exigiria atlas {plan.requiredSize}×{plan.requiredSize}. Escolha Ajustar até 4096 na resolução do atlas.");
+        int grid=plan.columns,width=plan.width,height=plan.height;
+        int cellW=Pow2(Math.Max(1,plan.sourceWidth/plan.divisor)),cellH=Pow2(Math.Max(1,plan.sourceHeight/plan.divisor));
         bool needNormal=tiles.Keys.Any(s=>Slot(s,"BumpSampler") is not null||Slot(s,"NormalSampler") is not null),needSpec=tiles.Keys.Any(s=>Slot(s,"SpecSampler") is not null);
         var diffusePixels=Fill(width,height,220,220,220);var normalPixels=needNormal?Fill(width,height,128,128,255):null;var specPixels=needSpec?Fill(width,height,0,0,0):null;
-        foreach(var tile in tiles.Values) {
+        foreach(var tile in tiles.Values.DistinctBy(t=>t.index)) {
             int x=tile.index%grid*cellW,y=tile.index/grid*cellH;
-            Paste(diffusePixels,width,x,y,tile.diffuse,tile.diffuse.Width,tile.diffuse.Height);
-            if(tile.normal is not null)Paste(normalPixels!,width,x,y,tile.normal,tile.diffuse.Width,tile.diffuse.Height);
-            if(tile.spec is not null)Paste(specPixels!,width,x,y,tile.spec,tile.diffuse.Width,tile.diffuse.Height);
+            int tileW=Math.Max(1,tile.diffuse.Width/plan.divisor),tileH=Math.Max(1,tile.diffuse.Height/plan.divisor);
+            Paste(diffusePixels,width,x,y,tile.diffuse,tileW,tileH,true);
+            if(tile.normal is not null)Paste(normalPixels!,width,x,y,tile.normal,tileW,tileH,false);
+            if(tile.spec is not null)Paste(specPixels!,width,x,y,tile.spec,tileW,tileH,false);
         }
         string diffuseName=tiles.Values.First().diffuse.Name;
         string suffix=Guid.NewGuid().ToString("N")[..12];
@@ -76,7 +112,7 @@ static class YddAtlas {
                 for(int i=0;i<data.VertexCount;i++) {
                     Vector2 uv=data.Info.GetComponentType(6) switch {VertexComponentType.Float2=>data.GetVector2(i,6),VertexComponentType.Half2=>(Vector2)data.GetHalf2(i,6),_=>throw new Exception("Atlas exige UV Float2 ou Half2.")};
                     if(!float.IsFinite(uv.X)||!float.IsFinite(uv.Y)||uv.X<0||uv.Y<0||uv.X>1||uv.Y>1)throw new Exception("UV original fora de 0–1: prepare as ilhas no editor antes de gerar o atlas; repetição não é recortada automaticamente.");
-                    uv=new Vector2((tile.index%grid*cellW+.5f+uv.X*(tile.diffuse.Width-1))/width,(tile.index/grid*cellH+.5f+uv.Y*(tile.diffuse.Height-1))/height);
+                    uv=new Vector2((tile.index%grid*cellW+.5f+uv.X*(Math.Max(1,tile.diffuse.Width/plan.divisor)-1))/width,(tile.index/grid*cellH+.5f+uv.Y*(Math.Max(1,tile.diffuse.Height/plan.divisor)-1))/height);
                     if(data.Info.GetComponentType(6)==VertexComponentType.Float2)data.SetVector2(i,6,uv);else data.SetHalf2(i,6,new Half2(uv.X,uv.Y));
                 }
             }
@@ -94,6 +130,12 @@ static class YddAtlas {
                     if(!textures.Any(t=>t.NameHash==map.NameHash))textures.Add(map);
                 }
             }
+            // The old diffuse/normal/spec images are no longer referenced after
+            // atlas rebinding. Do not embed redundant copies just to keep their bytes.
+            var references=drawable.ShaderGroup.Shaders.data_items.SelectMany(s=>s.ParametersList.Parameters).Where(p=>p.DataType==0).Select(p=>p.Data as TextureBase).Where(t=>t is not null&&t.NameHash!=diffuseAtlas.NameHash).ToArray();
+            foreach(var texture in references.OfType<Texture>())if(!textures.Any(t=>t.NameHash==texture.NameHash))textures.Add(texture);
+            var required=references.Select(t=>t!.NameHash).ToHashSet();
+            textures=textures.Where(t=>required.Contains(t.NameHash)).DistinctBy(t=>t.NameHash).ToList();
             if(textures.Count>0)embedded.BuildFromTextureList(textures);
             drawable.ShaderGroup.TextureDictionary=textures.Count>0?embedded:null;
         }
@@ -105,11 +147,27 @@ static class YddAtlas {
         return saved;
     }
     static byte[] Fill(int w,int h,byte r,byte g,byte b) {var data=new byte[w*h*4];for(int i=0;i<data.Length;i+=4){data[i]=b;data[i+1]=g;data[i+2]=r;data[i+3]=255;}return data;}
-    static void Paste(byte[] target,int stride,int x,int y,Texture texture,int w,int h) {
+    static void Paste(byte[] target,int stride,int x,int y,Texture texture,int w,int h,bool color) {
         var pixels=DDSIO.GetPixels(texture,0)??throw new Exception($"Formato de textura não suportado no atlas: {texture.Name} ({texture.Format}).");
         if(pixels.Length!=texture.Width*texture.Height*4)throw new Exception("Dados de textura inválidos para atlas.");
-        // Preserve diffuse pixels 1:1; auxiliary maps are resampled to their diffuse chart.
-        for(int j=0;j<h;j++)for(int i=0;i<w;i++)Buffer.BlockCopy(pixels,((j*texture.Height/h)*texture.Width+i*texture.Width/w)*4,target,((y+j)*stride+x+i)*4,4);
+        if(w==texture.Width&&h==texture.Height) {
+            for(int j=0;j<h;j++)Buffer.BlockCopy(pixels,j*w*4,target,((y+j)*stride+x)*4,w*4);
+            return;
+        }
+        // Area filter; alpha-weighted diffuse avoids dark fringes on transparency.
+        for(int j=0;j<h;j++)for(int i=0;i<w;i++) {
+            double left=i*texture.Width/(double)w,right=(i+1)*texture.Width/(double)w,top=j*texture.Height/(double)h,bottom=(j+1)*texture.Height/(double)h;
+            double weight=0,alpha=0,b=0,g=0,r=0;
+            for(int sy=(int)top;sy<Math.Ceiling(bottom);sy++)for(int sx=(int)left;sx<Math.Ceiling(right);sx++) {
+                double amount=(Math.Min(right,sx+1)-Math.Max(left,sx))*(Math.Min(bottom,sy+1)-Math.Max(top,sy));
+                int source=(Math.Min(sy,texture.Height-1)*texture.Width+Math.Min(sx,texture.Width-1))*4;
+                double rgbWeight=amount*(color?pixels[source+3]/255.0:1);weight+=amount;alpha+=pixels[source+3]*amount;
+                b+=pixels[source]*rgbWeight;g+=pixels[source+1]*rgbWeight;r+=pixels[source+2]*rgbWeight;
+            }
+            double divisor=color?alpha/255:weight;int destination=((y+j)*stride+x+i)*4;
+            byte Byte(double value)=>(byte)Math.Clamp((int)Math.Round(value),0,255);
+            target[destination]=Byte(divisor>0?b/divisor:0);target[destination+1]=Byte(divisor>0?g/divisor:0);target[destination+2]=Byte(divisor>0?r/divisor:0);target[destination+3]=Byte(alpha/weight);
+        }
     }
     public static Texture Pixels(string name,int w,int h,byte[] pixels,TextureUsage usage) {
         var mips=new List<byte>();byte levels=0;var current=pixels;

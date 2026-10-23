@@ -3,3 +3,5 @@
 `native-clothing.ytd` contém uma textura sólida original de teste. Os fixtures YDD possuem um shader ped_default sintético com DiffuseSampler para verificar materiais independentes e o round-trip de pintura do OBJ. Nenhum asset GTA é incluído.
 
 `native-clothing-checker.ydd` reproduz o slot opaco `0x8ab98831` apontando para o placeholder FBX ausente `givemechecker`, com base sintética própria. Usado no teste do executável Windows para verificar atlas e pintura com o caso reportado.
+
+`native-large-diffuse.ytd` é uma textura DXT1 preta sintética 4096×4096 para verificar o cálculo de atlas grande e os modos Ajustar/Preservar sem distribuir assets GTA.

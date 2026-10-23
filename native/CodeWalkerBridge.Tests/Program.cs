@@ -185,3 +185,31 @@ Console.WriteLine("Reported givemechecker sampler: missing placeholder preserved
 
 var missingSecondaryFixture=Fixture();AppendTextureSlot(missingSecondaryFixture.Drawables[0].ShaderGroup.Shaders.data_items[0],JenkHash.GenHash("diffusesampler2"),CheckerReference());
 YddAtlas.Build(missingSecondaryFixture,atlasRequest);Check(((TextureBase)missingSecondaryFixture.Drawables[0].ShaderGroup.Shaders.data_items[0].ParametersList.Parameters[1].Data).Name=="givemechecker","missing secondary diffuse placeholder preserved without compositing");
+
+// Size reported by the user: a 4096 source needs an 8192 atlas without resizing.
+void TestAtlasResolution() {
+ var bigTexture=new Texture{Name="original_diffuse",NameHash=JenkHash.GenHash("original_diffuse"),Width=4096,Height=4096,Depth=1,Levels=1,Stride=2048,Format=TextureFormat.D3DFMT_DXT1,Data=new TextureData{FullData=new byte[4096*4096/2]}};
+ var bigYtd=new YtdFile{TextureDict=new TextureDictionary()};bigYtd.TextureDict.BuildFromTextureList(new List<Texture>{bigTexture});var bigBytes=bigYtd.Save();File.WriteAllBytes("tests/fixtures/native-large-diffuse.ytd",bigBytes);
+ var bigRequest=JsonSerializer.SerializeToElement(new{matrix=Matrix.Identity.ToArray(),bone="preserve",atlas=true,ytdData=Convert.ToBase64String(bigBytes),additions=new[]{addition},atlasMaxResolution=4096});
+ var duplicateDrawables=Enumerable.Range(0,9).Select(i=>{var drawable=Fixture().Drawables[0];drawable.Name="duplicate_"+i;return drawable;}).ToArray();
+ var duplicateFile=new YddFile{Drawables=duplicateDrawables};
+ var unchanged=duplicateDrawables[0].AllModels[0].Geometries[0].VertexData.VertexBytes.ToArray();
+ var size=YddAtlas.Plan(duplicateFile,bigRequest);
+ Check(size.materials==9&&size.regions==1&&size.width==4096&&size.divisor==2&&size.requiredSize==8192,"deduplicate identical bindings and fit 4096 source within atlas limit");
+ Check(duplicateDrawables[0].AllModels[0].Geometries[0].VertexData.VertexBytes.SequenceEqual(unchanged),"preflight never mutates original UV");
+ var preserveRequest=JsonSerializer.SerializeToElement(new{matrix=Matrix.Identity.ToArray(),bone="preserve",atlas=true,ytdData=Convert.ToBase64String(bigBytes),additions=new[]{addition},atlasMaxResolution=0});
+ Check(!YddAtlas.Plan(duplicateFile,preserveRequest).fits,"preserve mode reports oversized plan without silently reducing");
+ bool preserveRejected=false;try{YddAtlas.Build(duplicateFile,preserveRequest);}catch(Exception e){preserveRejected=e.Message.Contains("Escolha Ajustar");}Check(preserveRejected,"preserve mode fails with actionable adjustment option");
+ // Filtered downsampling and remapped UV at manageable test dimensions.
+ var rgba=new byte[1024*1024*4];for(int y=0;y<1024;y++)for(int x=0;x<1024;x++){int p=(y*1024+x)*4;rgba[p]=rgba[p+1]=rgba[p+2]=(byte)((x%2)*255);rgba[p+3]=255;}
+ var filterYtd=new YtdFile{TextureDict=new TextureDictionary()};filterYtd.TextureDict.BuildFromTextureList(new List<Texture>{YddAtlas.Pixels("original_diffuse",1024,1024,rgba,TextureUsage.DIFFUSE)});
+ var filterRequest=JsonSerializer.SerializeToElement(new{matrix=Matrix.Identity.ToArray(),bone="preserve",atlas=true,ytdData=Convert.ToBase64String(filterYtd.Save()),additions=new[]{addition},atlasMaxResolution=1024});
+ var filterSource=Fixture();var filterPlan=YddAtlas.Plan(filterSource,filterRequest);Check(filterPlan.width==1024&&filterPlan.reduced&&filterPlan.divisor==2,"selected resolution policy applies");
+ var filtered=new YtdFile();filtered.Load(YddAtlas.Build(filterSource,filterRequest));
+ var pixels=CodeWalker.Utils.DDSIO.GetPixels(filtered.TextureDict.Textures.data_items.Single(),0);
+ Check(pixels[0]==128&&pixels[1]==128&&pixels[2]==128,"area filter averages detail instead of nearest-neighbor aliasing");
+ var filterOutput=new YddFile();filterOutput.Load(YddEditor.Export(filterSource,filterRequest,null));
+ foreach(var model in filterOutput.Drawables[0].AllModels){Check(model.Geometries[0].VertexData.GetVector2(1,6).X<.5&&model.Geometries[1].VertexData.GetVector2(0,6).X>.5,"scaled UVs remain separated in all LODs");Near(model.Geometries[0].VertexData.GetVector3(0,0),new Vector3(0,0,2),"resizing never changes geometry position");}
+}
+TestAtlasResolution();
+Console.WriteLine("Atlas resolution: shared regions, 4096 input preflight, preserve mode, filtered downsampling and all-LOD UV PASS");
