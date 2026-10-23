@@ -159,3 +159,5 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
 Godoy.CodeWalkerBridge uses the self-contained Microsoft .NET 8 runtime. Its LICENSE and THIRD-PARTY-NOTICES are included under resources/native-bridge. CodeWalker.Core is bundled from the GPL-3.0 grzyClothTool distribution (original CodeWalker by dexyfex). Corresponding source and GPL license accompany it under resources/codewalker-local/source. GTA assets are not distributed.
+
+The Godoy.CodeWalkerBridge adapter now links CodeWalker.Core and is distributed under GPL-3.0. Complete corresponding source is included in resources/native-bridge/source, with COPYING. Godoy changes to CodeWalker LOD pointer calculations are recorded in UPSTREAM.md.

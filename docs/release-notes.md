@@ -1,8 +1,10 @@
-# Godoy 3D Modding 0.2.4 beta
+# Godoy 3D Modding 0.3.0 beta
 
-- Integra CodeWalker.Core e suas dependências ao portable, com fontes correspondentes e licença da distribuição grzyClothTool. Não exige configuração separada do CodeWalker.
-- Procura GTA V Legacy automaticamente nas bibliotecas Steam, incluindo outros discos, registro, libraryfolders.vdf e manifesto 271590.
-- Se não encontrar uma instalação válida, permite selecionar o diretório do jogo e lembra a escolha. Exige GTA5.exe e x64v.rpf.
-- Mantém seleção masculino/feminino e leitura dos componentes base do ped sem alterar o GTA.
+- Seleção da peça inteira no mesmo viewport do ped, sem árvore de drawables/LODs.
+- Exportação nativa YDD: grava posição, rotação e escala em todos os LODs e transforma normais/tangentes.
+- Opção de preservar rig original ou prender acessório rigidamente à pelve, cabeça ou tronco. Quando necessário, usa esqueleto do ped YDD carregado/importado.
+- Reabre e verifica vértices, pesos, índices, bindings e LODs antes de exportar. Mantém materiais, UVs e nome do arquivo; use o YTD original.
+- Ctrl+Z/Ctrl+Y também desfazem/refazem a escolha do vínculo. OBJ/GLB ficam em ferramentas avançadas.
+- Corrige offsets de escrita CodeWalker quando faltam LODs intermediários.
 
-Limites: a extração real do ped requer validação em uma instalação GTA V Legacy. Preview estático, sem animações ou DLCs completos. Ajustes de geometria continuam exportados em GLB; não regravam YDD/YFT. GTA e peds não são distribuídos.
+Limites: sem incorporação OBJ nativa, pintura de pesos, colisões próprias ou exportação YFT. Layouts incompatíveis são recusados. Não converte a categoria/META/YMT de prop de cabeça em roupa de cintura. Preview estático; testes de animação no FiveM e extração do ped de instalação real ainda precisam de validação.

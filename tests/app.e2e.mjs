@@ -62,7 +62,8 @@ try {
   await exerciseMeshHistory(page,mesh);
   await mesh.locator('#obj-file').setInputFiles({name:'accessory.obj',mimeType:'text/plain',buffer:Buffer.from('o Accessory\nv 0 0 0\nv 1 0 0\nv 0 1 0\nvt 0 0\nvt 1 0\nvt 0 1\nf 1/1 2/2 3/3\n')});
   await mesh.locator('#status').filter({hasText:'OBJ adicionado'}).waitFor();
-  await mesh.locator('#tree button').filter({hasText:'mesh_0'}).first().click();
+  await mesh.locator('#tree button').filter({hasText:'jbib_000_u.ydd'}).first().click();
+  await mesh.locator('#advanced-mesh').evaluate(e=>e.open=true);
   await mesh.locator('#merge-source').selectOption({label:'accessory.obj'});await mesh.locator('#merge').click();
   await mesh.locator('#status').filter({hasText:'Geometria unida'}).waitFor();
   const glbDownload=page.waitForEvent('download');await mesh.locator('#export-glb').click();const glb=await glbDownload;const glbPath=path.join(output,'scene.glb');await glb.saveAs(glbPath);

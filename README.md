@@ -18,7 +18,7 @@ Os arquivos são processados localmente. Salve seus projetos em uma pasta escolh
 | Pintura de roupas | YDD/YTD, seleção de drawables/LODs, pintura 3D/UV, camadas, texto, imagem, exportação YTD e texturas embutidas | Baseada no PAINTFIVE; não recompila alterações de geometria. |
 | Associação de arquivos | Importação de conjunto, busca por nome e referências de materiais; escolha manual em caso de empate | Só acessa arquivos selecionados pelo usuário. |
 | Integração editor/pack | Exportar YTD no editor atualiza o conjunto do pack com o nome original e o YDD aberto | O nome precisa seguir a convenção de componentes para gerar o recurso. |
-| Malhas e objetos | Importação YDD/YFT/GLB/OBJ, biblioteca local de peds por gênero importados pelo usuário, gizmos e campos de posição/rotação/escala, união estática de geometria e UV, exportação/reabertura GLB | Não gera YDD/YFT com novas geometrias, skinning, UV atlas ou pesos. O GLB não substitui um recurso FiveM. |
+| Malhas e objetos | Peça inteira sobre o ped; posição/rotação/escala gravadas no YDD original; preservar pesos ou prender rigidamente à pelve/cabeça/tronco; desfazer/refazer; GLB e união OBJ nas opções avançadas | Sem incorporação OBJ nativa, exportação YFT, pintura de pesos, animação ou colisão. Layouts incompatíveis são recusados. Teste FiveM real pendente. |
 | Pintura de veículos | YFT e _hi.yft visualizáveis, seleção de drawables/LODs, materiais e pintura YTD | Baseada no Godoy-Paint-Car. Não reconstrói bones/fragment physics/damage nem gera novo _hi.yft. |
 
 Não é a implementação completa dos três módulos originais. A exportação nativa de geometria e a validação em FiveM continuam pendentes. O workflow exige um teste do executável em Windows antes de publicar. Consulte [estado da versão](docs/release-status.md).
@@ -121,9 +121,7 @@ Sem argumento, o comando compila os fontes incluídos em `third_party/CodeWalker
 Para deixar os dois peds disponíveis, importe uma referência completa YDD/GLB com o gênero
 masculino selecionado e outra com o feminino. A biblioteca local guarda cada referência
 separadamente. Os arquivos de ped não vêm no código-fonte CodeWalker.
-**Ajustar posição/rotação/escala na cena ainda não regrava o YDD:** a exportação de malha
-atual é GLB. Para levar esses ajustes ao FiveM é necessário gravar a geometria nativa
-com ossos, pesos e LODs compatíveis; carregar o CodeWalker por si só não realiza essa etapa.
+Na 0.3.0, **Exportar peça YDD** grava os ajustes no YDD original, preservando materiais, UVs e LODs, com opção de manter pesos ou vincular o acessório rigidamente a um osso. O ped de referência não é incluído na peça exportada.
 
 ### GTA Steam automático (0.2.4)
 
@@ -133,3 +131,18 @@ Steam 271590, incluindo bibliotecas em outros discos. Só aceita GTA V Legacy co
 `GTA5.exe` e `x64v.rpf`. Se não encontrar, mostra **Selecionar diretório do GTA V**;
 a escolha válida é lembrada. Selecione masculino/feminino e clique **Carregar ped**.
 A leitura real do RPF continua dependendo de validação com uma instalação local do GTA.
+
+
+### Reposicionar um acessório e exportar YDD (0.3.0)
+
+1. Carregue o ped masculino/feminino e importe o YDD da peça.
+2. Clique na peça no viewport ou na lista plana. A peça inteira é selecionada; drawables e LODs não são separados na interface.
+3. Mova, gire e ajuste a escala sobre o ped. Todos os LODs acompanham a transformação.
+4. Para prender o boné ao cinto, escolha **Cintura · SKEL_Pelvis**. Isso substitui os pesos por vínculo rígido à pelve quando a peça tem skinning; para peça rígida, grava o vínculo e as coordenadas locais do osso. Para roupa deformável, mantenha pesos originais.
+5. Clique **Exportar peça YDD**. O portable reabre e verifica os bytes de vértices, pesos, índices e LODs antes de disponibilizar o arquivo, mantendo o nome original. Use com o YTD original no recurso.
+
+O esqueleto da peça é preservado; quando falta o osso escolhido, pode ser usado o esqueleto do ped YDD importado/carregado do GTA, guardado por gênero. GLB sozinho não fornece um esqueleto GTA nativo. O ped em si não é modificado.
+
+O exportador recusa layouts de posição/normal não suportados, buffers compartilhados/duplos distintos e colisões próprias. União OBJ altera topologia e precisa ser desfeita para exportar o YDD original; GLB permanece como cópia avançada. Não converte registro de prop de cabeça para componente de roupa: se o boné for equipado pelo jogo como prop de cabeça, o recurso também precisa registrá-lo no componente apropriado para uso no cinto. Nome/META/YMT de um recurso existente não são convertidos automaticamente por este botão.
+
+Validação automatizada cobre serialização nativa, movimento/rotação/escala, normais, UVs, vínculo rígido, pesos preservados, esqueleto doador e LODs com nível intermediário ausente. A animação real no FiveM ainda precisa ser validada com o YDD/YTD do usuário.

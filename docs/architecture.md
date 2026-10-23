@@ -7,7 +7,7 @@ index.html / src/app.js        shell, navegação e integração dos módulos
 src/pack.js                   associação, validação e ZIP FiveM
 src/ymt.js                    serializer/leitor CPedVariationInfo RSC7 v2
 src/asset-batch.js             seleção de conjunto e associação YDD/YFT–YTD
-src/mesh.js                   viewport Three.js, ped, OBJ, gizmos, GLB
+src/mesh.js                   viewport Three.js unificado, ped, selecao de peca inteira, gizmos, YDD/GLB
 src/mesh-core.js               união estática de geometria/UV
 modules/clothing/             editor PAINTFIVE integrado, origem fixada
 modules/vehicles/             editor Godoy-Paint-Car integrado, origem fixada
@@ -46,3 +46,5 @@ Não foi distribuído o CodeWalker.Core: a distribuição consultada declara uso
 `native/CodeWalkerBridge` é um executável .NET 8 original, compilado self-contained para win-x64. Ele carrega dinamicamente a CodeWalker.Core.dll fornecida pelo usuário, com dependências da mesma pasta, e lê a instalação GTA V Legacy selecionada. O comando de ped verifica GTA5.exe/x64v.rpf, inicializa a leitura via CodeWalker, busca os componentes do ped masculino/feminino no RPF base e devolve cópias YDD serializadas. A interface importa os componentes numa referência separada da geometria editável. A ponte também possui probe/roundtrip YDD para verificação; não é ainda um compilador da cena OBJ com skinning.
 
 Nenhuma DLL ou asset do CodeWalker/grzy/GTA é redistribuído. As licenças originais continuam aplicáveis às instalações externas. O pacote contém somente nosso adaptador e o runtime .NET com seus avisos de licença.
+
+`native/CodeWalkerBridge/YddEditor.cs`: transforma o documento YDD original via CodeWalker, com pesos preservados ou vinculo rigido e verificacao de reabertura. `src/ydd-export.js` converte eixos Three/GTA. O IPC exporta apenas bytes e matrizes validados; nao modifica a instalacao GTA.

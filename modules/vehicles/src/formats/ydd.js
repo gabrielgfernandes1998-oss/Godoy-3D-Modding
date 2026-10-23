@@ -187,6 +187,7 @@ export function readDrawable(resource, p, index = 0, nameOffset = 0xa8) {
       const shaderGroup = readShaders(resource, resource.ptr(p + 0x10, 64));
       return {
         name,
+        skeletonPointer:resource.ptr(p + 0x18,112),
         lods: lods.map((l) => l.label),
         shaders: shaderGroup.shaders,
         textures: shaderGroup.textures,
@@ -206,6 +207,8 @@ export function readDrawable(resource, p, index = 0, nameOffset = 0xa8) {
                 geometries[i],
                 mapping === null ? 0 : resource.u16(mapping + i * 2),
               );
+              geometry.boneIndex=(resource.u32(m+0x28)>>>24)&255;
+              geometry.hasSkin=((resource.u32(m+0x28)>>>8)&255)!==0;
               totalVertices += geometry.vertexCount;
               totalIndices += geometry.indices.length;
               if (totalVertices > 2000000 || totalIndices > 12000000)

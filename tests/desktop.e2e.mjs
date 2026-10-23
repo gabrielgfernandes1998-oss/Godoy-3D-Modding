@@ -6,6 +6,7 @@ import os from 'node:os';
 import path from 'node:path';
 import {unzipSync} from 'fflate';
 import {makeYdd,makeYtd,makeYft} from '../modules/vehicles/tests/fixtures.js';
+import {parseYdd} from '../modules/vehicles/src/formats/ydd.js';
 import {parseYtd} from '../modules/vehicles/src/formats/ytd.js';
 import {exerciseMeshHistory} from './mesh-regression.mjs';
 import {execFileSync} from 'node:child_process';
@@ -44,7 +45,7 @@ try {
     catch(error){if(!error.stdout)throw error;result=JSON.parse(error.stdout);}
     assert.equal(result.ok,false);assert.match(result.error,/CodeWalker.Core.dll/);
     const bundled=JSON.parse(execFileSync(executable,[],{input:JSON.stringify({command:'probe',codewalkerDirectory:path.join(resourcesPath,'codewalker-local')}),encoding:'utf8',windowsHide:true}));
-    assert.equal(bundled.ok,true);assert.ok(bundled.capabilities.includes('ped-base-rpf'));
+    assert.equal(bundled.ok,true);assert.ok(bundled.capabilities.includes('ped-base-rpf'));assert.ok(bundled.capabilities.includes('ydd-edit'));
     assert.ok((await readFile(path.join(resourcesPath,'codewalker-local/source/COPYING'),'utf8')).includes('GNU GENERAL PUBLIC LICENSE'));
   }
   const blocked=await page.evaluate(async()=> {try{await fetch('file:///etc/passwd');return false;}catch{return true;}});
@@ -82,6 +83,24 @@ try {
   await mesh.locator('#mesh-file').setInputFiles({name:'jbib_000_u.ydd',mimeType:'application/octet-stream',buffer:Buffer.from(makeYdd())});
   await mesh.locator('#status').filter({hasText:'carregado'}).waitFor();
   await exerciseMeshHistory(page,mesh);
+  if(process.platform==='win32') {
+    const original=await readFile('tests/fixtures/native-clothing.ydd');
+    await mesh.locator('#ped-file').setInputFiles({name:'mp_m_freemode_01.ydd',mimeType:'application/octet-stream',buffer:original});
+    await mesh.locator('#ped-status').filter({hasText:'Ped salvo e carregado'}).waitFor();
+    await mesh.locator('#mesh-file').setInputFiles({name:'accs_000_u.ydd',mimeType:'application/octet-stream',buffer:original});
+    await mesh.locator('#tree button').filter({hasText:'accs_000_u.ydd'}).click();
+    assert.equal(await mesh.locator('#tree button').filter({hasText:/LOD|mesh_0/}).count(),0);
+    await mesh.locator('#attachment-bone').selectOption('pelvis');
+    await page.click('[data-tab=mesh]');await page.keyboard.press('Control+z');
+    assert.equal(await mesh.locator('#attachment-bone').inputValue(),'preserve');
+    await page.keyboard.press('Control+y');assert.equal(await mesh.locator('#attachment-bone').inputValue(),'pelvis');
+    await mesh.locator('#position-y').fill('-1');await mesh.locator('#apply-transform').click();
+    const pending=page.waitForEvent('download');await mesh.locator('#export-ydd').click();
+    const exported=await pending;assert.equal(exported.suggestedFilename(),'accs_000_u.ydd');
+    const target=path.join(output,'native-edited.ydd');await exported.saveAs(target);
+    const doc=parseYdd(await readFile(target));assert.equal(doc.drawables[0].lods.length,2);
+    for(let lod=0;lod<2;lod++)assert.ok(Math.abs(doc.drawables[0].readLod(lod)[0].positions[1]-1)<1e-6);
+  }
   assert.deepEqual(errors,[]);assert.deepEqual(failures,[]);
   await page.click('[data-tab=pack]');await mkdir('.test-output',{recursive:true});
   await page.screenshot({path:`.test-output/desktop-${process.platform}.png`});

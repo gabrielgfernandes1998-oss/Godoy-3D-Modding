@@ -10,8 +10,8 @@ function genderKey(gender) {
   if(!['male','female'].includes(gender))throw Error('Gênero de ped inválido.');
   return gender;
 }
-async function transaction(gender,mode,operation) {
-  const key=genderKey(gender),db=await open();
+async function transaction(gender,mode,operation,suffix='') {
+  const key=genderKey(gender)+suffix,db=await open();
   try {
     return await new Promise((resolve,reject)=> {
       const tx=db.transaction('peds',mode),request=operation(tx.objectStore('peds'),key);
@@ -29,3 +29,10 @@ export async function readPed(gender) {
   return record?new File([record.bytes],record.name,{type:'application/octet-stream'}):null;
 }
 export const forgetPed=gender=>transaction(gender,'readwrite',(store,key)=>store.delete(key));
+
+export async function rememberPedSkeleton(gender,bytes) {
+  if(!(bytes instanceof Uint8Array)||!bytes.length||bytes.length>80*1024*1024)throw Error('Esqueleto de ped inválido.');
+  return transaction(gender,'readwrite',(store,key)=>store.put(bytes,key),'-skeleton');
+}
+export const readPedSkeleton=gender=>transaction(gender,'readonly',(store,key)=>store.get(key),'-skeleton');
+export const forgetPedSkeleton=gender=>transaction(gender,'readwrite',(store,key)=>store.delete(key),'-skeleton');

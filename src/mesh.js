@@ -7,11 +7,12 @@ import {GLTFExporter} from 'three/addons/exporters/GLTFExporter.js';
 import {parseYdd} from '../modules/vehicles/src/formats/ydd.js';
 import {parseYft} from '../modules/vehicles/src/formats/yft.js';
 import {mergeStaticMeshes} from './mesh-core.js';
-import {rememberPed,readPed,forgetPed} from './ped-library.js';
+import {rememberPed,readPed,forgetPed,rememberPedSkeleton,readPedSkeleton,forgetPedSkeleton} from './ped-library.js';
 import {SceneHistory,snapshotTransform,applyTransform,sameTransform} from './scene-history.js';
+import {nativeMatrix,sourceUnchanged,previewBindMatrix} from './ydd-export.js';
 import './mesh.css';
 const $=s=>document.querySelector(s);
-$('#app').innerHTML=`<aside><h1>Malhas e objetos</h1><p>Ajuste de cena · exportação GLB</p><button id="open-mesh">Importar YDD / YFT / GLB</button><button id="open-ped">Importar ped de referência</button><button id="open-obj">Adicionar objeto OBJ</button><input id="mesh-file" type="file" accept=".ydd,.yft,.glb" hidden><input id="ped-file" type="file" accept=".ydd,.glb" hidden><input id="obj-file" type="file" accept=".obj" hidden><div class="history-actions"><button id="undo" disabled>Desfazer · Ctrl+Z</button><button id="redo" disabled>Refazer · Ctrl+Y</button></div><button id="fit-scene">Enquadrar cena inteira</button><h2>Cena · drawables / LODs / meshes</h2><div id="tree"></div><h2>Transformação</h2><div class="modes"><button data-mode="translate" class="active">Mover</button><button data-mode="rotate">Girar</button><button data-mode="scale">Escala</button></div><label>Espaço<select id="space"><option value="local">Local</option><option value="world">Global</option></select></label><div id="fields"></div><button id="apply-transform">Aplicar valores</button><button id="focus">Centralizar seleção</button><label>Adicionar à malha selecionada<select id="merge-source"><option value="">Selecione um OBJ</option></select></label><button id="merge">Unir geometria + UV</button><button id="export-glb" class="accent">Exportar cena GLB</button><p class="hint">A união usa o material de destino e preserva os UVs existentes. Não cria atlas nem pesos de skinning. O GLB é uma cena estática; não substitui YDD/YFT no FiveM.</p><p class="hint">O ped não acompanha o aplicativo. Importe seu modelo autorizado. A árvore mostra objetos de renderização, não toda a hierarquia física/bones do YFT.</p></aside><main><div id="viewport"></div><div id="status" role="status">Importe um modelo para começar.</div></main>`;
+$('#app').innerHTML=`<aside><h1>Malhas e objetos</h1><p>Roupa inteira sobre o ped · exportação YDD</p><button id="open-mesh">Importar YDD / YFT / GLB</button><button id="open-ped">Importar ped de referência</button><button id="open-obj">Adicionar objeto OBJ</button><input id="mesh-file" type="file" accept=".ydd,.yft,.glb" hidden><input id="ped-file" type="file" accept=".ydd,.glb" hidden><input id="obj-file" type="file" accept=".obj" hidden><div class="history-actions"><button id="undo" disabled>Desfazer · Ctrl+Z</button><button id="redo" disabled>Refazer · Ctrl+Y</button></div><button id="fit-scene">Enquadrar cena inteira</button><h2>Peças na cena</h2><div id="tree"></div><h2>Transformação</h2><div class="modes"><button data-mode="translate" class="active">Mover</button><button data-mode="rotate">Girar</button><button data-mode="scale">Escala</button></div><label>Espaço<select id="space"><option value="local">Local</option><option value="world">Global</option></select></label><div id="fields"></div><button id="apply-transform">Aplicar valores</button><button id="focus">Centralizar seleção</button><label>Vínculo ao ped<select id="attachment-bone"><option value="preserve">Manter pesos e ossos originais</option><option value="pelvis">Cintura · SKEL_Pelvis (acessório rígido)</option><option value="head">Cabeça · SKEL_Head (acessório rígido)</option><option value="spine">Tronco · SKEL_Spine0 (acessório rígido)</option></select></label><button id="export-ydd" class="accent">Exportar peça YDD</button><p class="hint">Mova, gire e ajuste a peça inteira sobre o ped. Para prender um boné ao cinto, escolha Cintura antes de exportar. O YTD original continua associado.</p><details id="advanced-mesh"><summary>OBJ e cópia GLB</summary><label>Adicionar à primeira malha da peça selecionada<select id="merge-source"><option value="">Selecione um OBJ</option></select></label><button id="merge">Unir geometria + UV</button><button id="export-glb" >Exportar cópia GLB</button><p class="hint">A união usa o material de destino e preserva os UVs existentes. Não cria atlas nem pesos de skinning. O GLB é uma cena estática; não substitui YDD/YFT no FiveM.</p><p class="hint">A edição YDD mantém materiais, UVs e LODs originais. União OBJ e GLB são ferramentas separadas; não entram na exportação YDD.</p></details></aside><main><div id="viewport"></div><div id="status" role="status">Importe um modelo para começar.</div></main>`;
 for(const type of ['position','rotation','scale']) {
   const group=document.createElement('fieldset'),legend=document.createElement('legend');
   legend.textContent={position:'Posição',rotation:'Rotação (graus)',scale:'Escala'}[type];group.append(legend);
@@ -39,6 +40,7 @@ transform.addEventListener('dragging-changed',e=>orbit.enabled=!e.value);
 transform.addEventListener('objectChange',()=>{dirty=true;sync();});
 let selection=null,dirty=false,dragStart=null;
 const resources=new Set();
+const sourceFiles=new WeakMap();
 const history=new SceneHistory({onChange:()=> {
   dirty=history.dirty;refreshTree();sync();
   $('#undo').disabled=!history.undoStack.length;$('#redo').disabled=!history.redoStack.length;
@@ -100,15 +102,15 @@ new ResizeObserver(resize).observe(container);resize();
 renderer.setAnimationLoop(()=>{orbit.update();renderer.render(scene,camera);});
 function sync() {
   if(!selection) return;
+  $('#attachment-bone').value=selection.userData.attachmentBone??'preserve';
   for(const type of ['position','rotation','scale']) for(const axis of ['x','y','z']) $(`#${type}-${axis}`).value=(selection[type][axis]*(type==='rotation'?180/Math.PI:1)).toFixed(4);
 }
-function select(object) {selection=object;transform.attach(object);sync();refreshTree();}
+function select(object) {while(object.parent&&object.parent!==content)object=object.parent;selection=object;transform.attach(object);sync();refreshTree();}
 function refreshTree() {
   $('#tree').replaceChildren();
-  const visit=(object,depth)=> {
-    const button=document.createElement('button');button.textContent=`${object.isMesh?'◇':'▸'} ${object.name||object.type}`;button.style.paddingLeft=`${10+depth*12}px`;button.classList.toggle('selected',object===selection);button.onclick=()=>select(object);$('#tree').append(button);
-    object.children.forEach(child=>visit(child,depth+1));
-  };content.children.forEach(child=>visit(child,0));
+  for(const object of content.children) {
+    const button=document.createElement('button');button.textContent=object.name||'Peça';button.classList.toggle('selected',object===selection);button.onclick=()=>select(object);$('#tree').append(button);
+  }
   $('#merge-source').replaceChildren(new Option('Selecione um OBJ',''));
   content.children.filter(a=>a.userData.godoyObj).forEach(a=>$('#merge-source').append(new Option(a.name,a.uuid)));
 }
@@ -137,6 +139,7 @@ async function load(file,isPed=false,expectedSequence=null,prepareOnly=false) {
         d.readLod(lod).forEach((data,i)=> {
           const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.BufferAttribute(data.positions,3));g.setAttribute('uv',new THREE.BufferAttribute(data.uvs,2));g.setIndex(new THREE.BufferAttribute(data.indices,1));
           if(data.normals)g.setAttribute('normal',new THREE.BufferAttribute(data.normals,3));else g.computeVertexNormals();
+          if(!data.hasSkin&&d.skeletonPointer!=null)g.applyMatrix4(previewBindMatrix(doc.resource,d.skeletonPointer,data.boneIndex));
           const mesh=new THREE.Mesh(g,new THREE.MeshStandardMaterial({color:isPed?0x708497:0xd07186,roughness:.8,side:THREE.DoubleSide}));
           mesh.name=`mesh_${i} · ${d.shaders[data.shaderIndex]?.diffuseName||'material '+data.shaderIndex}`;lodGroup.add(mesh);
         });
@@ -150,10 +153,14 @@ async function load(file,isPed=false,expectedSequence=null,prepareOnly=false) {
     installPed(group);
     $('#ped-status').textContent=`Ped carregado: ${file.name}`;return true;
   }
+  if(/\.ydd$/i.test(file.name)) {
+    const geometries=new Map();group.traverse(o=>{if(o.isMesh)geometries.set(o,o.geometry);});
+    sourceFiles.set(group,{bytes:new Uint8Array(buffer),name:file.name,geometries});
+  }
   addObject(group);
   const gender=/mp_f_freemode/i.test(file.name)?'female':/mp_m_freemode/i.test(file.name)?'male':$('#ped-gender').value;
   if(gender!==$('#ped-gender').value) {$('#ped-gender').value=gender;await restorePed();}
-  status(`${file.name} carregado. Cena editável; exportação GLB estática.`);
+  status(`${file.name} carregado. Peça inteira selecionada. Ajuste sobre o ped e exporte em YDD.`);
 }
 function installPed(group) {
   clearReference();group.traverse(object=> {
@@ -187,13 +194,13 @@ $('#ped-file').onchange=e=>guard(async()=> {
   const file=e.target.files[0];if(!file)return;
   const sequence=++restoreSequence,gender=$('#ped-gender').value;
   if(!await load(file,true,sequence))return;
-  try {await rememberPed(gender,file);$('#ped-status').textContent=`Ped salvo e carregado: ${file.name}`;}
+  try {await rememberPed(gender,file);if(/\.ydd$/i.test(file.name))await rememberPedSkeleton(gender,new Uint8Array(await file.arrayBuffer()));else await forgetPedSkeleton(gender);$('#ped-status').textContent=`Ped salvo e carregado: ${file.name}`;}
   catch(error) {$('#ped-status').textContent=`Ped carregado, mas não salvo: ${error.message}`;}
   finally {e.target.value='';}
 })();
 $('#ped-gender').onchange=guard(restorePed);
 $('#ped-visible').onchange=e=>reference.visible=e.target.checked;
-$('#forget-ped').onclick=guard(async()=> {++restoreSequence;await forgetPed($('#ped-gender').value);clearReference();$('#ped-status').textContent='Ped removido da biblioteca local. O arquivo original foi preservado.';});
+$('#forget-ped').onclick=guard(async()=> {++restoreSequence;await forgetPed($('#ped-gender').value);await forgetPedSkeleton($('#ped-gender').value);clearReference();$('#ped-status').textContent='Ped removido da biblioteca local. O arquivo original foi preservado.';});
 restorePed().catch(error=>$('#ped-status').textContent=`Biblioteca local indisponível: ${error.message}`);
 $('#obj-file').onchange=e=>guard(async()=> {
   const file=e.target.files[0];if(!file)return;if(file.size>20*1024*1024)throw Error('OBJ acima de 20 MB.');
@@ -208,7 +215,7 @@ document.querySelectorAll('[data-mode]').forEach(button=>button.onclick=()=> {
 });
 $('#space').onchange=e=>transform.setSpace(e.target.value);
 $('#apply-transform').onclick=guard(()=> {
-  if(!selection)throw Error('Selecione um objeto na árvore.');
+  if(!selection)throw Error('Selecione uma peça na cena.');
   const values={};for(const type of ['position','rotation','scale']) {
     values[type]=['x','y','z'].map(axis=>Number($(`#${type}-${axis}`).value));
     if(values[type].some(v=>!Number.isFinite(v)||Math.abs(v)>100000||(type==='scale'&&v<=0)))throw Error('Use valores finitos e escala positiva até 100000.');
@@ -218,13 +225,34 @@ $('#apply-transform').onclick=guard(()=> {
 $('#focus').onclick=()=>focus();
 $('#merge').onclick=guard(()=> {
   const source=content.children.find(a=>a.userData.godoyObj&&a.uuid===$('#merge-source').value);
-  if(!selection?.isMesh||!source)throw Error('Selecione uma malha na árvore e escolha um OBJ.');
+  let target=null;selection?.traverse(o=>{if(!target&&o.isMesh)target=o;});
+  if(!target||!source)throw Error('Selecione a peça de destino e escolha um OBJ.');
   let ancestor=selection;while(ancestor){if(ancestor===source)throw Error('O destino precisa estar fora do OBJ escolhido.');ancestor=ancestor.parent;}
-  const target=selection,old=target.geometry,geometry=mergeStaticMeshes(target,source),index=content.children.indexOf(source);resources.add(geometry);
+  const old=target.geometry,geometry=mergeStaticMeshes(target,source),index=content.children.indexOf(source);resources.add(geometry);
   history.execute({label:'Unir geometria',objects:[target,source],geometries:[old,geometry],
     redo:()=>{target.geometry=geometry;source.removeFromParent();select(target);},
     undo:()=>{target.geometry=old;content.add(source);content.children.splice(content.children.indexOf(source),1);content.children.splice(index,0,source);select(target);}});
   status('Geometria unida. Ctrl+Z restaura a malha e o OBJ separados. Exporte em GLB.');
+});
+$('#attachment-bone').onchange=()=> {
+  if(!selection)return;
+  const object=selection,before=object.userData.attachmentBone??'preserve',after=$('#attachment-bone').value;
+  if(before!==after)history.execute({label:'Vínculo ao ped',objects:[object],redo:()=>{object.userData.attachmentBone=after;select(object);},undo:()=>{object.userData.attachmentBone=before;select(object);}});
+};
+$('#export-ydd').onclick=guard(async()=> {
+  const object=selection,source=sourceFiles.get(object);
+  if(!source)throw Error('Selecione um YDD original importado para exportar esta peça.');
+  if(!native?.exportYdd)throw Error('A exportação YDD requer o portable Windows atualizado.');
+  if(!sourceUnchanged(object,source))throw Error('A geometria foi unida a um OBJ. Desfaça a união para exportar os ajustes do YDD original.');
+  $('#export-ydd').disabled=true;status('Gravando o YDD nativo e verificando geometria, pesos e LODs…');
+  try {
+    const bytes=await native.exportYdd({bytes:source.bytes,matrix:nativeMatrix(object),bone:object.userData.attachmentBone??'preserve',pedBytes:await readPedSkeleton($('#ped-gender').value)});
+    const parsed=parseYdd(bytes);if(!parsed.drawables.length)throw Error('YDD exportado inválido.');
+    const url=URL.createObjectURL(new Blob([bytes],{type:'application/octet-stream'}));
+    const link=document.createElement('a');link.href=url;link.download=source.name;link.click();setTimeout(()=>URL.revokeObjectURL(url),30000);
+    if(content.children.length===1)history.markSaved();
+    status('YDD exportado e reaberto para verificação. Use com o YTD original no recurso FiveM e teste as animações no jogo.');
+  } finally {$('#export-ydd').disabled=false;}
 });
 $('#export-glb').onclick=guard(async()=> {
   if(!content.children.length)throw Error('A cena está vazia.');
@@ -261,6 +289,7 @@ if(!native) {
       for(const asset of result.assets)group.add(await load(new File([asset.bytes],asset.name),true,null,true));
       group.name=`Ped · ${result.ped}`;
       if(sequence!==restoreSequence){disposeGroup(group);return;}
+      await rememberPedSkeleton(gender,result.assets[0].bytes);
       installPed(group);$('#ped-status').textContent=`Ped do GTA carregado: ${result.ped}`;
       $('#native-status').textContent='Ped base carregado via CodeWalker. Pose estática; roupas da cena preservadas.'+(result.missing.length?' Componentes ausentes: '+result.missing.join(', '):'');
       try {

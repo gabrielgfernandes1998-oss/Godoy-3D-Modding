@@ -13,3 +13,5 @@ native/publish/
 third_party/**/obj/
 third_party/**/bin/
 third_party/packages/
+
+/packages/

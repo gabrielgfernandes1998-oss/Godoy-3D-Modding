@@ -9,7 +9,7 @@ using System.Text.Json;
 var output=Console.Out;
 try {
     var input=await Console.In.ReadToEndAsync();
-    if(input.Length>120*1024*1024)throw new Exception("Requisição nativa acima do limite.");
+    if(input.Length>230*1024*1024)throw new Exception("Requisição nativa acima do limite.");
     using var request=JsonDocument.Parse(input);
     var root=request.RootElement;
     string Text(string name)=>root.GetProperty(name).GetString()??throw new Exception($"Campo {name} ausente.");
@@ -30,7 +30,19 @@ try {
     var command=Text("command");object result;
     if(command=="probe") {
         _=Type("GTA5Keys");
-        result=new {ok=true,version=assembly.GetName().Version?.ToString(),capabilities=new[]{"ped-base-rpf","ydd-roundtrip"}};
+        result=new {ok=true,version=assembly.GetName().Version?.ToString(),capabilities=new[]{"ped-base-rpf","ydd-roundtrip","ydd-edit"}};
+    } else if(command=="edit-ydd") {
+        var bytes=Convert.FromBase64String(Text("data"));
+        if(bytes.Length>80*1024*1024)throw new Exception("YDD acima de 80 MB.");
+        var file=Activator.CreateInstance(yddType)!;Call(file,"Load",bytes);
+        object? donor=null;
+        if(root.TryGetProperty("pedData",out var pedData)&&pedData.ValueKind==JsonValueKind.String) {
+            var pedBytes=Convert.FromBase64String(pedData.GetString()!);
+            if(pedBytes.Length>80*1024*1024)throw new Exception("Ped acima de 80 MB.");
+            donor=Activator.CreateInstance(yddType)!;Call(donor,"Load",pedBytes);
+        }
+        var saved=YddEditor.Export(file,root,donor);
+        result=new {ok=true,data=Convert.ToBase64String(saved)};
     } else if(command=="roundtrip") {
         var bytes=Convert.FromBase64String(Text("data"));
         if(bytes.Length>80*1024*1024)throw new Exception("YDD acima de 80 MB.");

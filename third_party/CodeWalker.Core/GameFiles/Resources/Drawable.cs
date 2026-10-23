@@ -2715,7 +2715,8 @@ namespace CodeWalker.GameFiles
         public long GetLowPointer()
         {
             if (Low == null) return 0;
-            var p = GetMedPointer();
+            var p = FilePosition;
+            p += ListLength(High, p);
             p += ListLength(Med, p);
             p += Pad(p);
             return p;
@@ -2723,7 +2724,9 @@ namespace CodeWalker.GameFiles
         public long GetVLowPointer()
         {
             if (VLow == null) return 0;
-            var p = GetLowPointer();
+            var p = FilePosition;
+            p += ListLength(High, p);
+            p += ListLength(Med, p);
             p += ListLength(Low, p);
             p += Pad(p);
             return p;
@@ -2731,7 +2734,10 @@ namespace CodeWalker.GameFiles
         public long GetExtraPointer()
         {
             if (Extra == null) return 0;
-            var p = GetVLowPointer();
+            var p = FilePosition;
+            p += ListLength(High, p);
+            p += ListLength(Med, p);
+            p += ListLength(Low, p);
             p += ListLength(VLow, p);
             p += Pad(p);
             return p;

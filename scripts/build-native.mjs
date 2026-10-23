@@ -1,5 +1,5 @@
 import {execFileSync} from 'node:child_process';
-import {readFile,readdir,copyFile} from 'node:fs/promises';
+import {readFile,readdir,copyFile,cp} from 'node:fs/promises';
 import path from 'node:path';
 const dotnet=process.env.GODOY_DOTNET||'dotnet';
 const destination=path.resolve('native/publish/native-bridge');
@@ -12,3 +12,7 @@ const packageRoot=path.join(directory,'microsoft.netcore.app.runtime.win-x64');
 const versions=await readdir(packageRoot);
 const version=runtime?.split('/')[1]??versions.sort((a,b)=>a.localeCompare(b,undefined,{numeric:true})).at(-1);
 for(const file of ['LICENSE.TXT','THIRD-PARTY-NOTICES.TXT'])await copyFile(path.join(packageRoot,version,file),path.join(destination,'DOTNET-'+file));
+
+// The adapter links GPL CodeWalker: ship its complete corresponding source too.
+for(const source of ['native/CodeWalkerBridge','third_party/CodeWalker.Core'])await cp(source,path.join(destination,'source',source),{recursive:true,filter:p=>!/(^|[\\/])(bin|obj)([\\/]|$)/.test(p)});
+await copyFile('third_party/CodeWalker.Core/COPYING',path.join(destination,'COPYING'));

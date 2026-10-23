@@ -1,6 +1,6 @@
 {
   "name": "godoy-3d-modding",
-  "version": "0.2.4",
+  "version": "0.3.0",
   "private": true,
   "type": "module",
   "main": "electron.cjs",
@@ -17,7 +17,8 @@
     "release:publish": "node scripts/publish-release.mjs",
     "test:desktop": "node tests/desktop.e2e.mjs",
     "build:native": "node scripts/build-native.mjs",
-    "build:codewalker": "node scripts/build-codewalker.mjs"
+    "build:codewalker": "node scripts/build-codewalker.mjs",
+    "test:native": "dotnet run --project native/CodeWalkerBridge.Tests/CodeWalkerBridge.Tests.csproj -c Release"
   },
   "dependencies": {
     "three": "0.180.0",

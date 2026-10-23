@@ -4,4 +4,5 @@
     <ImplicitUsings>enable</ImplicitUsings><Nullable>enable</Nullable>
     <AssemblyName>Godoy.CodeWalkerBridge</AssemblyName>
   </PropertyGroup>
+<ItemGroup><ProjectReference Include="../../third_party/CodeWalker.Core/CodeWalker.Core.csproj" /></ItemGroup>
 </Project>

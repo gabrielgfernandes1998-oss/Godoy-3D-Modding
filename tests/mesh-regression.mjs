@@ -18,7 +18,8 @@ export async function exerciseMeshHistory(page,mesh) {
   assert.equal(Number(await mesh.locator('#position-x').inputValue()),2);
   await page.keyboard.press('Control+z');assert.equal(Number(await mesh.locator('#position-x').inputValue()),0);
   await page.keyboard.press('Control+Shift+z');assert.equal(Number(await mesh.locator('#position-x').inputValue()),2);
-  await mesh.locator('#tree button').filter({hasText:'mesh_0'}).first().click();
+  await mesh.locator('#tree button').filter({hasText:'jbib_000_u.ydd'}).first().click();
+  await mesh.locator('#advanced-mesh').evaluate(e=>e.open=true);
   await mesh.locator('#merge-source').selectOption({label:'regression.obj'});await mesh.locator('#merge').click();await obj.waitFor({state:'detached'});
   await page.keyboard.press('Control+z');await obj.waitFor();
   await page.keyboard.press('Control+y');await obj.waitFor({state:'detached'});

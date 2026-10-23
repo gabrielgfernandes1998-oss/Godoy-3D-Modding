@@ -34,6 +34,7 @@ jobs:
         run: |
           set -euo pipefail
           npm test
+          dotnet run --project native/CodeWalkerBridge.Tests/CodeWalkerBridge.Tests.csproj -c Release
           python3 -m unittest discover -s tests -v
       - name: Build Windows x64 portable
         run: npm run package:windows
