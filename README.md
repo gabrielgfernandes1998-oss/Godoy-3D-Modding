@@ -169,6 +169,8 @@ UVs do OBJ são mantidos; se faltarem, é criada uma projeção planar simples. 
 
 ### UV e textura própria do OBJ (0.5.0)
 
+**Compatibilidade em investigação:** o preview do grzyClothTool aplica a primeira textura do YTD como diffuse em todas as geometrias. A exportação 0.5.2 com diffuses independentes pode aparecer incorreta nesse fluxo. Os testes no editor Godoy não validam esse comportamento nem comprovam renderização no FiveM. Consulte [a investigação e os arquivos necessários](docs/texture-investigation.md).
+
 1. Posicione e una o OBJ ao YDD.
 2. Selecione o conjunto YDD e clique **Associar YTD original para gerar UV**. Escolha o dicionário correspondente à roupa.
 3. Clique **Exportar peça YDD**. Com OBJ, baixa um ZIP contendo o YDD original atualizado, o YTD atualizado e a pasta `UV/` com guias PNG transparentes.

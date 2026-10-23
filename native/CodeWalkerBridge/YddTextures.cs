@@ -52,6 +52,10 @@ static class YddTextures {
             uint hash=(uint)parameters.Hashes[i];
             bool isDiffuse=Sampler(hash,"DiffuseSampler")||Sampler(hash,"DiffuseSampler2");
             bool normal=Sampler(hash,"BumpSampler")||Sampler(hash,"NormalSampler");
+            bool specular=Sampler(hash,"SpecSampler");
+            // Palette/detail/mask/environment samplers have shader-specific semantics.
+            // Replacing these with black can hide or tint the entire added part.
+            if(!isDiffuse&&!normal&&!specular)continue;
             string textureName=isDiffuse?name:name+(normal?"_n":"_s");
             p.Data=new TextureBase{Name=textureName,NameHash=JenkHash.GenHash(textureName)};
             diffuse|=isDiffuse;

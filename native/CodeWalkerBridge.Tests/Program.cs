@@ -100,3 +100,15 @@ var mapParameters=mapped.Drawables[0].AllModels[0].Geometries[1].Shader.Paramete
 Check(((TextureBase)mapParameters[1].Data).Name==textureName+"_n","canonical bump sampler uses neutral normal");
 Check(((TextureBase)mapParameters[2].Data).Name==textureName+"_s","canonical spec sampler uses neutral specular");
 Console.WriteLine("GTA lowercase diffuse/bump/spec hashes and legacy mixed-case samplers PASS");
+
+// Shader-specific palette/detail slots must never be replaced with black maps.
+var paletteFixture=Fixture();var paletteShader=paletteFixture.Drawables[0].ShaderGroup.Shaders.data_items[0];
+var paletteParameter=new ShaderParameter{DataType=0,Data=new TextureBase{Name="original_palette",NameHash=JenkHash.GenHash("original_palette")}};
+paletteShader.ParametersList.Hashes=paletteShader.ParametersList.Hashes.Append((MetaName)JenkHash.GenHash("tintpalettesampler")).ToArray();
+paletteShader.ParametersList.Parameters=paletteShader.ParametersList.Parameters.Append(paletteParameter).ToArray();
+paletteShader.ParametersList.Count=2;paletteShader.ParameterCount=2;paletteShader.TextureParametersCount=2;paletteShader.ParameterSize=paletteShader.ParametersList.ParametersSize;paletteShader.ParameterDataSize=paletteShader.ParametersList.ParametersDataSize;
+var paletteOutput=new YddFile();paletteOutput.Load(YddEditor.Export(paletteFixture,textureRequest,null));
+foreach(var model in paletteOutput.Drawables[0].AllModels)foreach(var geometry in model.Geometries)
+ Check(((TextureBase)geometry.Shader.ParametersList.Parameters[1].Data).Name=="original_palette","original and added shader retain palette sampler");
+Check(((TextureBase)paletteParameter.Data).Name=="original_palette","source palette sampler not mutated");
+Console.WriteLine("Unknown shader samplers (palette/detail/mask) preserved instead of replaced with black PASS");
