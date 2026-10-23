@@ -4,7 +4,9 @@ Correção do recurso RSC7 acima de 256 MiB: um atlas normal e outro specular de
 
 Regressão local exporta/reabre um atlas 4096 com ambos os mapas: reserva YDD de 67.118.080 bytes e YTD de 134.225.920 bytes, ambos lidos pelos parsers JavaScript sem alterar o limite de 256 MiB. Confere resolução/mipmaps, pixels da roupa e região neutra do OBJ. Assets sintéticos originais; arquivos reais do usuário e aparência/animação no grzy/FiveM continuam sem validação neste ambiente.
 
-Compilação portable e teste do executável Windows serão acompanhados no workflow desta versão.
+Validação no [run 40001571630](https://github.com/gabrielgfernandes1998-oss/Godoy-3D-Modding/actions/runs/40001571630): 53 testes JavaScript, 7 Python e suíte nativa passaram; portable compilado e executável Windows testado com sucesso. O navegador local passou e os parsers decodificaram ambas as imagens auxiliares 2048 e conferiram os UVs em todos os LODs.
+
+[Release 0.6.3](https://github.com/gabrielgfernandes1998-oss/Godoy-3D-Modding/releases/tag/v0.6.3) publicada, baixada e checksum conferido: 200,627,245 bytes; SHA-256 `7107a3a39d002c08f1b24f1bfdcac1c7987dfc3afb07b6c352c86e6fda9fd37c`.
 
 # Histórico da versão 0.6.2 beta
 
