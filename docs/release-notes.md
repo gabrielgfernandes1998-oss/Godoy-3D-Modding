@@ -1,5 +1,6 @@
-# Godoy 3D Modding 0.6.0 beta
+# Godoy 3D Modding 0.6.1 beta
 
+- Corrige bloqueio do sampler `0x8ab98831` com `givemechecker` sem imagem: preserva o slot/hash como referência provisória de importação FBX. Normal/specular não atribuídos com esse placeholder recebem mapas neutros; texturas reais com o mesmo nome continuam protegidas.
 - Atlas único de roupa + OBJ: remapeia o UV original para a região esquerda e reserva a direita para as ilhas dos objetos incorporados, em todos os LODs. Mantém posições, ossos e pesos.
 - Um único item diffuse no YTD exportado, com o nome principal da roupa. A primeira textura usada pelo override de ped/grzy é o próprio atlas; não há mapas neutros disputando essa posição.
 - Preserva os pixels da diffuse original na resolução original dentro do atlas. Normal/specular disponíveis são reorganizados e incorporados no YDD; a região do OBJ recebe mapas neutros. Paletas reconhecidas são preservadas.

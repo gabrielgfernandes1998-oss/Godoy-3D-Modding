@@ -155,3 +155,33 @@ var firstUv=YddAtlas.AdditionUv(twoParts,0,new Vector2(.5f));var secondUv=YddAtl
 var variantFixture=Fixture();var variantSource=new YtdFile{TextureDict=new TextureDictionary()};variantSource.TextureDict.BuildFromTextureList(new List<Texture>{YddTextures.Solid("variant_diffuse",4,70,80,90)});
 var variantRequest=JsonSerializer.SerializeToElement(new{matrix=Matrix.Identity.ToArray(),bone="preserve",atlas=true,ytdData=Convert.ToBase64String(variantSource.Save()),additions=new[]{addition}});
 var variantAtlas=new YtdFile();variantAtlas.Load(YddAtlas.Build(variantFixture,variantRequest));Check(variantAtlas.TextureDict.Textures.data_items.Single().Name=="variant_diffuse","single-entry texture variation follows ped diffuse override semantics");
+
+// Real report: opaque sampler 0x8ab98831 references absent FBX placeholder.
+void AppendTextureSlot(ShaderFX shader,uint hash,TextureBase texture) {
+ shader.ParametersList.Hashes=shader.ParametersList.Hashes.Append((MetaName)hash).ToArray();
+ shader.ParametersList.Parameters=shader.ParametersList.Parameters.Append(new ShaderParameter{DataType=0,Data=texture}).ToArray();
+ shader.ParametersList.Count=shader.ParametersList.Parameters.Length;shader.ParameterCount=(byte)shader.ParametersList.Count;shader.TextureParametersCount=shader.ParametersList.TextureParamsCount;shader.ParameterSize=shader.ParametersList.ParametersSize;shader.ParameterDataSize=shader.ParametersList.ParametersDataSize;
+}
+TextureBase CheckerReference()=>new TextureBase{Name="givemechecker",NameHash=JenkHash.GenHash("givemechecker")};
+var checkerFixture=Fixture();AppendTextureSlot(checkerFixture.Drawables[0].ShaderGroup.Shaders.data_items[0],0x8ab98831,CheckerReference());
+File.WriteAllBytes("tests/fixtures/native-clothing-checker.ydd",checkerFixture.Save());
+var checkerReload=new YddFile();checkerReload.Load(File.ReadAllBytes("tests/fixtures/native-clothing-checker.ydd"));checkerFixture=checkerReload;
+var checkerAtlas=new YtdFile();checkerAtlas.Load(YddAtlas.Build(checkerFixture,atlasRequest));
+var checkerOutput=new YddFile();checkerOutput.Load(YddEditor.Export(checkerFixture,atlasRequest,null));
+Check(checkerAtlas.TextureDict.Textures.data_items.Length==1,"missing checker does not create another YTD entry");
+foreach(var model in checkerOutput.Drawables[0].AllModels)foreach(var geometry in model.Geometries) {
+ var block=geometry.Shader.ParametersList;
+ Check((uint)block.Hashes[1]==0x8ab98831&&((TextureBase)block.Parameters[1].Data).Name=="givemechecker","opaque checker reference and hash preserved on all LODs");
+}
+var missingNormalFixture=Fixture();AppendTextureSlot(missingNormalFixture.Drawables[0].ShaderGroup.Shaders.data_items[0],JenkHash.GenHash("bumpsampler"),CheckerReference());
+YddAtlas.Build(missingNormalFixture,atlasRequest);
+var neutralNormal=(Texture)missingNormalFixture.Drawables[0].ShaderGroup.Shaders.data_items[0].ParametersList.Parameters[1].Data;
+var neutralNormalPixels=CodeWalker.Utils.DDSIO.GetPixels(neutralNormal,0);Check(neutralNormalPixels[0]==255&&neutralNormalPixels[1]==128&&neutralNormalPixels[2]==128,"unassigned normal placeholder becomes neutral normal atlas");
+var realCheckerYtd=new YtdFile{TextureDict=new TextureDictionary()};realCheckerYtd.TextureDict.BuildFromTextureList(new List<Texture>{YddTextures.Solid("original_diffuse",4,30,60,90),YddTextures.Solid("givemechecker",4,255,0,0)});
+var realCheckerRequest=JsonSerializer.SerializeToElement(new{matrix=Matrix.Identity.ToArray(),bone="preserve",atlas=true,ytdData=Convert.ToBase64String(realCheckerYtd.Save()),additions=new[]{addition}});
+var actualCheckerFixture=Fixture();AppendTextureSlot(actualCheckerFixture.Drawables[0].ShaderGroup.Shaders.data_items[0],0x8ab98831,CheckerReference());
+bool actualCheckerRejected=false;try{YddAtlas.Build(actualCheckerFixture,realCheckerRequest);}catch(Exception e){actualCheckerRejected=e.Message.Contains("exige tratamento específico");}Check(actualCheckerRejected,"real checker image is not bypassed as a missing placeholder");
+Console.WriteLine("Reported givemechecker sampler: missing placeholder preserved, neutral unassigned normal, real checker still protected PASS");
+
+var missingSecondaryFixture=Fixture();AppendTextureSlot(missingSecondaryFixture.Drawables[0].ShaderGroup.Shaders.data_items[0],JenkHash.GenHash("diffusesampler2"),CheckerReference());
+YddAtlas.Build(missingSecondaryFixture,atlasRequest);Check(((TextureBase)missingSecondaryFixture.Drawables[0].ShaderGroup.Shaders.data_items[0].ParametersList.Parameters[1].Data).Name=="givemechecker","missing secondary diffuse placeholder preserved without compositing");

@@ -84,7 +84,7 @@ try {
   await mesh.locator('#status').filter({hasText:'carregado'}).waitFor();
   await exerciseMeshHistory(page,mesh);
   if(process.platform==='win32') {
-    const original=await readFile('tests/fixtures/native-clothing.ydd');
+    const original=await readFile('tests/fixtures/native-clothing-checker.ydd');
     // Simulate extracted GTA bytes through real Electron IPC; no GTA install in CI.
     await desktop.evaluate(({ipcMain},data)=> {
       ipcMain.removeHandler('godoy:native-ped');

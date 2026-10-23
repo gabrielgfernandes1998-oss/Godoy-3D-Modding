@@ -25,6 +25,9 @@ static class YddAtlas {
         var ytd=new YtdFile();ytd.Load(bytes);
         var dictionary=ytd.TextureDict??throw new Exception("YTD inválido.");
         Texture? Resolve(Drawable drawable,TextureBase reference)=>reference as Texture??dictionary.Lookup(reference.NameHash)??drawable.ShaderGroup.TextureDictionary?.Lookup(reference.NameHash);
+        // FbxConverter uses this name when no texture was assigned. Only absent
+        // placeholders are exempt: an actual checker image still needs UV handling.
+        bool MissingPlaceholder(Drawable drawable,TextureBase reference)=>string.Equals(reference.Name,"givemechecker",StringComparison.OrdinalIgnoreCase)&&Resolve(drawable,reference) is null;
         var tiles=new Dictionary<ShaderFX,(Texture diffuse,Texture? normal,Texture? spec,int index)>();
         foreach(var drawable in ydd.Drawables)foreach(var model in drawable.AllModels)foreach(var geometry in model.Geometries) {
             var shader=geometry.Shader??throw new Exception("Geometria sem material nativo para atlas.");
@@ -33,14 +36,15 @@ static class YddAtlas {
             var diffuse=dictionary.Lookup(reference.NameHash)??(dictionary.Textures.data_items.Length==1?dictionary.Textures.data_items[0]:null)??Resolve(drawable,reference)??throw new Exception($"YTD não contém a diffuse '{reference.Name}'. Associe o YTD correspondente ao YDD original.");
             Texture? Auxiliary(string slot) {
                 var data=Slot(shader,slot)?.Data as TextureBase;
-                if(data is null||string.IsNullOrEmpty(data.Name))return null;
+                if(data is null||string.IsNullOrEmpty(data.Name)||MissingPlaceholder(drawable,data))return null;
                 return Resolve(drawable,data)??throw new Exception($"Mapa auxiliar '{data.Name}' ausente. Associe um YTD que contenha esse mapa ou incorpore-o no YDD antes de gerar o atlas.");
             }
-            if(Slot(shader,"DiffuseSampler2")?.Data is TextureBase)throw new Exception("Shader com segunda diffuse exige composição específica; atlas automático cancelado para preservar o material.");
+            if(Slot(shader,"DiffuseSampler2")?.Data is TextureBase secondary&&!string.IsNullOrEmpty(secondary.Name)&&!MissingPlaceholder(drawable,secondary))throw new Exception("Shader com segunda diffuse exige composição específica; atlas automático cancelado para preservar o material.");
             for(int i=0;i<shader.ParametersList.Parameters.Length;i++) {
                 var parameter=shader.ParametersList.Parameters[i];
                 if(parameter.DataType!=0||parameter.Data is not TextureBase other||string.IsNullOrEmpty(other.Name))continue;
                 uint hash=(uint)shader.ParametersList.Hashes[i];
+                if(MissingPlaceholder(drawable,other))continue; // Preserve opaque slot/hash/reference, not an image to atlas.
                 if(!new[]{"DiffuseSampler","BumpSampler","NormalSampler","SpecSampler","TintPaletteSampler"}.Any(name=>Is(hash,name)))throw new Exception($"Sampler 0x{hash:x8} ('{other.Name}') exige tratamento específico de UV. Atlas cancelado para preservar o material.");
             }
             tiles.Add(shader,(diffuse,Auxiliary("BumpSampler")??Auxiliary("NormalSampler"),Auxiliary("SpecSampler"),tiles.Count));
