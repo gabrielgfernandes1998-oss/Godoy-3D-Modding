@@ -82,7 +82,7 @@ function registerNativeBridge({app,ipcMain,dialog,getWindow}) {
     if(!request||!Number.isInteger(request.boneTag)||request.boneTag<0||request.boneTag>65535||!['head','berd','hair','uppr','lowr','hand','feet','teef','accs','task','decl','jbib'].some(c=>new RegExp('^'+c+'_[0-9]{3}_u$').test(request.name)))throw Error('Nome ou osso inválido.');
     if(![512,1024,2048,4096].includes(request.textureSize)||!(request.pixels instanceof Uint8Array)||request.pixels.length!==request.textureSize**2*4)throw Error('Pixels inválidos.');
     if(!(request.pedBytes instanceof Uint8Array)||!request.pedBytes.length||request.pedBytes.length>80*1024*1024)throw Error('Carregue um ped YDD com esqueleto.');
-    if(!Array.isArray(request.parts)||!request.parts.length||request.parts.length>32||Buffer.byteLength(JSON.stringify(request.parts))>10*1024*1024)throw Error('Partes OBJ acima do limite.');
+    if(!Array.isArray(request.parts)||!request.parts.length||request.parts.length>32||Buffer.byteLength(JSON.stringify(request.parts))>32*1024*1024)throw Error('Partes OBJ acima do limite.');
     busy=true;
     try {
       const config=await resolveConfig();

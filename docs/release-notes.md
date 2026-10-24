@@ -1,9 +1,9 @@
-# Godoy 3D Modding 0.9.0 beta
+# Godoy 3D Modding 0.9.1 beta
 
-- Nova aba **05 · Converter OBJ em YDD**: cria um YDD novo contendo somente a geometria do OBJ, com esqueleto do ped CodeWalker e vínculo rígido ao osso escolhido. Nenhum YDD de roupa de origem é necessário.
-- Lista os ossos reais do ped, leva o OBJ ao osso e permite ajustar posição/rotação/escala com os mesmos controles 3D e histórico de posicionamento Ctrl+Z/Ctrl+Y.
-- Mantém o UV existente do OBJ ou gera ilhas separadas por triângulo. Escolha resolução de 512–4096, cor ou uma imagem PNG/JPG/WebP como diffuse única.
-- Exporta ZIP com YDD, YTD com mipmaps completos, textura PNG, guia UV e JSON da conversão. O par pode ser reaberto na pintura ou importado no gerenciador de packs para gerar o recurso FiveM.
-- CodeWalker reabre e verifica os binários gerados. Testes cobrem peça sem geometria do ped, vínculo cabeça/cintura, pesos/UV/cor de vértices, sampler e pixels/mipmaps do YTD. O teste Windows também converte e reabre a peça na pintura.
+- Corrige a importação que parava com “Divida o OBJ em partes de até 65535 vértices”. O módulo 05 agora faz essa divisão automaticamente, em limites de triângulos completos.
+- Preserva posições, normais, UVs existentes e transformações da hierarquia. As partes continuam um único objeto para selecionar, posicionar e converter; ficam reunidas no mesmo drawable YDD e usam a mesma textura YTD.
+- UV automático continua a numeração das ilhas entre as partes, sem sobreposição criada pela divisão. É possível voltar ao UV original.
+- Conversor aceita até 500000 vértices após triangulação, 32 partes e 32 MB de dados serializados. O limite de 20 MB do arquivo OBJ continua. As restrições do módulo 03 de incorporação não foram alteradas.
+- Regressões verificam divisão de 120006 vértices com atributos/transformações preservados e exportação nativa de 120000 vértices em todos os LODs. O teste do portable Windows importa, divide e converte uma peça acima do limite antigo.
 
-Vínculo rígido a um osso; não gera pesos deformáveis entre várias articulações nem física. LOD alto/baixo compartilham a forma sem simplificação automática. UV automático é por triângulo, sem unwrap artístico. Materiais MTL/múltiplas imagens não são importados; selecione uma diffuse e mantenha seu UV correspondente. Requer o portable para gerar binários; ped do GTA não é distribuído. Assets reais do usuário e aparência/animação no FiveM precisam de validação.
+Vínculo rígido a um osso; sem simplificação automática. A divisão mantém toda a geometria e não reduz o peso da malha. Para arquivos acima dos limites totais, reduza a geometria. A aparência no FiveM com o OBJ real da captura não foi validada neste ambiente.

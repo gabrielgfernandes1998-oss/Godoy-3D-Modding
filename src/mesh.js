@@ -229,7 +229,8 @@ $('#obj-file').onchange=e=>guard(async()=> {
   object.traverse(m=>{if(m.isMesh){vertices+=m.geometry.attributes.position.count;m.material=new THREE.MeshStandardMaterial({color:0xdca05c,side:THREE.DoubleSide});}});
   if(!vertices||vertices>1000000)throw Error('OBJ vazio ou acima de 1 milhão de vértices.');
   object.name=file.name;converter?.prepareObject(object);const placement=placeImportedObj(object,contextBounds());addObject(object,{isObj:true});if(placement.adjusted)focus(object);e.target.value='';
-  status(placement.adjusted?`OBJ adicionado perto da referência; origem distante/unidades ajustadas (escala ×${placement.factor.toPrecision(4)}). O arquivo original foi preservado. Ctrl+Z desfaz a importação.`:'OBJ adicionado. O gizmo acompanha o centro da peça. Enquadrar peça + referência mantém o YDD e o ped na vista.');
+  const splitNotice=object.userData.converter?.split?`Divisão automática: ${object.userData.converter.parts} partes no mesmo OBJ. `:'';
+  status(splitNotice+(placement.adjusted?`OBJ adicionado perto da referência; origem distante/unidades ajustadas (escala ×${placement.factor.toPrecision(4)}). O arquivo original foi preservado. Ctrl+Z desfaz a importação.`:'OBJ adicionado. O gizmo acompanha o centro da peça. Enquadrar peça + referência mantém o YDD e o ped na vista.'));
 })();
 document.querySelectorAll('[data-mode]').forEach(button=>button.onclick=()=> {
   transform.setMode(button.dataset.mode);document.querySelectorAll('[data-mode]').forEach(b=>b.classList.toggle('active',b===button));

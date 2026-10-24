@@ -1,3 +1,9 @@
+# Estado da versão 0.9.1 beta
+
+O conversor divide automaticamente malhas OBJ acima de 65535 vértices em geometrias com índices de 16 bits, mantendo triângulos completos, atributos e transformações. O objeto continua um único item na cena. O total permitido passa a 500000 vértices triangulados/32 partes/32 MB serializados somente para o módulo 05; os limites da incorporação do módulo 03 permanecem.
+
+Validação: teste JS divide 120006 vértices, confere posições/normais/UVs exatos, transformações de pai/filho e restauração de UV original; UV automático continua através das partes. Excesso de orçamento é rejeitado antes de mutar a cena. O teste nativo reabre YDD de 120000 vértices, confere duas geometrias em cada LOD, índices válidos e paletas do osso escolhido. O teste de interface importa um OBJ de 120000 vértices e mantém uma seleção única; o teste Windows também converte e verifica seus binários.
+
 # Estado da versão 0.9.0 beta
 
 Novo módulo 05 converte OBJ em YDD + YTD sem YDD de roupa de origem. Usa somente o esqueleto do ped selecionado, cria geometria/cores/pesos de 100% em um osso, shader ped_default com diffuse externa e dicionário YTD com mipmaps. O corpo do ped não entra na peça exportada. LOD alto/baixo possuem a mesma geometria.

@@ -63,6 +63,15 @@ var headConverted=new YddFile();headConverted.Load(ObjYdd.Create(Fixture(),Conve
 bool absentBone=false;try{ObjYdd.Create(Fixture(),ConvertRequest(999));}catch(Exception){absentBone=true;}Check(absentBone,"converter missing bone rejected");
 bool invalidConversion=false;try{ObjYdd.Create(Fixture(),JsonSerializer.SerializeToElement(new{name="../bad",boneTag=11816}));}catch(Exception){invalidConversion=true;}Check(invalidConversion,"converter unsafe name rejected");
 Directory.CreateDirectory("tests/fixtures");File.WriteAllBytes("tests/fixtures/native-converted-obj.ydd",converted.ydd);File.WriteAllBytes("tests/fixtures/native-converted-obj.ytd",converted.ytd);
+object LargeObjPart(int count) {
+ var p=new float[count*3];var n=new float[count*3];var uv=new float[count*2];
+ for(int i=0;i<count;i++){p[i*3]=(i%3)*.1f;p[i*3+1]=(i%7)*.1f;p[i*3+2]=1;n[i*3+2]=1;uv[i*2]=(i%3)*.25f;uv[i*2+1]=.5f;}
+ return new{positions=p,normals=n,uvs=uv,indices=Enumerable.Range(0,count).ToArray()};
+}
+var largeObjRequest=JsonSerializer.SerializeToElement(new{name="accs_008_u",boneTag=11816,parts=new[]{LargeObjPart(65535),LargeObjPart(54465)},textureSize=512,pixels=Convert.ToBase64String(convertPixels)});
+var largeConverted=new YddFile();largeConverted.Load(ObjYdd.Create(Fixture(),largeObjRequest).ydd);
+foreach(var model in largeConverted.Drawables[0].AllModels){Check(model.Geometries.Length==2,"automatically split OBJ stays in one drawable at every LOD");Check(model.Geometries.Sum(g=>g.VertexData.VertexCount)==120000,"converter above old 100000 cap retains every vertex");Check(model.Geometries.All(g=>g.VertexData.VertexCount<=65535&&g.IndexBuffer.Indices.Max()<g.VertexData.VertexCount),"split native index range fits each geometry");Check(model.Geometries.All(g=>g.BoneIds.SequenceEqual(new ushort[]{1})),"all automatic parts use the selected bone");}
+Console.WriteLine("OBJ converter large mesh: 120000 vertices, split 16-bit geometry, chosen bone and all LODs round trip PASS");
 Console.WriteLine("OBJ converter: new drawable only, skeleton, head/pelvis weights, all LODs, UV, white colors, sampler, RGBA mip texture and validation PASS");
 var joinFixture=Fixture();var sourceVertices=joinFixture.Drawables[0].AllModels[0].Geometries[0].VertexData.VertexBytes.ToArray();
 var joinRequest=JsonSerializer.SerializeToElement(new {matrix=Matrix.Identity.ToArray(),bone="preserve",additions=new[]{addition}});

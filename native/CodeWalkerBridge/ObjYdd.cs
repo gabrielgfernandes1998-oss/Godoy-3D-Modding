@@ -19,7 +19,7 @@ static class ObjYdd {
         var parts=list.EnumerateArray().Select(part=> {
             float[] Numbers(string key,int max){var a=part.GetProperty(key);if(a.ValueKind!=JsonValueKind.Array||a.GetArrayLength()>max)throw new Exception("Dados OBJ acima do limite.");return a.EnumerateArray().Select(x=>{float v=x.GetSingle();if(!float.IsFinite(v)||Math.Abs(v)>100000)throw new Exception("Coordenadas OBJ inválidas.");return v;}).ToArray();}
             var positions=Numbers("positions",300000);var normals=Numbers("normals",300000);var uvs=Numbers("uvs",200000);int count=positions.Length/3;total+=count;
-            if(count<3||count>65535||total>100000||positions.Length!=count*3||normals.Length!=count*3||uvs.Length!=count*2)throw new Exception("Limite: 65535 vértices por parte, 100000 por conversão.");
+            if(count<3||count>65535||total>500000||positions.Length!=count*3||normals.Length!=count*3||uvs.Length!=count*2)throw new Exception("Limite: 65535 vértices por parte, 500000 por conversão.");
             var raw=part.GetProperty("indices");if(raw.ValueKind!=JsonValueKind.Array||raw.GetArrayLength()<3||raw.GetArrayLength()>600000||raw.GetArrayLength()%3!=0)throw new Exception("Triângulos OBJ inválidos.");
             var indices=raw.EnumerateArray().Select(x=>{int v=x.GetInt32();if(v<0||v>=count)throw new Exception("Índice OBJ inválido.");return (ushort)v;}).ToArray();
             return (positions,normals,uvs,indices,count);

@@ -1,12 +1,12 @@
 import {Matrix4,Matrix3,Vector3} from 'three';
 
-export function serializeAdditions(target,additions=[],{texturePrefix}={}) {
+export function serializeAdditions(target,additions=[],{texturePrefix,maxVertices=100000,maxJsonBytes=10*1024*1024}={}) {
   target.updateWorldMatrix(true,true);
   const inverse=target.matrixWorld.clone().invert(),parts=[];let total=0;
   for(const addition of additions)addition.traverseVisible(mesh=> {
     if(!mesh.isMesh)return;if(mesh.isSkinnedMesh)throw Error('Use um OBJ estático para incorporar ao YDD.');
     const geometry=mesh.geometry,position=geometry.attributes.position;
-    if(!position||position.count<3||position.count>65535||(total+=position.count)>100000)throw Error('OBJ: até 65535 vértices por parte e 100000 por união.');
+    if(!position||position.count<3||position.count>65535||(total+=position.count)>maxVertices)throw Error(`OBJ: até 65535 vértices por parte e ${maxVertices} no total.`);
     let normal=geometry.attributes.normal;
     if(!normal){const copy=geometry.clone();copy.computeVertexNormals();normal=copy.attributes.normal.clone();copy.dispose();}
     const matrix=new Matrix4().multiplyMatrices(inverse,mesh.matrixWorld),normalMatrix=new Matrix3().getNormalMatrix(matrix);
@@ -36,9 +36,9 @@ export function serializeAdditions(target,additions=[],{texturePrefix}={}) {
       parts.push({positions:p,normals:n,uvs:uv,indices:idx,textureName:`${texturePrefix}_${parts.length+1}`});
     } else parts.push({positions,normals,uvs,indices});
   });
-  if(parts.reduce((sum,p)=>sum+p.positions.length/3,0)>100000)throw Error('UV automático acima de 100000 vértices: divida o OBJ.');
+  if(parts.reduce((sum,p)=>sum+p.positions.length/3,0)>maxVertices)throw Error(`UV automático acima de ${maxVertices} vértices: reduza o OBJ.`);
   if(parts.length>32)throw Error('Até 32 partes OBJ por união.');
-  if(JSON.stringify(parts).length>10*1024*1024)throw Error('Dados OBJ acima de 10 MB para incorporação.');
+  if(JSON.stringify(parts).length>maxJsonBytes)throw Error(`Dados OBJ acima de ${maxJsonBytes/1024/1024} MB: reduza a geometria.`);
   return parts;
 }
 export function joinToYdd(content,target,object,record,history,select) {
