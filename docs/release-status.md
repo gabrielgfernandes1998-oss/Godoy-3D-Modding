@@ -4,6 +4,10 @@ O conversor divide automaticamente malhas OBJ acima de 65535 vértices em geomet
 
 Validação: teste JS divide 120006 vértices, confere posições/normais/UVs exatos, transformações de pai/filho e restauração de UV original; UV automático continua através das partes. Excesso de orçamento é rejeitado antes de mutar a cena. O teste nativo reabre YDD de 120000 vértices, confere duas geometrias em cada LOD, índices válidos e paletas do osso escolhido. O teste de interface importa um OBJ de 120000 vértices e mantém uma seleção única; o teste Windows também converte e verifica seus binários.
 
+Validação no [run 40125883418](https://github.com/gabrielgfernandes1998-oss/Godoy-3D-Modding/actions/runs/40125883418): 71 testes JS, 7 Python, suíte nativa, fluxo de packs e executável real no Windows passaram. O portable importou o OBJ de 120000 vértices, dividiu em duas geometrias, preservou uma seleção única e exportou um único drawable com todas as faces, UVs e vínculo, em todos os LODs. O OBJ real da captura não está disponível neste ambiente.
+
+[Release 0.9.1](https://github.com/gabrielgfernandes1998-oss/Godoy-3D-Modding/releases/tag/v0.9.1) publicada; ZIP baixado e checksum conferido: 200,665,662 bytes; SHA-256 `d72e7588f64ca1dae3484d882bb086460715a732fc8aa8ecf6e6297958b68669`.
+
 # Estado da versão 0.9.0 beta
 
 Novo módulo 05 converte OBJ em YDD + YTD sem YDD de roupa de origem. Usa somente o esqueleto do ped selecionado, cria geometria/cores/pesos de 100% em um osso, shader ped_default com diffuse externa e dicionário YTD com mipmaps. O corpo do ped não entra na peça exportada. LOD alto/baixo possuem a mesma geometria.
