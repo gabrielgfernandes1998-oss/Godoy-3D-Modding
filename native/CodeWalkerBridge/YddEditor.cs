@@ -74,7 +74,10 @@ static class YddEditor {
             drawable.BoundingCenter=(overallMin+overallMax)*.5f;drawable.BoundingSphereRadius=(overallMax-overallMin).Length()*.5f;
             drawable.BuildRenderMasks();drawable.BuildVertexDecls();
         }
-        var saved=file.Save();var reopened=new YddFile();reopened.Load(saved);
+        var saved=file.Save();
+        long systemBytes=RpfResourceFileEntry.GetSizeFromFlags(BitConverter.ToUInt32(saved,8)),graphicsBytes=RpfResourceFileEntry.GetSizeFromFlags(BitConverter.ToUInt32(saved,12));
+        if(systemBytes<0||graphicsBytes<0||systemBytes+graphicsBytes>256L*1024*1024)throw new Exception("O YDD gerado exige mais de 256 MB de páginas RSC7. Reduza a geometria ou distribua em recursos diferentes; o modelo não foi truncado.");
+        var reopened=new YddFile();reopened.Load(saved);
         if(reopened.Drawables?.Length!=file.Drawables.Length)throw new Exception("Falha ao verificar YDD exportado.");
         for(int d=0;d<file.Drawables.Length;d++) {
             var before=file.Drawables[d];var after=reopened.Drawables[d];

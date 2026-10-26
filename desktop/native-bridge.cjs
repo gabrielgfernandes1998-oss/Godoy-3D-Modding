@@ -1,5 +1,7 @@
 const fs=require('node:fs/promises');
 const path=require('node:path');
+const os=require('node:os');
+const {validateParts,writeParts}=require('./converter-transfer.cjs');
 const {spawn}=require('node:child_process');
 const {validGame,discoverGame}=require('./gta-discovery.cjs');
 
@@ -82,14 +84,16 @@ function registerNativeBridge({app,ipcMain,dialog,getWindow}) {
     if(!request||!Number.isInteger(request.boneTag)||request.boneTag<0||request.boneTag>65535||!['head','berd','hair','uppr','lowr','hand','feet','teef','accs','task','decl','jbib'].some(c=>new RegExp('^'+c+'_[0-9]{3}_u$').test(request.name)))throw Error('Nome ou osso inválido.');
     if(![512,1024,2048,4096].includes(request.textureSize)||!(request.pixels instanceof Uint8Array)||request.pixels.length!==request.textureSize**2*4)throw Error('Pixels inválidos.');
     if(!(request.pedBytes instanceof Uint8Array)||!request.pedBytes.length||request.pedBytes.length>80*1024*1024)throw Error('Carregue um ped YDD com esqueleto.');
-    if(!Array.isArray(request.parts)||!request.parts.length||request.parts.length>32||Buffer.byteLength(JSON.stringify(request.parts))>32*1024*1024)throw Error('Partes OBJ acima do limite.');
-    busy=true;
+    validateParts(request.parts);
+    busy=true;let directory;
     try {
+      directory=await fs.mkdtemp(path.join(os.tmpdir(),'godoy-obj-'));
+      const partsFile=path.join(directory,'geometry.bin');await writeParts(partsFile,request.parts);
       const config=await resolveConfig();
-      const result=await runBridge(executable,{command:'create-ydd',codewalkerDirectory:config.codewalkerDirectory,pedData:Buffer.from(request.pedBytes).toString('base64'),name:request.name,boneTag:request.boneTag,parts:request.parts,textureSize:request.textureSize,pixels:Buffer.from(request.pixels).toString('base64')});
-      if(typeof result.data!=='string'||result.data.length>112*1024*1024||typeof result.ytdData!=='string'||result.ytdData.length>112*1024*1024)throw Error('Arquivos convertidos acima do limite.');
-      return {ydd:new Uint8Array(Buffer.from(result.data,'base64')),ytd:new Uint8Array(Buffer.from(result.ytdData,'base64'))};
-    } finally {busy=false;}
+      await runBridge(executable,{command:'create-ydd',codewalkerDirectory:config.codewalkerDirectory,pedData:Buffer.from(request.pedBytes).toString('base64'),name:request.name,boneTag:request.boneTag,partsFile,outputDirectory:directory,textureSize:request.textureSize,pixels:Buffer.from(request.pixels).toString('base64')});
+      const [ydd,ytd]=await Promise.all([fs.readFile(path.join(directory,'converted.ydd')),fs.readFile(path.join(directory,'converted.ytd'))]);
+      return {ydd:new Uint8Array(ydd),ytd:new Uint8Array(ytd)};
+    } finally {busy=false;if(directory)await fs.rm(directory,{recursive:true,force:true,maxRetries:3,retryDelay:100});}
   });
   ipcMain.handle('godoy:native-ped',async(event,gender)=> {
     allowed(event);if(!['male','female'].includes(gender))throw Error('Gênero inválido.');if(busy)throw Error('Aguarde a operação nativa atual.');busy=true;

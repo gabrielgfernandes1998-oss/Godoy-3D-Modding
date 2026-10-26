@@ -16,6 +16,7 @@ import {parseYtd} from '../modules/vehicles/src/formats/ytd.js';
 import {zipSync,strToU8} from 'fflate';
 import './mesh.css';
 import {previewDiffuse,previewTexture} from './preview-textures.js';
+import {importConverterObj} from './obj-import.js';
 import {startObjConverter} from './obj-converter.js';
 import {editAtlasLayout} from './atlas-layout.js';
 const $=s=>document.querySelector(s);
@@ -222,15 +223,22 @@ $('#ped-visible').onchange=e=>reference.visible=e.target.checked;
 $('#ped-transparent').onchange=e=>reference.traverse(o=>{if(!o.isMesh)return;for(const m of (Array.isArray(o.material)?o.material:[o.material])){m.transparent=e.target.checked;m.opacity=e.target.checked?.4:1;m.depthWrite=!e.target.checked;m.needsUpdate=true;}});
 $('#forget-ped').onclick=guard(async()=> {++restoreSequence;await forgetPed($('#ped-gender').value);await forgetPedSkeleton($('#ped-gender').value);clearReference();$('#ped-status').textContent='Ped removido da biblioteca local. O arquivo original foi preservado.';});
 restorePed().catch(error=>$('#ped-status').textContent=`Biblioteca local indisponível: ${error.message}`);
+let importController=null;
+const cancelImport=document.createElement('button');cancelImport.id='cancel-obj-import';cancelImport.textContent='Cancelar importação';cancelImport.hidden=true;$('#open-obj').after(cancelImport);cancelImport.onclick=()=>importController?.abort();
 $('#obj-file').onchange=e=>guard(async()=> {
-  const file=e.target.files[0];if(!file)return;if(file.size>20*1024*1024)throw Error('OBJ acima de 20 MB.');
-  const objText=await file.text(),object=new OBJLoader().parse(objText);let vertices=0;
-  if(converter)object.userData.converterMissingUv=objText.split(/\r?\n/).filter(line=>/^\s*f\s/.test(line)).some(line=>line.trim().split(/\s+/).slice(1).some(vertex=>!vertex.split('/')[1]));
+ const file=e.target.files[0];e.target.value='';if(!file)return;let object;
+ if(converter){
+  if(importController)throw Error('Aguarde ou cancele a importação atual.');
+  importController=new AbortController();cancelImport.hidden=false;
+  try{object=await importConverterObj(file,{progress:status,signal:importController.signal});}finally{importController=null;cancelImport.hidden=true;}
+ }else{
+  if(file.size>20*1024*1024)throw Error('OBJ acima de 20 MB.');object=new OBJLoader().parse(await file.text());let vertices=0;
   object.traverse(m=>{if(m.isMesh){vertices+=m.geometry.attributes.position.count;m.material=new THREE.MeshStandardMaterial({color:0xdca05c,side:THREE.DoubleSide});}});
   if(!vertices||vertices>1000000)throw Error('OBJ vazio ou acima de 1 milhão de vértices.');
-  object.name=file.name;converter?.prepareObject(object);const placement=placeImportedObj(object,contextBounds());addObject(object,{isObj:true});if(placement.adjusted)focus(object);e.target.value='';
-  const splitNotice=object.userData.converter?.split?`Divisão automática: ${object.userData.converter.parts} partes no mesmo OBJ. `:'';
-  status(splitNotice+(placement.adjusted?`OBJ adicionado perto da referência; origem distante/unidades ajustadas (escala ×${placement.factor.toPrecision(4)}). O arquivo original foi preservado. Ctrl+Z desfaz a importação.`:'OBJ adicionado. O gizmo acompanha o centro da peça. Enquadrar peça + referência mantém o YDD e o ped na vista.'));
+ }
+ object.name=file.name;const placement=placeImportedObj(object,contextBounds());addObject(object,{isObj:true});if(placement.adjusted)focus(object);
+ const splitNotice=object.userData.converter?.split?`Divisão automática: ${object.userData.converter.parts} partes no mesmo OBJ. `:'';
+ status(splitNotice+(placement.adjusted?`OBJ adicionado perto da referência; origem distante/unidades ajustadas (escala ×${placement.factor.toPrecision(4)}). O arquivo original foi preservado. Ctrl+Z desfaz a importação.`:'OBJ adicionado. O gizmo acompanha o centro da peça. Enquadrar peça + referência mantém o YDD e o ped na vista.'));
 })();
 document.querySelectorAll('[data-mode]').forEach(button=>button.onclick=()=> {
   transform.setMode(button.dataset.mode);document.querySelectorAll('[data-mode]').forEach(b=>b.classList.toggle('active',b===button));
@@ -404,6 +412,6 @@ if(!native) {
 }
 
 if(new URLSearchParams(location.search).get('mode')==='converter') {
- converter=startObjConverter({getSelection:()=>selection,native,status,refreshResources:()=>collectResources(content,resources)});
+ converter=startObjConverter({getSelection:()=>selection,native,status,refreshResources:()=>collectResources(content,resources)});$('#open-obj').after(cancelImport);
  document.addEventListener('godoy-converter-place',e=>{const {object,point}=e.detail;if(object!==selection)return;const before=snapshotTransform(object),box=visibleBounds(object);object.position.add(point.clone().sub(box.getCenter(new THREE.Vector3())));object.updateMatrixWorld(true);recordTransform(object,before,snapshotTransform(object));focus(object);status('OBJ levado ao osso. Ajuste posição, giro e escala antes de converter. Ctrl+Z desfaz.');});
 }

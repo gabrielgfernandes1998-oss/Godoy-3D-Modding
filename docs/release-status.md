@@ -1,3 +1,11 @@
+# Estado da versão 0.9.2 beta
+
+Módulo 05 sem tetos fixos de 20 MB/500 mil vértices/32 partes/32 MB JSON. Importação e preparo em workers com cancelamento; arrays tipados e arquivo temporário binário substituem JSON da geometria. Vértices exatamente iguais em posição/normal/UV são reutilizados, sem remover faces nem unir costuras com atributos diferentes. Prévia UV é amostrada para navegação; guia exportado completo em SVG acima de 100 mil faces, PNG nos demais casos. Textura continua PNG/YTD. Permanecem contadores/endereço do formato, memória disponível e orçamento de leitura de 256 MB RSC7.
+
+Testes locais com os dois arquivos enviados pelo usuário (mantidos privados, fora do repositório): chaveiro de 48.202.369 bytes, 491.620 triângulos/1.474.860 cantos, convertido em 23 geometrias/280.658 vértices armazenados/17.769.517 bytes YDD; iPhone de 13.648.464 bytes, 237.271 triângulos/711.813 cantos, convertido em 50 geometrias/711.813 vértices/11.238.053 bytes YDD. Todos os triângulos reabertos foram contados, sem remoção. Conversão usou o comando nativo real e um ped sintético de referência. O teste local usou um adaptador HTTP privado para a ponte .NET; o portable usa IPC/arquivos temporários. Aparência/animação no FiveM não foi validada. O chaveiro não inclui imagens; não há reconstrução automática dos materiais MTL do iPhone.
+
+Validação local: 74 testes JS, suíte nativa, navegador completo e fluxo de packs passaram. Regressões de cancelamento/reimportação, OBJ acima de 20 MB e 600 mil vértices, preservação das faces, SVG completo, transporte binário, mais de 32 geometrias, rejeição de dados truncados e compactação respeitando costuras de UV/normais. Nenhum arquivo real ou imagem enviada foi incluído no GitHub/portable.
+
 # Estado da versão 0.9.1 beta
 
 O conversor divide automaticamente malhas OBJ acima de 65535 vértices em geometrias com índices de 16 bits, mantendo triângulos completos, atributos e transformações. O objeto continua um único item na cena. O total permitido passa a 500000 vértices triangulados/32 partes/32 MB serializados somente para o módulo 05; os limites da incorporação do módulo 03 permanecem.

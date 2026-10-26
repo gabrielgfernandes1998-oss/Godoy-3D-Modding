@@ -154,19 +154,19 @@ function readShaders(r, pointer) {
     textures: embedded === null ? [] : readTextureDictionary(r, embedded),
   };
 }
-export function parseYdd(input) {
-  const resource = openResource(input, 165),
+export function parseYdd(input, options={}) {
+  const resource = openResource(input, 165, options),
     pointers = resource.list(0x30, 512);
   if (!pointers.length) throw Error("O YDD não contém drawables.");
   const drawables = pointers
     .filter((p) => p !== null)
     .map((p, index) => {
-      return readDrawable(resource, p, index);
+      return readDrawable(resource, p, index, 0xa8, options);
     });
   return { resource, drawables };
 }
 
-export function readDrawable(resource, p, index = 0, nameOffset = 0xa8) {
+export function readDrawable(resource, p, index = 0, nameOffset = 0xa8, options={}) {
       resource.range(p, nameOffset + 8);
       const name = resource.stringAtPointer(p + nameOffset) || `drawable_${index}`,
         lods = [];
@@ -198,7 +198,7 @@ export function readDrawable(resource, p, index = 0, nameOffset = 0xa8) {
             totalIndices = 0;
           for (const m of lods[lodIndex].models) {
             resource.range(m, 48);
-            const geometries = resource.list(m + 8, 1024),
+            const geometries = resource.list(m + 8, options.maxGeometries??1024),
               mapping = resource.ptr(m + 0x20, geometries.length * 2);
             for (let i = 0; i < geometries.length; i++) {
               if (geometries[i] === null) continue;
@@ -211,7 +211,7 @@ export function readDrawable(resource, p, index = 0, nameOffset = 0xa8) {
               geometry.hasSkin=((resource.u32(m+0x28)>>>8)&255)!==0;
               totalVertices += geometry.vertexCount;
               totalIndices += geometry.indices.length;
-              if (totalVertices > 2000000 || totalIndices > 12000000)
+              if (totalVertices > (options.maxLodVertices??2000000) || totalIndices > (options.maxLodIndices??12000000))
                 throw Error(
                   "O modelo ultrapassa o limite de geometria desta versão.",
                 );

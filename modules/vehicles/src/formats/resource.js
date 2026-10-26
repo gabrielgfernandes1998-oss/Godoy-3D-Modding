@@ -22,10 +22,10 @@ export function pageSize(flags) {
     (512 * 2 ** (flags & 15))
   );
 }
-export function openResource(input, expectedVersion) {
+export function openResource(input, expectedVersion, {maxInputBytes=MAX_INPUT_BYTES}={}) {
   const bytes = input instanceof Uint8Array ? input : new Uint8Array(input);
-  if (bytes.length < 17 || bytes.length > MAX_INPUT_BYTES)
-    throw Error("Recurso vazio, truncado ou maior que 80 MB.");
+  if (bytes.length < 17 || bytes.length > maxInputBytes)
+    throw Error("Recurso vazio, truncado ou acima do tamanho de entrada permitido.");
   const header = new DataView(bytes.buffer, bytes.byteOffset, 16);
   if (header.getUint32(0, true) !== 0x37435352)
     throw Error(

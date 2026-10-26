@@ -1,0 +1,6 @@
+import test from 'node:test';import assert from 'node:assert/strict';import {mkdtemp,readFile,rm} from 'node:fs/promises';import os from 'node:os';import path from 'node:path';import {createRequire} from 'node:module';
+const {writeParts,validateParts}=createRequire(import.meta.url)('../desktop/converter-transfer.cjs');
+test('converter binary transport preserves typed vertex/index data and allows more than 32 parts',async()=>{
+ const part={positions:new Float32Array([1,2,3,4,5,6,7,8,9]),normals:new Float32Array([0,0,1,0,0,1,0,0,1]),uvs:new Float32Array([.25,.5,.75,.5,.25,1]),indices:new Uint16Array([0,1,2])},directory=await mkdtemp(path.join(os.tmpdir(),'godoy-bin-test-'));
+ try{const file=path.join(directory,'parts.bin');await writeParts(file,Array(40).fill(part));const bytes=await readFile(file);assert.equal(bytes.subarray(0,4).toString(),'OBJ2');assert.equal(bytes.readUInt32LE(4),40);assert.equal(bytes.length,8+40*(8+3*32+3*2));assert.equal(bytes.readUInt32LE(8),3);assert.equal(bytes.readFloatLE(16),1);assert.equal(bytes.readFloatLE(16+6*4),7);assert.equal(bytes.readUInt16LE(16+3*32+4),2);assert.throws(()=>validateParts([{...part,positions:[1,2,3]}]),/inválida/);}finally{await rm(directory,{recursive:true,force:true});}
+});

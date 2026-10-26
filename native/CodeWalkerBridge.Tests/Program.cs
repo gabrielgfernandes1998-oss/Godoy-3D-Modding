@@ -71,6 +71,18 @@ object LargeObjPart(int count) {
 var largeObjRequest=JsonSerializer.SerializeToElement(new{name="accs_008_u",boneTag=11816,parts=new[]{LargeObjPart(65535),LargeObjPart(54465)},textureSize=512,pixels=Convert.ToBase64String(convertPixels)});
 var largeConverted=new YddFile();largeConverted.Load(ObjYdd.Create(Fixture(),largeObjRequest).ydd);
 foreach(var model in largeConverted.Drawables[0].AllModels){Check(model.Geometries.Length==2,"automatically split OBJ stays in one drawable at every LOD");Check(model.Geometries.Sum(g=>g.VertexData.VertexCount)==120000,"converter above old 100000 cap retains every vertex");Check(model.Geometries.All(g=>g.VertexData.VertexCount<=65535&&g.IndexBuffer.Indices.Max()<g.VertexData.VertexCount),"split native index range fits each geometry");Check(model.Geometries.All(g=>g.BoneIds.SequenceEqual(new ushort[]{1})),"all automatic parts use the selected bone");}
+string binaryPartFile=Path.GetTempFileName();
+try {
+ using(var stream=File.Create(binaryPartFile))using(var writer=new BinaryWriter(stream)){
+  writer.Write(0x324a424fu);writer.Write(40u);
+  for(int part=0;part<40;part++){writer.Write(3u);writer.Write(3u);foreach(float v in addition.positions)writer.Write(v);foreach(float v in addition.normals)writer.Write(v);foreach(float v in addition.uvs)writer.Write(v);foreach(int v in addition.indices)writer.Write((ushort)v);}
+ }
+ var binaryRequest=JsonSerializer.SerializeToElement(new{name="accs_009_u",boneTag=11816,partsFile=binaryPartFile,textureSize=512,pixels=Convert.ToBase64String(convertPixels)});
+ var binaryOutput=new YddFile();binaryOutput.Load(ObjYdd.Create(Fixture(),binaryRequest).ydd);Check(binaryOutput.Drawables[0].AllModels.All(m=>m.Geometries.Length==40),"binary transport preserves more than 32 parts");
+ using(var stream=File.OpenWrite(binaryPartFile))stream.SetLength(stream.Length-1);
+ bool truncatedRejected=false;try{ObjYdd.Create(Fixture(),binaryRequest);}catch(Exception){truncatedRejected=true;}Check(truncatedRejected,"truncated binary geometry rejected");
+}finally{File.Delete(binaryPartFile);}
+Console.WriteLine("OBJ binary transport: more than 32 geometries and truncated data validation PASS");
 Console.WriteLine("OBJ converter large mesh: 120000 vertices, split 16-bit geometry, chosen bone and all LODs round trip PASS");
 Console.WriteLine("OBJ converter: new drawable only, skeleton, head/pelvis weights, all LODs, UV, white colors, sampler, RGBA mip texture and validation PASS");
 var joinFixture=Fixture();var sourceVertices=joinFixture.Drawables[0].AllModels[0].Geometries[0].VertexData.VertexBytes.ToArray();

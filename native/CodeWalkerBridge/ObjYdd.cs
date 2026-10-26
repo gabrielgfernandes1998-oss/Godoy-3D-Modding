@@ -13,17 +13,9 @@ static class ObjYdd {
         var skeleton=ped.Drawables?.Select(d=>d.Skeleton).FirstOrDefault(s=>s?.Bones?.Items?.Any(b=>b.Tag==tag)==true)??throw new Exception("Osso não encontrado no ped deste gênero.");
         var bone=skeleton.Bones.Items.First(b=>b.Tag==tag);
         if(bone.Index<0||bone.Index>255)throw new Exception("Índice de osso acima do limite de 255.");
-        var list=request.GetProperty("parts");
-        if(list.ValueKind!=JsonValueKind.Array||list.GetArrayLength()<1||list.GetArrayLength()>32)throw new Exception("Use 1–32 partes OBJ.");
-        int total=0;
-        var parts=list.EnumerateArray().Select(part=> {
-            float[] Numbers(string key,int max){var a=part.GetProperty(key);if(a.ValueKind!=JsonValueKind.Array||a.GetArrayLength()>max)throw new Exception("Dados OBJ acima do limite.");return a.EnumerateArray().Select(x=>{float v=x.GetSingle();if(!float.IsFinite(v)||Math.Abs(v)>100000)throw new Exception("Coordenadas OBJ inválidas.");return v;}).ToArray();}
-            var positions=Numbers("positions",300000);var normals=Numbers("normals",300000);var uvs=Numbers("uvs",200000);int count=positions.Length/3;total+=count;
-            if(count<3||count>65535||total>500000||positions.Length!=count*3||normals.Length!=count*3||uvs.Length!=count*2)throw new Exception("Limite: 65535 vértices por parte, 500000 por conversão.");
-            var raw=part.GetProperty("indices");if(raw.ValueKind!=JsonValueKind.Array||raw.GetArrayLength()<3||raw.GetArrayLength()>600000||raw.GetArrayLength()%3!=0)throw new Exception("Triângulos OBJ inválidos.");
-            var indices=raw.EnumerateArray().Select(x=>{int v=x.GetInt32();if(v<0||v>=count)throw new Exception("Índice OBJ inválido.");return (ushort)v;}).ToArray();
-            return (positions,normals,uvs,indices,count);
-        }).ToArray();
+        var parts=ReadParts(request);
+        long graphics=parts.Sum(p=>44L*p.count+2L*p.indices.Length)*2;
+        if(graphics>=0x10000000L)throw new Exception("A geometria não cabe no endereçamento de 28 bits do YDD. Reduza a malha ou divida em recursos diferentes.");
         int size=request.GetProperty("textureSize").GetInt32();if(size is not (512 or 1024 or 2048 or 4096))throw new Exception("Resolução inválida.");
         var pixels=Convert.FromBase64String(request.GetProperty("pixels").GetString()??"");
         if(pixels.Length!=size*size*4)throw new Exception("Pixels RGBA inválidos.");
@@ -57,4 +49,35 @@ static class ObjYdd {
         if(actual.Name!=textureName||actual.Width!=size||!actual.Data.FullData.SequenceEqual(texture.Data.FullData))throw new Exception("Falha ao verificar a textura convertida.");
         return (saved,savedYtd);
     }
+    static (float[] positions,float[] normals,float[] uvs,ushort[] indices,int count)[] ReadParts(JsonElement request) {
+        if(request.TryGetProperty("partsFile",out var input)) {
+            using var stream=File.OpenRead(input.GetString()!);using var reader=new BinaryReader(stream);
+            if(reader.ReadUInt32()!=0x324a424f)throw new Exception("Cabeçalho de geometria binária inválido.");
+            uint count=reader.ReadUInt32();if(count<1||count>65535)throw new Exception("Quantidade de geometrias incompatível com o campo de 16 bits do YDD.");
+            var parts=new (float[] positions,float[] normals,float[] uvs,ushort[] indices,int count)[count];long graphics=0;
+            for(int part=0;part<count;part++) {
+                uint n=reader.ReadUInt32(),indexCount=reader.ReadUInt32();
+                if(n<1||n>65535||indexCount<3||indexCount%3!=0||32L*n+2L*indexCount>stream.Length-stream.Position||indexCount>int.MaxValue)throw new Exception("Contagem ou tamanho de geometria binária inválido.");
+                graphics+=(44L*n+2L*indexCount)*2;if(graphics>=0x10000000L)throw new Exception("A geometria não cabe no endereçamento de 28 bits do YDD. Reduza a malha ou divida em recursos diferentes.");
+                float[] Floats(int size){var values=new float[size];for(int i=0;i<size;i++){float v=reader.ReadSingle();if(!float.IsFinite(v)||Math.Abs(v)>100000)throw new Exception("Coordenadas OBJ inválidas.");values[i]=v;}return values;}
+                var positions=Floats((int)n*3);var normals=Floats((int)n*3);var uvs=Floats((int)n*2);var indices=new ushort[indexCount];
+                for(int i=0;i<indexCount;i++){indices[i]=reader.ReadUInt16();if(indices[i]>=n)throw new Exception("Índice OBJ inválido.");}
+                parts[part]=(positions,normals,uvs,indices,(int)n);
+            }
+            if(stream.Position!=stream.Length)throw new Exception("Dados extras após a geometria binária.");return parts;
+        }
+        var list=request.GetProperty("parts");
+        if(list.ValueKind!=JsonValueKind.Array||list.GetArrayLength()<1||list.GetArrayLength()>65535)throw new Exception("Quantidade de geometrias incompatível com o campo de 16 bits do YDD.");
+        int total=0;
+        return list.EnumerateArray().Select(part=> {
+            float[] Numbers(string key,int max){var a=part.GetProperty(key);if(a.ValueKind!=JsonValueKind.Array||a.GetArrayLength()>max)throw new Exception("Dados OBJ acima do limite.");return a.EnumerateArray().Select(x=>{float v=x.GetSingle();if(!float.IsFinite(v)||Math.Abs(v)>100000)throw new Exception("Coordenadas OBJ inválidas.");return v;}).ToArray();}
+            var positions=Numbers("positions",300000);var normals=Numbers("normals",300000);var uvs=Numbers("uvs",200000);int count=positions.Length/3;total+=count;
+            if(count<1||count>65535||positions.Length!=count*3||normals.Length!=count*3||uvs.Length!=count*2)throw new Exception("Formato YDD: até 65535 vértices por geometria.");
+            var raw=part.GetProperty("indices");if(raw.ValueKind!=JsonValueKind.Array||raw.GetArrayLength()<3||raw.GetArrayLength()>600000||raw.GetArrayLength()%3!=0)throw new Exception("Triângulos OBJ inválidos.");
+            var indices=raw.EnumerateArray().Select(x=>{int v=x.GetInt32();if(v<0||v>=count)throw new Exception("Índice OBJ inválido.");return (ushort)v;}).ToArray();
+            return (positions,normals,uvs,indices,count);
+        }).ToArray();
+
+    }
+
 }
