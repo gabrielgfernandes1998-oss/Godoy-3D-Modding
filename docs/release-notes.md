@@ -1,4 +1,4 @@
-# Godoy 3D Modding 0.9.2 beta
+# Godoy 3D Modding 0.9.3 beta
 
 - Remove do módulo 05 os bloqueios de 20 MB por OBJ, 500 mil vértices, 32 partes e 32 MB de geometria serializada. Importação e preparo da geometria ocorrem em workers, com progresso e cancelamento; a cena anterior é preservada ao cancelar.
 - Geometria segue em arrays tipados e arquivo binário temporário para o CodeWalker, sem expandir milhões de números em JSON. Arquivos temporários são removidos ao terminar ou falhar.
