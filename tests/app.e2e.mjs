@@ -1,3 +1,4 @@
+import {exerciseGlbConverter} from './glb-converter-flow.mjs';
 import {exerciseConverter} from './converter-flow.mjs';
 import {chromium} from 'playwright';
 import assert from 'node:assert/strict';
@@ -116,7 +117,7 @@ try {
   await mesh.locator('#uv-original').click();assert.equal(await mesh.locator('#uv-confirm').isDisabled(),false,'full-map repeated source can export');
   await page.screenshot({path:'.test-output/atlas-layout.png',fullPage:true});
   await mesh.locator('#uv-cancel').click();await mesh.locator('#status').filter({hasText:'Exportação cancelada'}).waitFor();
-  await exerciseConverter(page,output,{stub:true});
+  await exerciseConverter(page,output,{stub:true});await exerciseGlbConverter(page,output,{stub:true});
   assert.deepEqual(errors,[]);assert.deepEqual(requests,[]);
   await mkdir('.test-output',{recursive:true});await page.click('[data-tab=pack]');await page.screenshot({path:'.test-output/studio.png',fullPage:true});
   await writeFile('.test-output/browser-results.json',JSON.stringify({status:'passed',checks:['pack ZIP with generated YMT','clothing YDD import / 3D paint / YTD round-trip','vehicle YFT import / 3D paint / YTD round-trip','OBJ geometry union / GLB export / reopen','OBJ converter bone placement, UV, PNG image, ZIP and painting reopen'],output},null,2));

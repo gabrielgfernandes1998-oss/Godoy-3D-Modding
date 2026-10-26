@@ -4,7 +4,7 @@ const types={'.html':'text/html; charset=utf-8','.js':'text/javascript; charset=
   '.css':'text/css; charset=utf-8','.json':'application/json; charset=utf-8',
   '.png':'image/png','.ico':'image/x-icon','.svg':'image/svg+xml','.glb':'model/gltf-binary',
   '.woff2':'font/woff2','.wasm':'application/wasm'};
-const policy="default-src 'self' blob: data:; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data:; connect-src 'self'; worker-src 'self' blob:; object-src 'none'; base-uri 'self'";
+const policy="default-src 'self' blob: data:; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data:; connect-src 'self' blob: data:; worker-src 'self' blob:; object-src 'none'; base-uri 'self'";
 
 function createAssetHandler(root) {
   const directory=path.resolve(root);

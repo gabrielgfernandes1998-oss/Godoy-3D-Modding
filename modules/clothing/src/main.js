@@ -1,3 +1,4 @@
+import {uvRegionBounds} from './editor/uv-regions.js';
 import {attachAssetBatch} from '../../../src/asset-batch.js';
 import "./style.css";
 import { LayerDocument } from "./editor/layers.js";
@@ -94,7 +95,7 @@ document.querySelector("#app").innerHTML = `
 <button data-tool="bucket" title="Lata de tinta (F)">${icon("paint-bucket")}</button><button data-tool="eyedropper" title="Conta-gotas (C)">${icon("pipette")}</button>
 <button data-tool="island" title="Selecionar ilha UV (U)">${icon("lasso-select")}</button><button id="undo" title="Desfazer (Ctrl+Z)">${icon("undo-2")}</button><button id="redo" title="Refazer (Ctrl+Shift+Z)">${icon("redo-2")}</button></div>
 <div class="view-hint"><kbd>W A S D</kbd> panorâmica &nbsp;·&nbsp; <kbd>Direito</kbd> orbitar &nbsp;·&nbsp; <kbd>Scroll</kbd> zoom</div><div class="axis"><b>Y</b><i>X</i><span>Z</span></div></div><div class="view-bottom"><span>${icon("shirt")}<span id="mesh-info">Camiseta · frente e verso</span></span><button id="reset-view">${icon("focus")} Centralizar</button><span class="badge">● TEXTURA CONECTADA</span></div></main>
-<aside class="right"><div class="panel-head"><span class="prop-title">${icon("sliders-horizontal")} Propriedades</span>${icon("ellipsis")}</div><div class="section"><div class="section-title">FERRAMENTA ATIVA <span class="mini-tag" id="tool-tag">PINCEL</span></div><div class="brush-only"><div class="label-row"><label for="size">Tamanho do pincel</label><output class="value" id="size-out">32 px</output></div><input id="size" type="range" min="2" max="180" value="32"><div class="label-row"><label for="opacity">Opacidade</label><output class="value" id="opacity-out">100%</output></div><input id="opacity" type="range" min="1" max="100" value="100"><div class="label-row"><label for="softness">Suavidade</label><output class="value" id="softness-out">25%</output></div><input id="softness" type="range" min="0" max="95" value="25"></div><div class="decal-controls hidden"><p class="help">A imagem permanece em uma camada editável. Use Mover e os controles de objeto para reposicionar.</p><button id="apply-decal" class="accent full">${icon("check")} Concluir posicionamento</button><button id="cancel-decal" class="full" style="margin-top:8px">Cancelar ferramenta</button></div></div><div class="section brush-only"><div class="section-title">COR DO PINCEL</div><div class="colors">${["#ef4444", "#ffffff", "#17191d", "#f59e0b", "#2563eb", "#22c55e"].map((c) => `<button class="swatch" data-color="${c}" style="background:${c}" aria-label="Cor ${c}"></button>`).join("")}</div><div class="color-entry"><input id="color" type="color" value="#ef4444" aria-label="Cor personalizada"><span id="color-hex">#EF4444</span></div></div><div class="section"><div class="section-title">MAPA DE TEXTURA <span style="margin-left:auto">${icon("maximize-2")}</span></div><canvas class="map" id="map" width="320" height="320"></canvas><div class="map-footer"><span>DIFFUSE / BASE COLOR</span><span id="map-size">2048²</span></div><p class="help">Abra o YDD da roupa e seu YTD. Selecione a textura para pintar e exporte uma cópia do dicionário editado ou o PNG.</p></div>${propertyPanels}<div class="section"><div class="section-title">VISUALIZAÇÃO</div><button id="back-view" class="full">${icon("rotate-3d")} Alternar frente / verso</button><div class="label-row" style="margin-top:18px"><label for="wireframe">Exibir malha</label><input id="wireframe" type="checkbox"></div></div></aside></div><footer class="footer"><span><span class="green-dot"></span><b id="status">Pronto para criar</b></span><span>GODOY CLOTH FIVEM <span> / </span> LOCAL WORKSPACE <span> / </span> v0.3</span></footer><div id="toast" role="status"></div><input type="file" id="model-file" accept=".glb,.gltf,.godoycloth,.paintfive,.ydd,.ytd" hidden><input type="file" id="ytd-file" accept=".ytd" hidden><input type="file" id="texture-file" accept="image/png,image/jpeg,image/webp" hidden><input type="file" id="image-file" accept="image/png,image/jpeg,image/webp" hidden>`;
+<aside class="right"><div class="panel-head"><span class="prop-title">${icon("sliders-horizontal")} Propriedades</span>${icon("ellipsis")}</div><div class="section"><div class="section-title">FERRAMENTA ATIVA <span class="mini-tag" id="tool-tag">PINCEL</span></div><div class="brush-only"><div class="label-row"><label for="size">Tamanho do pincel</label><output class="value" id="size-out">32 px</output></div><input id="size" type="range" min="2" max="180" value="32"><div class="label-row"><label for="opacity">Opacidade</label><output class="value" id="opacity-out">100%</output></div><input id="opacity" type="range" min="1" max="100" value="100"><div class="label-row"><label for="softness">Suavidade</label><output class="value" id="softness-out">25%</output></div><input id="softness" type="range" min="0" max="95" value="25"><label class="help"><input type="checkbox" id="protect-uv-regions" checked> Proteger outras peças na pintura 3D</label></div><div class="decal-controls hidden"><p class="help">A imagem permanece em uma camada editável. Use Mover e os controles de objeto para reposicionar.</p><button id="apply-decal" class="accent full">${icon("check")} Concluir posicionamento</button><button id="cancel-decal" class="full" style="margin-top:8px">Cancelar ferramenta</button></div></div><div class="section brush-only"><div class="section-title">COR DO PINCEL</div><div class="colors">${["#ef4444", "#ffffff", "#17191d", "#f59e0b", "#2563eb", "#22c55e"].map((c) => `<button class="swatch" data-color="${c}" style="background:${c}" aria-label="Cor ${c}"></button>`).join("")}</div><div class="color-entry"><input id="color" type="color" value="#ef4444" aria-label="Cor personalizada"><span id="color-hex">#EF4444</span></div></div><div class="section"><div class="section-title">MAPA DE TEXTURA <span style="margin-left:auto">${icon("maximize-2")}</span></div><canvas class="map" id="map" width="320" height="320"></canvas><div class="map-footer"><span>DIFFUSE / BASE COLOR</span><span id="map-size">2048²</span></div><p class="help">Abra o YDD da roupa e seu YTD. Selecione a textura para pintar e exporte uma cópia do dicionário editado ou o PNG.</p></div>${propertyPanels}<div class="section"><div class="section-title">VISUALIZAÇÃO</div><button id="back-view" class="full">${icon("rotate-3d")} Alternar frente / verso</button><div class="label-row" style="margin-top:18px"><label for="wireframe">Exibir malha</label><input id="wireframe" type="checkbox"></div></div></aside></div><footer class="footer"><span><span class="green-dot"></span><b id="status">Pronto para criar</b></span><span>GODOY CLOTH FIVEM <span> / </span> LOCAL WORKSPACE <span> / </span> v0.3</span></footer><div id="toast" role="status"></div><input type="file" id="model-file" accept=".glb,.gltf,.godoycloth,.paintfive,.ydd,.ytd" hidden><input type="file" id="ytd-file" accept=".ytd" hidden><input type="file" id="texture-file" accept="image/png,image/jpeg,image/webp" hidden><input type="file" id="image-file" accept="image/png,image/jpeg,image/webp" hidden>`;
 createIcons({ icons });
 const $ = (s) => document.querySelector(s);
 let toastTimer;
@@ -243,12 +244,13 @@ function refresh() {
   }
   const uvCtx=$("#uv-view").getContext("2d");
   uvCtx.strokeStyle="rgba(255,255,255,.45)";uvCtx.lineWidth=.6;
+  let totalFaces=0;model.traverse(mesh=>{if(mesh.isMesh&&!mesh.userData.editorHelper&&mesh.material.map===texture)totalFaces+=(mesh.geometry.index?.count??mesh.geometry.attributes.uv?.count??0)/3;});
+  const stride=Math.max(1,Math.ceil(totalFaces/30000));let face=0,drawn=0;uvCtx.beginPath();
   model.traverse(mesh=> {
     if(!mesh.isMesh||mesh.userData.editorHelper||mesh.material.map!==texture)return;
-    const uv=mesh.geometry.attributes.uv;if(!uv)return;
-    const index=mesh.geometry.index,count=index?index.count:uv.count;
-    for(let f=0;f<count;f+=3){uvCtx.beginPath();for(let c=0;c<3;c++){const i=index?index.getX(f+c):f+c,x=uv.getX(i)*size,y=(1-uv.getY(i))*textureHeight;c?uvCtx.lineTo(x,y):uvCtx.moveTo(x,y);}uvCtx.closePath();uvCtx.stroke();}
-  });
+    const uv=mesh.geometry.attributes.uv;if(!uv)return;const index=mesh.geometry.index,count=index?index.count:uv.count;
+    for(let f=0;f<count;f+=3,face++){if(face%stride)continue;for(let c=0;c<3;c++){const i=index?index.getX(f+c):f+c,x=uv.getX(i)*size,y=(1-uv.getY(i))*textureHeight;c?uvCtx.lineTo(x,y):uvCtx.moveTo(x,y);}uvCtx.closePath();if(++drawn%1024===0){uvCtx.stroke();uvCtx.beginPath();}}
+  });uvCtx.stroke();
   editor?.drawOverlay(uvCtx);
   $("#status").textContent = "Alterações locais · textura atualizada";
 }
@@ -268,6 +270,7 @@ function stageHit(event) {
       x = (event.clientX - rect.left - (rect.width - w) / 2) / fit,
       y = (event.clientY - rect.top - (rect.height - h) / 2) / fit;
     if (x < 0 || y < 0 || x >= size || y >= textureHeight) return null;
+    if(editor?.tool!=="island"&&!(editor?.tool==="bucket"&&$("#fill-mode").value==="material"))return {x,y};
     let match = null;
     model.traverse((mesh) => {
       if (
@@ -297,6 +300,7 @@ function stageHit(event) {
     y: THREE.MathUtils.euclideanModulo(1 - hit.uv.y, 1) * textureHeight,
     mesh: hit.object,
     faceIndex: hit.faceIndex,
+    uvBounds:$("#protect-uv-regions").checked?uvRegionBounds(hit.object.geometry,size,textureHeight):null,
   };
 }
 let islandHighlight = null;

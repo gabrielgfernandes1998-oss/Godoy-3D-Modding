@@ -1,3 +1,4 @@
+import {exerciseGlbConverter} from './glb-converter-flow.mjs';
 import {exerciseConverter} from './converter-flow.mjs';
 import {_electron} from 'playwright';
 import assert from 'node:assert/strict';
@@ -184,7 +185,7 @@ try {
     for(let y=0;y<objTexture.height;y++)assert.deepEqual(afterPixels.slice(y*objTexture.width*4,(y*objTexture.width+objTexture.width/2)*4),beforePixels.slice(y*objTexture.width*4,(y*objTexture.width+objTexture.width/2)*4),'Painting the OBJ must preserve the entire clothing side of the atlas');
 
   }
-  if(process.platform==='win32')await exerciseConverter(page,output);
+  if(process.platform==='win32'){await exerciseConverter(page,output);await exerciseGlbConverter(page,output);}
   assert.deepEqual(errors,[]);assert.deepEqual(failures,[]);
   await page.click('[data-tab=pack]');await mkdir('.test-output',{recursive:true});
   await page.screenshot({path:`.test-output/desktop-${process.platform}.png`});

@@ -633,6 +633,7 @@ export class WorkspaceEditor {
       traceMask(ctx, this.doc.selection, this.doc.width, this.doc.height);
       ctx.clip();
     }
+    if(p.uvBounds){const b=p.uvBounds;ctx.beginPath();ctx.rect(b.x,b.y,b.width,b.height);ctx.clip();}
     ctx.globalAlpha = Number($("#opacity").value) / 100;
     ctx.globalCompositeOperation = g.erase ? "destination-out" : "source-over";
     const dab = (x, y) => {
@@ -655,7 +656,7 @@ export class WorkspaceEditor {
       ctx.fill();
     };
     if (
-      g.last &&
+      g.last && (!p.mesh||!g.last.mesh||p.mesh===g.last.mesh) &&
       Math.hypot(p.x - g.last.x, p.y - g.last.y) <
         Math.min(this.doc.width, this.doc.height) * 0.15
     ) {

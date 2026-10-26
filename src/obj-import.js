@@ -1,3 +1,5 @@
+import {buildMaterialAtlas} from './material-atlas-client.js';
+import {recommendedAtlasSize,applyAtlasUv} from './material-atlas.js';
 import {Group,Mesh,BufferGeometry,BufferAttribute,MeshStandardMaterial,DoubleSide} from 'three';
 export function importConverterObj(file,{progress=()=>{},signal}={}) {
  return new Promise((resolve,reject)=>{
@@ -6,8 +8,8 @@ export function importConverterObj(file,{progress=()=>{},signal}={}) {
   const abort=()=>finish(Error('Importação cancelada. A cena anterior foi preservada.'));
   signal?.addEventListener('abort',abort,{once:true});if(signal?.aborted){abort();return;}
   worker.onerror=e=>finish(Error(e.message||'Não foi possível processar o OBJ. Verifique a memória disponível.'));
-  worker.onmessage=({data})=>{if(data.progress){progress(data.progress);return;}if(data.error){finish(Error(data.error));return;}
-   try{const group=new Group(),material=new MeshStandardMaterial({color:0xdca05c,side:DoubleSide});for(const spec of data.meshes){const geometry=new BufferGeometry();for(const [name,a] of Object.entries(spec.attributes))geometry.setAttribute(name,new BufferAttribute(a.array,a.itemSize,a.normalized));const mesh=new Mesh(geometry,material);mesh.name=spec.name;mesh.matrix.fromArray(spec.matrix);mesh.matrix.decompose(mesh.position,mesh.quaternion,mesh.scale);mesh.userData.converterOriginalUv=geometry.attributes.uv?.clone()??null;group.add(mesh);}group.userData.converter=data.state;finish(null,group);}catch(e){finish(e);}
+  worker.onmessage=async({data})=>{if(data.progress){progress(data.progress);return;}if(data.error){finish(Error(data.error));return;}
+   try{const group=new Group(),material=new MeshStandardMaterial({color:0xdca05c,side:DoubleSide});for(const spec of data.meshes){const geometry=new BufferGeometry();for(const [name,a] of Object.entries(spec.attributes))geometry.setAttribute(name,new BufferAttribute(a.array,a.itemSize,a.normalized));const mesh=new Mesh(geometry,material);mesh.name=spec.name;mesh.userData.converterMaterial=spec.material;mesh.matrix.fromArray(spec.matrix);mesh.matrix.decompose(mesh.position,mesh.quaternion,mesh.scale);mesh.userData.converterOriginalUv=geometry.attributes.uv?.clone()??null;group.add(mesh);}group.userData.converter=data.state;if(data.materials){progress('Gerando atlas único dos materiais…');const size=recommendedAtlasSize(data.materials),atlas=await buildMaterialAtlas(data.materials,size,{signal});group.userData.materialAtlas={materials:data.materials,sourceMaterialCount:data.sourceMaterialCount,...atlas,size,mode:'materials'};group.userData.converterMode='materials';applyAtlasUv(group,atlas.layout);}finish(null,group);}catch(e){finish(e);}
   };worker.postMessage(file);
  });
 }

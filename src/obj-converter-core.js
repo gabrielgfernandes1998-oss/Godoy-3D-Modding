@@ -29,7 +29,7 @@ export function prepareConverterObject(object) {
   for(let i=1;i<chunks.length;i++) {
    // Identity children inherit the original mesh transform, including its parent
    // hierarchy. The imported OBJ remains one selectable/editable object.
-   const part=new Mesh(chunks[i],mesh.material);part.name=`${mesh.name||'OBJ'} · parte ${i+1}`;part.userData.converterOriginalUv=chunks[i].attributes.uv?.clone()??null;mesh.add(part);
+   const part=new Mesh(chunks[i],mesh.material);part.userData.converterMaterial=mesh.userData.converterMaterial;part.name=`${mesh.name||'OBJ'} · parte ${i+1}`;part.userData.converterOriginalUv=chunks[i].attributes.uv?.clone()??null;mesh.add(part);
   }
   if(flat!==old)flat.dispose();old.dispose();
  }

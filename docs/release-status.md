@@ -1,3 +1,13 @@
+# Estado da versão 0.10.0 beta
+
+Importação GLB em worker, leitura de cores e imagens embutidas PNG/JPEG/WebP, transformação de UV e atlas com áreas independentes por componente físico. Reconecta duplicatas posicionais para reconhecer peças sem confundir costuras UV/normais. Cores uniformes ganham ilhas novas; imagens mantêm UVs por componente, com modo opcional de isolamento por triângulo. Pintura 3D é limitada à região UV da geometria atingida; mapa 2D permanece livre.
+
+Teste local privado com GLB enviado pelo usuário: 5 materiais/5 imagens embutidas, 97 componentes/áreas, 116 geometrias internas, 491742 triângulos e 457724 vértices armazenados após compactação. Atlas 4096 preservou a densidade das imagens de base. Comando CodeWalker real gerou YDD de 19573865 bytes e YTD de 8541057 bytes, reabertos pelos parsers. O teste usou adaptador HTTP privado para a ponte .NET local e ped sintético, sem publicar o GLB/texturas. O portable usa IPC/arquivos temporários.
+
+Reabertura na pintura: pincel 3D de 180 px sobre a argola mudou 25408 pixels de uma única área; zero alterações nas outras 96 ou fora da área. Todos os triângulos foram preservados. Normal/roughness/metalness e reflexos PBR não são exportados; UVs compartilhados dentro de componente texturizado exigem o modo de isolamento, com possível redução de detalhe. Aparência/animação no FiveM não foi validada.
+
+Regressões incluem atlas sem sobreposição entre peças, cor linear/sRGB, orientação de imagem, costuras, componentes conectados, seleção de resolução, retorno entre modos, PNG/WebP/fator sem imagem e reabertura/edição do YDD/YTD. Arquivos de teste versionados são sintéticos; o arquivo enviado não está no GitHub.
+
 # Estado da versão 0.9.3 beta
 
 Módulo 05 sem tetos fixos de 20 MB/500 mil vértices/32 partes/32 MB JSON. Importação e preparo em workers com cancelamento; arrays tipados e arquivo temporário binário substituem JSON da geometria. Vértices exatamente iguais em posição/normal/UV são reutilizados, sem remover faces nem unir costuras com atributos diferentes. Prévia UV é amostrada para navegação; guia exportado completo em SVG acima de 100 mil faces, PNG nos demais casos. Textura continua PNG/YTD. Permanecem contadores/endereço do formato, memória disponível e orçamento de leitura de 256 MB RSC7.

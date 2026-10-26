@@ -17,7 +17,7 @@ static class ObjYdd {
         long graphics=parts.Sum(p=>44L*p.count+2L*p.indices.Length)*2;
         if(graphics>=0x10000000L)throw new Exception("A geometria não cabe no endereçamento de 28 bits do YDD. Reduza a malha ou divida em recursos diferentes.");
         int size=request.GetProperty("textureSize").GetInt32();if(size is not (512 or 1024 or 2048 or 4096))throw new Exception("Resolução inválida.");
-        var pixels=Convert.FromBase64String(request.GetProperty("pixels").GetString()??"");
+        var pixels=request.TryGetProperty("pixelsFile",out var pixelFile)?File.ReadAllBytes(pixelFile.GetString()!):Convert.FromBase64String(request.GetProperty("pixels").GetString()??"");
         if(pixels.Length!=size*size*4)throw new Exception("Pixels RGBA inválidos.");
         for(int i=0;i<pixels.Length;i+=4)(pixels[i],pixels[i+2])=(pixels[i+2],pixels[i]); // RGBA -> native BGRA
         string textureName=name[..^2].Insert(name[..^2].LastIndexOf('_'),"_diff")+"_a_uni";

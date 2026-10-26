@@ -1,0 +1,3 @@
+export function buildMaterialAtlas(materials,size,{mode='materials',meshes=[],signal}={}){
+ return new Promise((resolve,reject)=>{const worker=new Worker(new URL('./material-atlas.worker.js',import.meta.url),{type:'module'});let done=false;const finish=(e,r)=>{if(done)return;done=true;worker.terminate();signal?.removeEventListener('abort',abort);e?reject(e):resolve(r);};const abort=()=>finish(Error('Geração do atlas cancelada.'));signal?.addEventListener('abort',abort,{once:true});if(signal?.aborted){abort();return;}worker.onerror=e=>finish(Error(e.message));worker.onmessage=({data})=>data.error?finish(Error(data.error)):finish(null,data);worker.postMessage({materials,size,mode,meshes});});
+}
