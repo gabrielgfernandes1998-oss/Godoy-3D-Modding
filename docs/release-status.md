@@ -2,6 +2,8 @@
 
 Texto com flipX/flipY persistidos e renderizados junto à rotação/escala; controles preservam histórico. Pincel procedural determinístico de couro, ripstop e tecido, com cor/escala/intensidade e ancoragem UV. Rasterização respeita suavidade, opacidade, seleção e limites UV. Efeito diffuse, sem relevo físico. Teste em Chromium: espelhamento combinado sem diferenças de alfa em relação à imagem invertida, projeto mantém flags, undo/redo passa; pincel ripstop gerou 458 cores sem nenhum pixel fora do limite. 80 testes JavaScript e navegador completo passaram.
 
+Validação final no [run 40259249779](https://github.com/gabrielgfernandes1998-oss/Godoy-3D-Modding/actions/runs/40259249779): compilação, 80 testes JS, 7 Python, suíte nativa, packs e executável Windows passaram. No Windows, pincel ripstop respeitou o atlas e o projeto exportado preservou os dois espelhamentos do texto. [Release 0.11.0](https://github.com/gabrielgfernandes1998-oss/Godoy-3D-Modding/releases/tag/v0.11.0) publicada. ZIP baixado e SHA-256 conferido: 200776577 bytes; `aa05122221df586f2ddfa902897eb844d5c0df36063a5395b4ba38bf3c5c4454`.
+
 # Estado da versão 0.10.0 beta
 
 Importação GLB em worker, leitura de cores e imagens embutidas PNG/JPEG/WebP, transformação de UV e atlas com áreas independentes por componente físico. Reconecta duplicatas posicionais para reconhecer peças sem confundir costuras UV/normais. Cores uniformes ganham ilhas novas; imagens mantêm UVs por componente, com modo opcional de isolamento por triângulo. Pintura 3D é limitada à região UV da geometria atingida; mapa 2D permanece livre.
