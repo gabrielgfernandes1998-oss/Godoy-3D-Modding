@@ -8,6 +8,8 @@ Reabertura na pintura: pincel 3D de 180 px sobre a argola mudou 25408 pixels de 
 
 Regressões incluem atlas sem sobreposição entre peças, cor linear/sRGB, orientação de imagem, costuras, componentes conectados, seleção de resolução, retorno entre modos, PNG/WebP/fator sem imagem e reabertura/edição do YDD/YTD. Arquivos de teste versionados são sintéticos; o arquivo enviado não está no GitHub.
 
+Validação final no [run 40255498318](https://github.com/gabrielgfernandes1998-oss/Godoy-3D-Modding/actions/runs/40255498318): 79 testes JavaScript, 7 Python, suíte nativa, fluxo de packs e executável Windows passaram. O teste Windows converteu o GLB sintético com PNG/WebP/cores, reabriu o YDD/YTD e confirmou pintura restrita à área atingida. [Release 0.10.0](https://github.com/gabrielgfernandes1998-oss/Godoy-3D-Modding/releases/tag/v0.10.0) publicada; ZIP baixado e SHA-256 conferido: 200775424 bytes; `dd5f50036228b7eb4c1540c6117b7cdd6f5ed72dd8cecc23bf1badb8ab934871`.
+
 # Estado da versão 0.9.3 beta
 
 Módulo 05 sem tetos fixos de 20 MB/500 mil vértices/32 partes/32 MB JSON. Importação e preparo em workers com cancelamento; arrays tipados e arquivo temporário binário substituem JSON da geometria. Vértices exatamente iguais em posição/normal/UV são reutilizados, sem remover faces nem unir costuras com atributos diferentes. Prévia UV é amostrada para navegação; guia exportado completo em SVG acima de 100 mil faces, PNG nos demais casos. Textura continua PNG/YTD. Permanecem contadores/endereço do formato, memória disponível e orçamento de leitura de 256 MB RSC7.
