@@ -1,3 +1,7 @@
+# Estado da versão 0.11.0 beta
+
+Texto com flipX/flipY persistidos e renderizados junto à rotação/escala; controles preservam histórico. Pincel procedural determinístico de couro, ripstop e tecido, com cor/escala/intensidade e ancoragem UV. Rasterização respeita suavidade, opacidade, seleção e limites UV. Efeito diffuse, sem relevo físico. Teste em Chromium: espelhamento combinado sem diferenças de alfa em relação à imagem invertida, projeto mantém flags, undo/redo passa; pincel ripstop gerou 458 cores sem nenhum pixel fora do limite. 80 testes JavaScript e navegador completo passaram.
+
 # Estado da versão 0.10.0 beta
 
 Importação GLB em worker, leitura de cores e imagens embutidas PNG/JPEG/WebP, transformação de UV e atlas com áreas independentes por componente físico. Reconecta duplicatas posicionais para reconhecer peças sem confundir costuras UV/normais. Cores uniformes ganham ilhas novas; imagens mantêm UVs por componente, com modo opcional de isolamento por triângulo. Pintura 3D é limitada à região UV da geometria atingida; mapa 2D permanece livre.

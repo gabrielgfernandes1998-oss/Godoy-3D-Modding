@@ -1,3 +1,4 @@
+import {patternPixels} from "./brush-pattern.js";
 import {
   LayerDocument,
   canvas,
@@ -12,7 +13,7 @@ export const layerPanels = `
 export const propertyPanels = `
 <section class="section"><div class="section-title">SELEÇÃO / MÁSCARA UV</div><p class="help" id="selection-info">Sem restrição. Use a ferramenta Ilha UV para selecionar uma região.</p><div class="layer-actions"><button id="clear-selection">Limpar seleção</button><button id="mask-layer">Mascarar camada</button><button id="unmask-layer">Remover máscara</button></div></section>
 <section class="section" id="transform-panel"><div class="section-title">OBJETO EDITÁVEL</div><p class="help">Selecione o texto, imagem ou forma na lista. Arraste com Mover no 3D ou no mapa UV.</p><div class="field-grid"><label class="field">Posição X<input id="object-x" type="number" step="1"></label><label class="field">Posição Y<input id="object-y" type="number" step="1"></label></div><div class="field-grid object-size"><label class="field">Largura (px)<input id="object-width" type="number" min="1" max="81920"></label><label class="field">Altura (px)<input id="object-height" type="number" min="1" max="81920"></label></div><label class="field">Escala <output id="scale-out">100%</output><input id="scale" type="range" min="2" max="500" value="100"></label><label class="field">Rotação <output id="rotation-out">0°</output><input id="rotation" type="range" min="-180" max="180" value="0"></label><label class="field">Cor do objeto<input id="object-color" type="color" value="#ef4444"></label></section>
-<section class="section" id="text-panel"><div class="section-title">TEXTO EDITÁVEL</div><label class="field">Conteúdo<textarea id="text-content" rows="3" maxlength="5000">SEU TEXTO</textarea></label><label class="field">Fonte<select id="font-family"><option>Arial</option><option>Impact</option><option>Georgia</option><option>Courier New</option><option>Verdana</option></select></label><button id="import-font" class="full">Carregar fonte .TTF / .OTF</button><div class="field-grid"><label class="field">Tamanho (px)<input id="font-size" type="number" min="4" max="2000" value="110"></label><label class="field">Alinhamento<select id="text-align"><option value="center">Centro</option><option value="left">Esquerda</option><option value="right">Direita</option></select></label></div><div class="checks"><label><input id="text-bold" type="checkbox" checked> Negrito</label><label><input id="text-italic" type="checkbox"> Itálico</label></div><div class="field-grid"><label class="field">Contorno (px)<input id="text-stroke" type="number" min="0" max="300" value="2"></label><label class="field">Cor do contorno<input id="text-stroke-color" type="color" value="#ffffff"></label></div><div class="field-grid"><label class="field">Sombra: blur<input id="shadow-blur" type="number" min="0" max="300" value="0"></label><label class="field">Cor da sombra<input id="shadow-color" type="color" value="#000000"></label><label class="field">Sombra X<input id="shadow-x" type="number" min="-500" max="500" value="3"></label><label class="field">Sombra Y<input id="shadow-y" type="number" min="-500" max="500" value="3"></label></div></section>
+<section class="section" id="text-panel"><div class="section-title">TEXTO EDITÁVEL</div><label class="field">Conteúdo<textarea id="text-content" rows="3" maxlength="5000">SEU TEXTO</textarea></label><label class="field">Fonte<select id="font-family"><option>Arial</option><option>Impact</option><option>Georgia</option><option>Courier New</option><option>Verdana</option></select></label><button id="import-font" class="full">Carregar fonte .TTF / .OTF</button><div class="field-grid"><label class="field">Tamanho (px)<input id="font-size" type="number" min="4" max="2000" value="110"></label><label class="field">Alinhamento<select id="text-align"><option value="center">Centro</option><option value="left">Esquerda</option><option value="right">Direita</option></select></label></div><div class="checks"><label><input id="text-bold" type="checkbox" checked> Negrito</label><label><input id="text-italic" type="checkbox"> Itálico</label></div><div class="checks"><label><input id="text-flip-x" type="checkbox"> Espelhar horizontal</label><label><input id="text-flip-y" type="checkbox"> Espelhar vertical</label></div><div class="field-grid"><label class="field">Contorno (px)<input id="text-stroke" type="number" min="0" max="300" value="2"></label><label class="field">Cor do contorno<input id="text-stroke-color" type="color" value="#ffffff"></label></div><div class="field-grid"><label class="field">Sombra: blur<input id="shadow-blur" type="number" min="0" max="300" value="0"></label><label class="field">Cor da sombra<input id="shadow-color" type="color" value="#000000"></label><label class="field">Sombra X<input id="shadow-x" type="number" min="-500" max="500" value="3"></label><label class="field">Sombra Y<input id="shadow-y" type="number" min="-500" max="500" value="3"></label></div></section>
 <section class="section" id="shape-panel"><div class="section-title">FORMAS / BÉZIER</div><label class="field">Espessura da linha (px)<input id="shape-stroke" type="number" min="1" max="300" value="8"></label><label class="field">Cor da linha<input id="shape-stroke-color" type="color" value="#ef4444"></label><div class="checks"><label><input id="shape-fill" type="checkbox" checked> Preenchimento</label><label><input id="path-closed" type="checkbox"> Fechar curva</label></div><button id="finish-path" class="full">Concluir curva (Enter)</button><p class="help">Pen: clique para criar pontos; arraste ao criar para definir as tangentes. Enter conclui. Para reeditar, selecione a curva, ative Mover e arraste os pontos/alças no mapa UV. Alt permite alças independentes.</p></section>
 <section class="section" id="bucket-panel"><div class="section-title">PREENCHIMENTO</div><label class="field">Região<select id="fill-mode"><option value="contiguous">Área de cor conectada</option><option value="selection">Seleção UV inteira</option><option value="material">Material da superfície</option></select></label><label class="field">Tolerância<input id="fill-tolerance" type="range" min="0" max="100" value="24"></label></section>
 <input id="font-file" type="file" accept=".ttf,.otf" hidden>`;
@@ -173,6 +174,8 @@ export class WorkspaceEditor {
       "#font-family": ["fontFamily", (v) => v],
       "#font-size": ["fontSize", (v) => clamp(v, 4, 2000)],
       "#text-align": ["align", (v) => v],
+      "#text-flip-x": ["flipX", (v) => v],
+      "#text-flip-y": ["flipY", (v) => v],
       "#text-bold": ["bold", (v) => v],
       "#text-italic": ["italic", (v) => v],
       "#text-stroke": ["strokeWidth", (v) => clamp(v, 0, 300)],
@@ -343,6 +346,8 @@ export class WorkspaceEditor {
         text: $("#text-content").value,
         fontSize: clamp($("#font-size").value, 4, 2000),
         fontFamily: $("#font-family").value,
+        flipX: $("#text-flip-x").checked,
+        flipY: $("#text-flip-y").checked,
         bold: $("#text-bold").checked,
         italic: $("#text-italic").checked,
         align: $("#text-align").value,
@@ -636,7 +641,28 @@ export class WorkspaceEditor {
     if(p.uvBounds){const b=p.uvBounds;ctx.beginPath();ctx.rect(b.x,b.y,b.width,b.height);ctx.clip();}
     ctx.globalAlpha = Number($("#opacity").value) / 100;
     ctx.globalCompositeOperation = g.erase ? "destination-out" : "source-over";
+    const kind=$("#brush-pattern").value;
+    let stamp=null;
+    if(!g.erase&&kind!=="solid") {
+      const scale=Number($("#pattern-scale").value),strength=Number($("#pattern-strength").value),key=[kind,color,scale,strength,radius,soft].join(':');
+      if(this.patternStamp?.key!==key){
+        const tile=document.createElement('canvas');tile.width=tile.height=64;
+        tile.getContext('2d').putImageData(new ImageData(patternPixels(kind,color,64,strength),64,64),0,0);
+        const canvas=document.createElement('canvas');canvas.width=canvas.height=Math.ceil(radius*2)+2;
+        const c=canvas.getContext('2d'),pattern=c.createPattern(tile,'repeat');pattern.setTransform(new DOMMatrix().scale(scale/100));
+        this.patternStamp={key,canvas,pattern};
+      }
+      stamp=this.patternStamp;
+    }
     const dab = (x, y) => {
+      if(stamp){
+        const c=stamp.canvas.getContext('2d'),r=stamp.canvas.width/2;
+        c.clearRect(0,0,r*2,r*2);c.save();c.translate(r-x,r-y);c.fillStyle=stamp.pattern;c.fillRect(x-r,y-r,r*2,r*2);c.restore();
+        c.globalCompositeOperation='destination-in';
+        const mask=c.createRadialGradient(r,r,Math.max(.01,radius*(1-soft)),r,r,radius);mask.addColorStop(0,'#fff');mask.addColorStop(1,'#ffffff00');c.fillStyle=mask;c.fillRect(0,0,r*2,r*2);c.globalCompositeOperation='source-over';
+        ctx.drawImage(stamp.canvas,x-r,y-r);return;
+      }
+
       ctx.fillStyle = color;
       if (soft) {
         const gradient = ctx.createRadialGradient(
@@ -959,6 +985,8 @@ export class WorkspaceEditor {
         "#shadow-y": "shadowY",
       }))
         value(id, l[prop]);
+      $("#text-flip-x").checked = !!l.flipX;
+      $("#text-flip-y").checked = !!l.flipY;
       $("#text-bold").checked = l.bold;
       $("#text-italic").checked = l.italic;
     }

@@ -301,7 +301,7 @@ export class LayerDocument {
     } else {
       ctx.translate(layer.x, layer.y);
       ctx.rotate((layer.rotation * Math.PI) / 180);
-      ctx.scale(layer.scale, layer.scale);
+      ctx.scale(layer.scale * (layer.flipX ? -1 : 1), layer.scale * (layer.flipY ? -1 : 1));
       ctx.fillStyle = layer.color;
       ctx.strokeStyle = layer.strokeColor;
       ctx.lineWidth = layer.strokeWidth;
@@ -487,6 +487,8 @@ export class LayerDocument {
         x: number(p.x, doc.width / 2, -doc.width * 8, doc.width * 8),
         y: number(p.y, doc.height / 2, -doc.height * 8, doc.height * 8),
         scale: number(p.scale, 1, 0.01, 30),
+        flipX: !!p.flipX,
+        flipY: !!p.flipY,
         rotation: number(p.rotation, 0, -3600, 3600),
         width: number(p.width, doc.width * 0.3, 0.1, doc.width * 10),
         height: number(p.height, doc.height * 0.3, 0.1, doc.height * 10),
