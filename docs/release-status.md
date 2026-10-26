@@ -8,6 +8,10 @@ Validação local: 74 testes JS, suíte nativa, navegador completo e fluxo de pa
 
 O candidato 0.9.2 não foi publicado: o [run 40248721450](https://github.com/gabrielgfernandes1998-oss/Godoy-3D-Modding/actions/runs/40248721450) passou compilação/testes, mas a automação excedeu 20 segundos ao injetar o arquivo grande como Buffer pelo protocolo do Playwright. A regressão agora grava o OBJ no disco e o seleciona por caminho, como o seletor real, com prazo específico para operações grandes. A publicação continua dependente do teste Windows completo.
 
+Validação final no [run 40249480975](https://github.com/gabrielgfernandes1998-oss/Godoy-3D-Modding/actions/runs/40249480975): 74 testes JavaScript, 7 Python, suíte nativa, fluxo de packs e executável Windows passaram. O portable selecionou o OBJ maior que 20 MB pelo disco, cancelou/reimportou, processou 600000 vértices em workers e pela ponte binária, conferiu os 200000 triângulos em todos os LODs e o guia SVG completo. A interface continuou sem remover a cena anterior ao cancelar.
+
+[Release 0.9.3](https://github.com/gabrielgfernandes1998-oss/Godoy-3D-Modding/releases/tag/v0.9.3) publicada; ZIP baixado e SHA-256 conferido: 200,742,428 bytes; `39b5588eb1b96174f7b88bfe9469b8b4feea730796cb1eb0f6db804cc19d9f38`.
+
 # Estado da versão 0.9.1 beta
 
 O conversor divide automaticamente malhas OBJ acima de 65535 vértices em geometrias com índices de 16 bits, mantendo triângulos completos, atributos e transformações. O objeto continua um único item na cena. O total permitido passa a 500000 vértices triangulados/32 partes/32 MB serializados somente para o módulo 05; os limites da incorporação do módulo 03 permanecem.
