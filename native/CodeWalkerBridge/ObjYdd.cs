@@ -23,7 +23,7 @@ static class ObjYdd {
         string textureName=name[..^2].Insert(name[..^2].LastIndexOf('_'),"_diff")+"_a_uni";
         var texture=YddAtlas.Pixels(textureName,size,size,pixels,TextureUsage.DIFFUSE);
         var ytd=new YtdFile{TextureDict=new TextureDictionary()};ytd.TextureDict.BuildFromTextureList(new List<Texture>{texture});
-        var shader=new ShaderFX{Name=new MetaHash(JenkHash.GenHash("ped_default")),FileName=new MetaHash(JenkHash.GenHash("ped_default.sps")),RenderBucket=0,RenderBucketMask=0xff01};
+        var shader=new ShaderFX{Name=new MetaHash(JenkHash.GenHash("ped")),FileName=new MetaHash(JenkHash.GenHash("ped_default.sps")),RenderBucket=0,RenderBucketMask=0xff01};
         shader.ParametersList=new ShaderParametersBlock{Owner=shader,Count=2,Hashes=new[]{(MetaName)JenkHash.GenHash("diffusesampler"),(MetaName)JenkHash.GenHash("matmaterialcolorscale")},Parameters=new[]{new ShaderParameter{DataType=0,Data=new TextureBase{Name=textureName,NameHash=texture.NameHash,Unknown_32h=2}},new ShaderParameter{DataType=1,Data=Vector4.One}}};
         shader.ParameterCount=2;shader.TextureParametersCount=1;shader.ParameterSize=shader.ParametersList.ParametersSize;shader.ParameterDataSize=shader.ParametersList.ParametersDataSize;
         DrawableModel Model() {
@@ -38,13 +38,17 @@ static class ObjYdd {
                 }
                 return new DrawableGeometry{VertexData=data,VertexBuffer=new VertexBuffer{Data1=data,Info=info,VertexCount=(uint)part.count,VertexStride=info.Stride},IndexBuffer=new IndexBuffer{Indices=part.indices,IndicesCount=(uint)part.indices.Length},BoneIds=new[]{(ushort)bone.Index},VerticesCount=(ushort)part.count,VertexStride=info.Stride,IndicesCount=(uint)part.indices.Length,TrianglesCount=(uint)part.indices.Length/3,Shader=shader,ShaderID=0};
             }).ToArray();
-            var model=new DrawableModel{HasSkin=1,BoneIndex=0,Geometries=geometries,ShaderMapping=new ushort[geometries.Length],GeometriesCount1=(ushort)geometries.Length,GeometriesCount2=(ushort)geometries.Length,GeometriesCount3=(ushort)geometries.Length};model.RebuildBounds();return model;
+            var model=new DrawableModel{HasSkin=1,BoneIndex=0,RenderMask=255,Geometries=geometries,ShaderMapping=new ushort[geometries.Length],GeometriesCount1=(ushort)geometries.Length,GeometriesCount2=(ushort)geometries.Length,GeometriesCount3=(ushort)geometries.Length};model.RebuildBounds();return model;
         }
         var drawable=new Drawable{Name=name,Skeleton=skeleton,LightAttributes=new ResourceSimpleList64<LightAttributes>(),ShaderGroup=new ShaderGroup{Shaders=new ResourcePointerArray64<ShaderFX>{data_items=new[]{shader}}},DrawableModels=new DrawableModelsBlock{High=new[]{Model()},Low=new[]{Model()}},LodDistHigh=999,LodDistMed=999,LodDistLow=999,LodDistVlow=999};
         drawable.BuildAllModels();drawable.BuildVertexDecls();drawable.BuildRenderMasks();
         var file=new YddFile{Drawables=new[]{drawable},DrawableDict=new DrawableDictionary{Hashes=new[]{JenkHash.GenHash(name)},Drawables=new ResourcePointerArray64<Drawable>{data_items=new[]{drawable}}}};
         var edit=JsonSerializer.SerializeToElement(new{matrix=Matrix.Identity.ToArray(),bone="preserve"});
         var saved=YddEditor.Export(file,edit,null);var savedYtd=ytd.Save();
+        // Parsing geometry alone is insufficient: CodeWalker/grzy skip models whose
+        // final-render bit is absent, even when vertices and textures are valid.
+        var visible=new YddFile();visible.Load(saved);
+        if(visible.Drawables.Any(d=>(d.RenderMaskHigh&1)==0||(d.RenderMaskLow&1)==0||d.AllModels.Any(m=>(m.RenderMask&1)==0)))throw new Exception("YDD convertido sem máscara de visibilidade válida.");
         var check=new YtdFile();check.Load(savedYtd);var actual=check.TextureDict.Textures.data_items.Single();
         if(actual.Name!=textureName||actual.Width!=size||!actual.Data.FullData.SequenceEqual(texture.Data.FullData))throw new Exception("Falha ao verificar a textura convertida.");
         return (saved,savedYtd);

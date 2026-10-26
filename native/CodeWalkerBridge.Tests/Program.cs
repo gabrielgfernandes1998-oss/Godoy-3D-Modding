@@ -49,8 +49,11 @@ var convertPixels=Enumerable.Repeat(new byte[]{12,34,56,255},512*512).SelectMany
 JsonElement ConvertRequest(int boneTag=11816)=>JsonSerializer.SerializeToElement(new{name="accs_007_u",boneTag,parts=new[]{addition},textureSize=512,pixels=Convert.ToBase64String(convertPixels)});
 var converted=ObjYdd.Create(Fixture(),ConvertRequest());var convertedDoc=new YddFile();convertedDoc.Load(converted.ydd);var convertedTexture=new YtdFile();convertedTexture.Load(converted.ytd);
 Check(convertedDoc.Drawables.Length==1&&convertedDoc.Drawables[0].Name=="accs_007_u","new OBJ drawable name");
+Check((convertedDoc.Drawables[0].RenderMaskHigh&1)!=0&&(convertedDoc.Drawables[0].RenderMaskLow&1)!=0,"converted drawable is visible in CodeWalker high/low render passes");
 Check(convertedDoc.DrawableDict.Hashes[0]==JenkHash.GenHash("accs_007_u"),"new drawable dictionary hash");
 foreach(var model in convertedDoc.Drawables[0].AllModels) {
+ Check((model.RenderMask&1)!=0,"converted model survives CodeWalker/grzy final-render filter");
+ Check(model.Geometries.All(g=>g.Shader.Name.Hash==JenkHash.GenHash("ped")&&g.Shader.FileName.Hash==JenkHash.GenHash("ped_default.sps")),"ped shader family and variant match clothing conventions");
  Check(model.HasSkin==1&&model.Geometries.Length==1,"new YDD contains OBJ alone, no ped geometry");var g=model.Geometries[0];Check(g.VertexData.VertexCount==3&&g.BoneIds.SequenceEqual(new ushort[]{1}),"OBJ vertex count and chosen pelvis palette");
  Near(g.VertexData.GetVector3(0,0),new Vector3(.1f,.1f,2),"OBJ world placement in bind pose");
  Check(g.VertexData.GetUByte4(0,1).R==255&&g.VertexData.GetUByte4(0,2).R==0,"single-bone 100 percent weights");

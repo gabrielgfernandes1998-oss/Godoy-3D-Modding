@@ -1,3 +1,7 @@
+# Estado da versão 0.11.1 beta
+
+Causa identificada na fonte do grzyClothTool/CodeWalker: Renderer.RenderIsModelFinalRender rejeita modelos com RenderMaskFlags & 1 igual a zero quando proxies estão desativados. ObjYdd criava modelos com máscara padrão zero; a prévia interna não usa esse filtro. Modelos novos agora usam RenderMask 255 e BuildRenderMasks propaga aos LODs. Shader family corrigida de ped_default para ped, mantendo ped_default.sps. Exportação reabre e valida máscaras; testes nativos conferem bit de visibilidade, shader, pesos, UV e samplers. Teste Windows GLB verifica máscaras dos modelos por leitura binária. 80 testes JS e suíte nativa passaram localmente. Não houve teste visual no grzy/FiveM neste ambiente Linux.
+
 # Estado da versão 0.11.0 beta
 
 Texto com flipX/flipY persistidos e renderizados junto à rotação/escala; controles preservam histórico. Pincel procedural determinístico de couro, ripstop e tecido, com cor/escala/intensidade e ancoragem UV. Rasterização respeita suavidade, opacidade, seleção e limites UV. Efeito diffuse, sem relevo físico. Teste em Chromium: espelhamento combinado sem diferenças de alfa em relação à imagem invertida, projeto mantém flags, undo/redo passa; pincel ripstop gerou 458 cores sem nenhum pixel fora do limite. 80 testes JavaScript e navegador completo passaram.
