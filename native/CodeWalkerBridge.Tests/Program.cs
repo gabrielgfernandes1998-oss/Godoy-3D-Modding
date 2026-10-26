@@ -62,6 +62,19 @@ foreach(var model in convertedDoc.Drawables[0].AllModels) {
  Check(((TextureBase)g.Shader.ParametersList.Parameters[0].Data).Name=="accs_diff_007_a_uni","converter YDD sampler matches YTD name");
 }
 var ct=convertedTexture.TextureDict.Textures.data_items.Single();Check(ct.Name=="accs_diff_007_a_uni"&&ct.Width==512&&ct.Levels==10,"converter single diffuse and full mips");Check(CodeWalker.Utils.DDSIO.GetPixels(ct,0).Take(4).SequenceEqual(new byte[]{56,34,12,255}),"RGBA input becomes correct native BGRA");
+// Pair normalization must preserve the exact rig/mesh and atlas while renaming both files.
+var normalizedPair=ObjYdd.NormalizePair(converted.ydd,converted.ytd,"accs_021_u");
+var normalizedDoc=new YddFile();normalizedDoc.Load(normalizedPair.ydd);var normalizedTex=new YtdFile();normalizedTex.Load(normalizedPair.ytd);
+Check(normalizedDoc.Drawables[0].Name=="accs_021_u"&&normalizedDoc.DrawableDict.Hashes[0]==JenkHash.GenHash("accs_021_u"),"normalized pair drawable identity");
+Check(normalizedTex.TextureDict.Textures.data_items[0].Name=="accs_diff_021_a_uni"&&normalizedTex.TextureDict.Textures.data_items[0].Data.FullData.SequenceEqual(ct.Data.FullData),"normalization keeps all mip pixels while renaming dictionary");
+for(int mi=0;mi<convertedDoc.Drawables[0].AllModels.Length;mi++) {
+ var a=convertedDoc.Drawables[0].AllModels[mi];var b=normalizedDoc.Drawables[0].AllModels[mi];
+ Check(a.SkeletonBinding==b.SkeletonBinding&&a.RenderMaskFlags==b.RenderMaskFlags&&a.Geometries[0].VertexData.VertexBytes.SequenceEqual(b.Geometries[0].VertexData.VertexBytes)&&a.Geometries[0].BoneIds.SequenceEqual(b.Geometries[0].BoneIds)&&a.Geometries[0].IndexBuffer.Indices.SequenceEqual(b.Geometries[0].IndexBuffer.Indices),"pair normalization retains every LOD's rig, vertices, UV and triangles");
+ Check(((TextureBase)b.Geometries[0].Shader.ParametersList.Parameters[0].Data).Name=="accs_diff_021_a_uni","normalized material resolves renamed dictionary texture");
+}
+var again=ObjYdd.NormalizePair(normalizedPair.ydd,normalizedPair.ytd,"accs_021_u");var againTex=new YtdFile();againTex.Load(again.ytd);Check(againTex.TextureDict.Textures.data_items[0].Data.FullData.SequenceEqual(ct.Data.FullData),"repeated pair normalization preserves pixels");
+var mismatched=new YtdFile();mismatched.Load(converted.ytd);var mismatchedT=mismatched.TextureDict.Textures.data_items[0];mismatchedT.Name="unrelated";mismatched.TextureDict.BuildFromTextureList(new List<Texture>{mismatchedT});bool mismatchRejected=false;try{ObjYdd.NormalizePair(converted.ydd,mismatched.Save(),"accs_021_u");}catch(Exception){mismatchRejected=true;}Check(mismatchRejected,"unlinked YDD/YTD pair rejected before export");
+Console.WriteLine("Confirmed grzy Test 1 paired normalization: identity, all LODs, rig, mip pixels, repeat save and mismatch rejection PASS");
 var headConverted=new YddFile();headConverted.Load(ObjYdd.Create(Fixture(),ConvertRequest(31086)).ydd);Check(headConverted.Drawables[0].AllModels[0].Geometries[0].BoneIds[0]==2,"converter head selection");
 bool absentBone=false;try{ObjYdd.Create(Fixture(),ConvertRequest(999));}catch(Exception){absentBone=true;}Check(absentBone,"converter missing bone rejected");
 bool invalidConversion=false;try{ObjYdd.Create(Fixture(),JsonSerializer.SerializeToElement(new{name="../bad",boneTag=11816}));}catch(Exception){invalidConversion=true;}Check(invalidConversion,"converter unsafe name rejected");

@@ -90,9 +90,10 @@ function registerNativeBridge({app,ipcMain,dialog,getWindow}) {
       directory=await fs.mkdtemp(path.join(os.tmpdir(),'godoy-obj-'));
       const partsFile=path.join(directory,'geometry.bin'),pixelsFile=path.join(directory,'pixels.bin');await writeParts(partsFile,request.parts);await fs.writeFile(pixelsFile,Buffer.from(request.pixels.buffer,request.pixels.byteOffset,request.pixels.byteLength));
       const config=await resolveConfig();
-      await runBridge(executable,{command:'create-ydd',codewalkerDirectory:config.codewalkerDirectory,pedData:Buffer.from(request.pedBytes).toString('base64'),name:request.name,boneTag:request.boneTag,partsFile,pixelsFile,outputDirectory:directory,textureSize:request.textureSize});
+      const normalization=await runBridge(executable,{command:'create-ydd',codewalkerDirectory:config.codewalkerDirectory,pedData:Buffer.from(request.pedBytes).toString('base64'),name:request.name,boneTag:request.boneTag,partsFile,pixelsFile,outputDirectory:directory,textureSize:request.textureSize});
       const [ydd,ytd]=await Promise.all([fs.readFile(path.join(directory,'converted.ydd')),fs.readFile(path.join(directory,'converted.ytd'))]);
-      return {ydd:new Uint8Array(ydd),ytd:new Uint8Array(ytd)};
+      if(normalization.compatibility!=='codewalker-pair-roundtrip-v1')throw Error('Atualize o portable: a ponte nativa não confirmou a normalização do par.');
+      return {ydd:new Uint8Array(ydd),ytd:new Uint8Array(ytd),compatibility:normalization.compatibility};
     } finally {busy=false;if(directory)await fs.rm(directory,{recursive:true,force:true,maxRetries:3,retryDelay:100});}
   });
   ipcMain.handle('godoy:native-ped',async(event,gender)=> {

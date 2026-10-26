@@ -1,9 +1,11 @@
-# Godoy 3D Modding 0.11.1 beta
+# Godoy 3D Modding 0.11.2 beta
 
-- Corrige acessórios OBJ/GLB listados, mas invisíveis no grzyClothTool/CodeWalker: os modelos gerados agora recebem RenderMask 255, incluindo o bit de renderização normal, em todos os LODs. Antes saíam com máscara zero e eram filtrados como proxies.
-- Corrige o nome da família do shader para ped, mantendo a variante ped_default.sps e o atlas diffuse original.
-- A exportação reabre o YDD e verifica a visibilidade dos modelos/LODs. Testes nativos e do executável conferem o mesmo bit usado pelo renderizador do grzy.
+- A aba 05 incorpora a operação do Teste 1 confirmado pelo usuário no grzyClothTool: reabre YDD/YTD, sincroniza nomes/hashes/material e resalva o par antes de gerar o ZIP.
+- Verifica os arquivos finais: todos os LODs, bytes dos vértices (posição, normal, UV, cores e pesos), índices, paletas de ossos e todos os pixels/mipmaps devem permanecer iguais. Rejeita pares sem diffuse correspondente.
+- “Usar próximo índice”, histórico por gênero/componente neste computador e opção “Avançar índice após exportar”, ativada por padrão. É possível desativar o avanço ou informar um índice manualmente para atualizar uma peça.
+- A interface mostra os nomes do par exportado e avisa quando reutiliza um índice já exportado. O histórico local não conhece os índices usados em outros programas ou computadores; confira o pack/grzy.
+- A ponte confirma a normalização e o relatório conversao.json registra o perfil. Mantém pintura, atlas, posicionamento e osso selecionado.
 
-Reimporte o OBJ/GLB original na aba 05 e converta novamente, usando o mesmo ped, osso, posição e configuração de atlas. O YDD antigo não é reparado automaticamente. O YTD pintado pode ser reutilizado se a configuração/UV e o nome da textura forem exatamente os mesmos; mantenha uma cópia antes de substituir arquivos. As geometrias internas separadas são normais e não causam a invisibilidade. “Has Skin” no grzy deriva do sufixo r/u e não é o indicador de pesos de esqueleto.
+Validação com o par real enviado: a rotina de produção reproduziu byte a byte o YDD e o YTD do Teste 1 que o usuário confirmou no grzy, incluindo a pintura. O Teste 2 também foi confirmado; não é necessário aplicar suas alterações de estrutura ao exportador. Ainda não foi isolado o papel de cache/reimportação em relação ao resalvamento. Os testes de regressão cobrem o par, os nomes, o histórico e o executável Windows. Aparência/animação no FiveM continua sem validação direta.
 
-Validação por leitura binária e pelo filtro de renderização da fonte do grzy/CodeWalker; a interface real do grzy e o FiveM precisam de confirmação no computador do usuário.
+Para usar: na aba 05, escolha um índice livre no seu pack, posicione a peça e exporte. Importe YDD e YTD juntos no grzy; ao substituir uma peça em um projeto existente, feche/reabra o grzy ou use um projeto novo para conferir a prévia.

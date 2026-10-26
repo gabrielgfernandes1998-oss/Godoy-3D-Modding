@@ -37,8 +37,8 @@ try {
         var converted=ObjYdd.Create(ped,root);
         if(root.TryGetProperty("outputDirectory",out var target)) {
             string path=Path.GetFullPath(target.GetString()!);if(!Directory.Exists(path))throw new Exception("Diretório temporário não encontrado.");
-            File.WriteAllBytes(Path.Combine(path,"converted.ydd"),converted.ydd);File.WriteAllBytes(Path.Combine(path,"converted.ytd"),converted.ytd);result=new{ok=true};
-        }else result=new{ok=true,data=Convert.ToBase64String(converted.ydd),ytdData=Convert.ToBase64String(converted.ytd)};
+            File.WriteAllBytes(Path.Combine(path,"converted.ydd"),converted.ydd);File.WriteAllBytes(Path.Combine(path,"converted.ytd"),converted.ytd);result=new{ok=true,compatibility=ObjYdd.CompatibilityProfile};
+        }else result=new{ok=true,data=Convert.ToBase64String(converted.ydd),ytdData=Convert.ToBase64String(converted.ytd),compatibility=ObjYdd.CompatibilityProfile};
     } else if(command=="edit-ydd"||command=="plan-atlas") {
         var bytes=Convert.FromBase64String(Text("data"));
         if(bytes.Length>80*1024*1024)throw new Exception("YDD acima de 80 MB.");

@@ -5,6 +5,7 @@ using System.Text.RegularExpressions;
 
 // Creates a new accessory. Only the selected ped skeleton is copied; no ped mesh.
 static class ObjYdd {
+    public const string CompatibilityProfile="codewalker-pair-roundtrip-v1";
     public static (byte[] ydd,byte[] ytd) Create(YddFile ped,JsonElement request) {
         var name=request.GetProperty("name").GetString()??"";
         if(!Regex.IsMatch(name,"^(head|berd|hair|uppr|lowr|hand|feet|teef|accs|task|decl|jbib)_[0-9]{3}_u$"))throw new Exception("Nome de componente inválido.");
@@ -51,7 +52,49 @@ static class ObjYdd {
         if(visible.Drawables.Any(d=>(d.RenderMaskHigh&1)==0||(d.RenderMaskLow&1)==0||d.AllModels.Any(m=>(m.RenderMask&1)==0)))throw new Exception("YDD convertido sem máscara de visibilidade válida.");
         var check=new YtdFile();check.Load(savedYtd);var actual=check.TextureDict.Textures.data_items.Single();
         if(actual.Name!=textureName||actual.Width!=size||!actual.Data.FullData.SequenceEqual(texture.Data.FullData))throw new Exception("Falha ao verificar a textura convertida.");
-        return (saved,savedYtd);
+        return NormalizePair(saved,savedYtd,name);
+    }
+    // Same paired load/rebuild/save operation as diagnostic Test 1 confirmed in grzy.
+    // Keep the selected mesh, rig, UVs and every mip; normalize names/hash tables together.
+    public static (byte[] ydd,byte[] ytd) NormalizePair(byte[] ydd,byte[] ytd,string name) {
+        if(!Regex.IsMatch(name,"^(head|berd|hair|uppr|lowr|hand|feet|teef|accs|task|decl|jbib)_[0-9]{3}_u$"))throw new Exception("Nome de componente inválido.");
+        var file=new YddFile();file.Load(ydd);
+        var dictionary=new YtdFile();dictionary.Load(ytd);
+        if(file.Drawables?.Length!=1||dictionary.TextureDict?.Textures?.data_items?.Length!=1)throw new Exception("A conversão requer uma peça e um atlas diffuse.");
+        var texture=dictionary.TextureDict.Textures.data_items[0];
+        var oldTextureName=texture.Name;
+        var textureName=name[..^2].Insert(name[..^2].LastIndexOf('_'),"_diff")+"_a_uni";
+        texture.Name=textureName;texture.NameHash=JenkHash.GenHash(textureName);
+        dictionary.TextureDict.BuildFromTextureList(new List<Texture>{texture});
+        var drawable=file.Drawables[0];drawable.Name=name;bool linked=false;
+        foreach(var shader in drawable.ShaderGroup.Shaders.data_items)
+            for(int i=0;i<shader.ParametersList.Parameters.Length;i++) {
+                var parameter=shader.ParametersList.Parameters[i];
+                if(parameter.Data is TextureBase sampler&&sampler.Name==oldTextureName) {
+                    sampler.Name=textureName;sampler.NameHash=texture.NameHash;
+                    if((uint)shader.ParametersList.Hashes[i]==JenkHash.GenHash("diffusesampler"))linked=true;
+                }
+            }
+        if(!linked)throw new Exception("O YDD não referencia a textura do YTD convertido.");
+        drawable.BuildAllModels();drawable.BuildVertexDecls();drawable.BuildRenderMasks();
+        file.DrawableDict.Hashes=new[]{JenkHash.GenHash(name)};
+        var normalizedYdd=file.Save();var normalizedYtd=dictionary.Save();
+        var check=new YddFile();check.Load(normalizedYdd);
+        var checkTexture=new YtdFile();checkTexture.Load(normalizedYtd);
+        var actual=checkTexture.TextureDict.Textures.data_items.Single();
+        if(actual.Name!=textureName||actual.Width!=texture.Width||actual.Height!=texture.Height||actual.Levels!=texture.Levels||actual.Format!=texture.Format||!actual.Data.FullData.SequenceEqual(texture.Data.FullData))throw new Exception("Normalização alterou o atlas ou seus mipmaps.");
+        var output=check.Drawables.Single();
+        if(output.Name!=name||check.DrawableDict.Hashes.Single()!=JenkHash.GenHash(name)||output.AllModels.Length!=drawable.AllModels.Length)throw new Exception("Normalização perdeu nomes ou LODs.");
+        for(int mi=0;mi<drawable.AllModels.Length;mi++) {
+            var before=drawable.AllModels[mi];var after=output.AllModels[mi];
+            if(before.SkeletonBinding!=after.SkeletonBinding||after.RenderMask!=before.RenderMask||(after.RenderMask&1)==0||before.Geometries.Length!=after.Geometries.Length)throw new Exception("Normalização alterou o vínculo ou a visibilidade.");
+            for(int gi=0;gi<before.Geometries.Length;gi++) {
+                var a=before.Geometries[gi];var b=after.Geometries[gi];
+                if(!a.VertexData.VertexBytes.SequenceEqual(b.VertexData.VertexBytes)||!a.IndexBuffer.Indices.SequenceEqual(b.IndexBuffer.Indices)||!(a.BoneIds??Array.Empty<ushort>()).SequenceEqual(b.BoneIds??Array.Empty<ushort>()))throw new Exception("Normalização alterou a malha, UV ou os pesos.");
+                if(b.Shader.Name.Hash!=a.Shader.Name.Hash||b.Shader.FileName.Hash!=a.Shader.FileName.Hash||!b.Shader.ParametersList.Parameters.OfType<ShaderParameter>().Any(p=>p.Data is TextureBase t&&t.Name==textureName))throw new Exception("Normalização perdeu o material ou o vínculo ao YTD.");
+            }
+        }
+        return(normalizedYdd,normalizedYtd);
     }
     static (float[] positions,float[] normals,float[] uvs,ushort[] indices,int count)[] ReadParts(JsonElement request) {
         if(request.TryGetProperty("partsFile",out var input)) {

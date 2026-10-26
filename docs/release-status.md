@@ -1,3 +1,13 @@
+# Estado da versão 0.11.2 beta
+
+Os dois pares diagnósticos foram confirmados pelo usuário na interface do grzyClothTool 1.2.1. O Teste 1 conservava a estrutura, aplicando nomes/hashes novos e load/build/save do par; o Teste 2 mudava também layout/paletas/esqueleto. Isso confirma compatibilidade, sem isolar cache/reimportação de normalização. A correção da máscara em 0.11.1, sozinha, não resolveu o caso reportado.
+
+ObjYdd.Create agora sempre executa NormalizePair antes de entregar os arquivos: reconstrói nomes/hashes da peça e do atlas e as referências dos samplers, salva e reabre, conferindo todos os LODs, rig, vértices completos, índices, bone IDs, shader e pixels de todos os mips. Ponte IPC exige confirmação do perfil; UI verifica nomes do par. ZIP registra compatibility=codewalker-pair-roundtrip-v1.
+
+Verificação privada usando o método de produção sobre o YDD/YTD enviado, com o nome do Teste 1: saída idêntica byte a byte. SHA-256 YDD `74300df11a0bd7174f2e909330dd2da0376422814af6665778ba314542b2aa39`; YTD `dbd226d56071354144124aff873382d7d25ab649f0ecea8fddd081f7ccecb2a4`. Esses arquivos já foram publicados somente no branch diagnóstico, com autorização explícita; nenhum arquivo real foi acrescentado à versão portable/main.
+
+UI: histórico local por gênero/componente, próximo índice, avanço opcional após sucesso e aviso de reutilização. Índices externos ao aplicativo continuam sendo responsabilidade do usuário. Suíte nativa, 80 testes JS, build e navegador completo passaram localmente. Regressão Windows inclui exportação normalizada, metadata, avanço/retorno de índices e reabertura no editor. FiveM não foi validado diretamente.
+
 # Estado da versão 0.11.1 beta
 
 Causa identificada na fonte do grzyClothTool/CodeWalker: Renderer.RenderIsModelFinalRender rejeita modelos com RenderMaskFlags & 1 igual a zero quando proxies estão desativados. ObjYdd criava modelos com máscara padrão zero; a prévia interna não usa esse filtro. Modelos novos agora usam RenderMask 255 e BuildRenderMasks propaga aos LODs. Shader family corrigida de ped_default para ped, mantendo ped_default.sps. Exportação reabre e valida máscaras; testes nativos conferem bit de visibilidade, shader, pesos, UV e samplers. Teste Windows GLB verifica máscaras dos modelos por leitura binária. 80 testes JS e suíte nativa passaram localmente. Não houve teste visual no grzy/FiveM neste ambiente Linux.
