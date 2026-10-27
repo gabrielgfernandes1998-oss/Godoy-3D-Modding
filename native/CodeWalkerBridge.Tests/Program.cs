@@ -358,9 +358,9 @@ TestManualAtlas();Console.WriteLine("Manual atlas: original UV unchanged, source
 }
 {
  var legacy=Fixture();var d=legacy.Drawables[0];var shader=d.ShaderGroup.Shaders.data_items[0];
- DrawableModel LargeModel(){
+ DrawableModel LargeModel(int parts=20){
   var geometries=new List<DrawableGeometry>();const int count=60000;
-  for(int part=0;part<20;part++){
+  for(int part=0;part<parts;part++){
    var info=new VertexDeclaration{Flags=95,Types=VertexDeclarationTypes.GTAV1};info.UpdateCountAndStride();var bytes=new byte[count*info.Stride];
    for(int i=0;i<count;i++){
     var row=bytes.AsSpan(i*info.Stride,info.Stride);int face=i/3,corner=i%3;float x=face%200*.01f+(corner==1?.005f:0),y=face/200*.01f+(corner==2?.005f:0);
@@ -369,7 +369,7 @@ TestManualAtlas();Console.WriteLine("Manual atlas: original UV unchanged, source
    var data=new VertexData{Info=info,VertexCount=count,VertexStride=info.Stride,VertexBytes=bytes};var indices=Enumerable.Range(0,count).Select(i=>(ushort)i).ToArray();
    geometries.Add(new DrawableGeometry{VertexData=data,VertexBuffer=new VertexBuffer{Data1=data,Info=info,VertexCount=count,VertexStride=info.Stride},IndexBuffer=new IndexBuffer{Indices=indices,IndicesCount=count},BoneIds=new ushort[]{2},VerticesCount=count,VertexStride=info.Stride,IndicesCount=count,TrianglesCount=count/3,Shader=shader,ShaderID=0});
   }
-  var model=new DrawableModel{GeometriesCount1=20,GeometriesCount2=20,GeometriesCount3=20,Geometries=geometries.ToArray(),ShaderMapping=new ushort[20],HasSkin=1,RenderMask=255};model.RebuildBounds();return model;
+  var model=new DrawableModel{GeometriesCount1=(ushort)parts,GeometriesCount2=(ushort)parts,GeometriesCount3=(ushort)parts,Geometries=geometries.ToArray(),ShaderMapping=new ushort[parts],HasSkin=1,RenderMask=255};model.RebuildBounds();return model;
  }
  d.DrawableModels=new DrawableModelsBlock{High=new[]{LargeModel()},Low=new[]{LargeModel()}};d.BuildAllModels();d.BuildVertexDecls();d.BuildRenderMasks();
  var legacyBytes=legacy.Save();var before=FiveMResource.Size(legacyBytes);Console.WriteLine($"Legacy fixture system {before.system}");Check(before.system>FiveMResource.Limit,"fixture reproduces RAGE oversized graphics segment even when compressed file is small");
@@ -379,4 +379,39 @@ TestManualAtlas();Console.WriteLine("Manual atlas: original UV unchanged, source
  var check=new YddFile();check.Load(compact);Check(check.Drawables[0].AllModels.All(m=>m.Geometries.Sum(g=>g.IndexBuffer.Indices.Length/3)==400000),"all 400000 triangles retained in each LOD");
  Check(FiveMResource.Compact(compact).SequenceEqual(compact),"repeated compaction is byte-idempotent");
  Console.WriteLine($"Large YDD lossless: file {legacyBytes.Length} -> {compact.Length}; system {before.system} -> {after.system}; 400000 triangles per LOD preserved PASS");
+ // An already-shared file can still overflow solely because the original page layout wastes space.
+ d.DrawableModels=new DrawableModelsBlock{High=new[]{LargeModel(28)},Low=new[]{LargeModel(28)}};d.BuildAllModels();d.BuildVertexDecls();d.BuildRenderMasks();FiveMResource.Share(legacy);
+ var fragmented=legacy.Save();var fragmentedSize=FiveMResource.Size(fragmented);Console.WriteLine($"Fragmented fixture {fragmentedSize.system}");
+ Check(fragmentedSize.system>FiveMResource.Limit,"reproduces an oversized region after buffers are already shared");
+ var sharedOnly=new YddFile();sharedOnly.Load(fragmented);var sharedCounts=FiveMResource.Share(sharedOnly);Check(sharedCounts.vertices==0&&sharedCounts.indices==0,"buffer sharing alone cannot solve the page layout regression");
+ File.WriteAllBytes("tests/fixtures/native-fragmented-shared-lods.ydd",fragmented);
+ var repaired=FiveMResource.Compact(fragmented);var repairedSize=FiveMResource.Size(repaired);Check(repairedSize.system<FiveMResource.Limit,"page layout repair fits FiveM without modifying geometry");
+ var repairedFile=new YddFile();repairedFile.Load(repaired);Check(repairedFile.Drawables[0].AllModels.All(model=>model.Geometries.Sum(g=>g.IndexBuffer.Indices.Length/3)==560000),"all 560000 triangles per LOD retained");
+ Check(FiveMResource.Compact(repaired).SequenceEqual(repaired),"page layout repair is idempotent");
+ Console.WriteLine($"Shared YDD layout regression: {fragmentedSize.system} -> {repairedSize.system} reserved bytes; complete mesh PASS");
 }
+
+{
+ var random=new Random(1156);
+ foreach(uint address in new uint[]{0x50000000,0x60000000})for(int trial=0;trial<24;trial++){
+  var blocks=Enumerable.Range(0,random.Next(1,55)).Select(i=>(IResourceBlock)new LayoutBlock(random.Next(17,2900000))).ToList();
+  ResourceBuilder.AssignPositions(blocks,address,out var baseline);YddLayout.Assign(blocks,address,out var packed);
+  Check(packed.Size<=baseline.Size,"compact page layout never reserves more than baseline");
+  long end=address;
+  foreach(var block in blocks.OrderBy(b=>b.FilePosition)){
+   Check(block.FilePosition>=end&&(block.FilePosition&15)==0,"independent page blocks aligned and nonoverlapping");
+   Check(packed.Pages.Any(p=>block.FilePosition-address>=p.Offset&&block.FilePosition+block.BlockLength-address<=(long)p.Offset+p.Size),"complete data block stays inside a single page");
+   end=block.FilePosition+block.BlockLength;
+  }
+  if(address==0x50000000)Check(blocks[0].FilePosition==address,"dictionary remains at resource root");
+ }
+ Console.WriteLine("YDD layout: mixed-size system/graphics blocks, root, alignment, complete pages and fallback PASS");
+}
+{
+ var embeddedFile=Fixture();embeddedFile.Drawables[0].ShaderGroup.TextureDictionary=convertedTexture.TextureDict;
+ var embeddedOriginal=embeddedFile.Save();var embeddedCompact=FiveMResource.Compact(embeddedOriginal);var embeddedRead=new YddFile();embeddedRead.Load(embeddedCompact);
+ Check(FiveMResource.Size(embeddedCompact).graphics>0,"compact serializer writes real graphics pages");
+ Check(embeddedRead.Drawables[0].ShaderGroup.TextureDictionary.Textures.data_items[0].Data.FullData.SequenceEqual(ct.Data.FullData),"embedded texture mip bytes preserved through page repacking");
+ Console.WriteLine("Compact YDD serialization: independent graphics pages and embedded mip pixels PASS");
+}
+class LayoutBlock(long length):ResourceSystemBlock {public override long BlockLength=>length;public override void Read(ResourceDataReader reader,params object[] parameters)=>throw new NotSupportedException();public override void Write(ResourceDataWriter writer,params object[] parameters)=>throw new NotSupportedException();}

@@ -6,6 +6,7 @@ test('checks reserved resource memory even when compressed file is tiny',()=>{
  const bytes=new Uint8Array(20),v=new DataView(bytes.buffer);v.setUint32(0,0x37435352,true);v.setUint32(8,(1<<4)|10,true);
  assert.equal(resourceBudget(bytes).systemBytes,134217728);
  assert.throws(()=>assertFiveMBudget(bytes,'large.ydd'),/100 MB/);
+ v.setUint32(8,(1<<4)|(1<<5)|9,true);assert.equal(resourceBudget(bytes).systemBytes,100663296);assert.throws(()=>assertFiveMBudget(bytes,'fragmented.ydd'),/100 MB/);
  v.setUint32(8,(1<<4)|9,true);assert.equal(assertFiveMBudget(bytes,'safe.ydd').systemBytes,67108864);
 });
 test('normal converted resource passes, unrelated bytes ignored',()=>{

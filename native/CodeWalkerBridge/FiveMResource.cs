@@ -41,17 +41,23 @@ static class FiveMResource {
     public static byte[] Compact(byte[] bytes,bool enforce=true){
         Size(bytes);if(BitConverter.ToInt32(bytes,4)!=165)throw new Exception("Selecione um YDD GTA V Legacy.");
         var file=new YddFile();file.Load(bytes);var counts=Share(file);
-        var saved=counts.vertices+counts.indices>0?file.Save():bytes;
+        var original=Size(bytes);
+        var saved=counts.vertices+counts.indices>0||original.system>Limit||original.graphics>Limit?YddLayout.Save(file):bytes;
         if(enforce)Check(saved);
         var check=new YddFile();check.Load(saved);
         for(int di=0;di<file.Drawables.Length;di++){
             var a=file.Drawables[di];var b=check.Drawables[di];
-            if(a.Name!=b.Name||a.AllModels.Length!=b.AllModels.Length)throw new Exception("Compactação alterou nomes ou LODs.");
+            if(a.Name!=b.Name||a.AllModels.Length!=b.AllModels.Length||a.BoundingCenter!=b.BoundingCenter||a.BoundingBoxMin!=b.BoundingBoxMin||a.BoundingBoxMax!=b.BoundingBoxMax||a.BoundingSphereRadius!=b.BoundingSphereRadius)throw new Exception("Compactação alterou nomes ou LODs.");
+            var oldBones=a.Skeleton?.Bones?.Items??Array.Empty<Bone>();var newBones=b.Skeleton?.Bones?.Items??Array.Empty<Bone>();
+            if(oldBones.Length!=newBones.Length)throw new Exception("Compactação alterou esqueleto.");
+            for(int bi=0;bi<oldBones.Length;bi++){
+                var x=oldBones[bi];var y=newBones[bi];if(x.Name!=y.Name||x.Tag!=y.Tag||x.Index!=y.Index||x.ParentIndex!=y.ParentIndex||x.Translation!=y.Translation||x.Rotation!=y.Rotation||x.Scale!=y.Scale)throw new Exception("Compactação alterou pose ou hierarquia do esqueleto.");
+            }
             for(int mi=0;mi<a.AllModels.Length;mi++){
                 var am=a.AllModels[mi];var bm=b.AllModels[mi];if(am.SkeletonBinding!=bm.SkeletonBinding||am.RenderMaskFlags!=bm.RenderMaskFlags||am.Geometries.Length!=bm.Geometries.Length)throw new Exception("Compactação alterou vínculo/visibilidade.");
                 for(int gi=0;gi<am.Geometries.Length;gi++){
                     var g=am.Geometries[gi];var h=bm.Geometries[gi];
-                    if(!g.VertexData.VertexBytes.SequenceEqual(h.VertexData.VertexBytes)||!g.IndexBuffer.Indices.SequenceEqual(h.IndexBuffer.Indices)||!(g.BoneIds??Array.Empty<ushort>()).SequenceEqual(h.BoneIds??Array.Empty<ushort>())||g.ShaderID!=h.ShaderID)throw new Exception("Compactação alterou malha, UV, cores ou pesos.");
+                    if(g.VertexData.VertexCount!=h.VertexData.VertexCount||g.VertexData.VertexStride!=h.VertexData.VertexStride||g.VertexData.Info.Flags!=h.VertexData.Info.Flags||g.VertexData.Info.Types!=h.VertexData.Info.Types||!g.VertexData.VertexBytes.SequenceEqual(h.VertexData.VertexBytes)||!g.IndexBuffer.Indices.SequenceEqual(h.IndexBuffer.Indices)||!(g.BoneIds??Array.Empty<ushort>()).SequenceEqual(h.BoneIds??Array.Empty<ushort>())||g.ShaderID!=h.ShaderID)throw new Exception("Compactação alterou malha, UV, cores ou pesos.");
                 }
             }
             var oldTextures=a.ShaderGroup?.TextureDictionary?.Textures?.data_items??Array.Empty<Texture>();var newTextures=b.ShaderGroup?.TextureDictionary?.Textures?.data_items??Array.Empty<Texture>();

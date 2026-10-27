@@ -1,3 +1,13 @@
+# Estado da versão 0.11.6 beta
+
+Correção de fragmentação de páginas YDD implementada em native/CodeWalkerBridge/YddLayout.cs, sem mudanças no alocador global CodeWalker. Compartilha buffers existentes, mantém blocos inteiros/alinhados, compara várias disposições e preserva a opção padrão quando menor. O serializador recompõe flags RSC7 e contagem de páginas do recurso. O orçamento permanece 100.000.000 bytes; não foi aumentado para MiB.
+
+No ZIP privado da mochila: original 117.619.092 bytes e reserva de sistema 164.626.432; apenas compartilhar buffers deixava 100.663.296 bytes reservados; a nova saída tem 58.604.903 bytes e reserva 81.788.928. Cada LOD mantém 103 geometrias, 1.523.975 vértices e 2.233.750 triângulos. Verificação nativa compara bytes de vértices/índices e metadados; parser JS também leu ambos os LODs. YTD não alterado. Nenhum asset da mochila será incluído no repositório ou release; o fixture novo é sintético.
+
+Testes nativos passaram, incluindo recurso já compartilhado com reserva de 128 MiB reparado para 72 MiB e textura embutida preservada. 88 testes JS passaram. Compilação e teste Windows serão registrados após a automação. Execução no FiveM continua pendente.
+
+## Histórico da 0.11.5
+
 # Estado da versão 0.11.5 beta
 
 Implementação e validação local concluídas: compartilhamento exato dos buffers de geometria, edição/atlas sobre buffers compartilhados, compactação de YDD existente por IPC restrito, preflight RSC7 e relatório de memória. 88 testes JS, suíte nativa e navegador completo passaram. Compilação Windows e teste do executável confirmados pela automação de release. O teste do portable compactou o fixture grande, verificou o orçamento e o ZIP com YDD + relatório, sem substituir o YTD.

@@ -14,4 +14,9 @@ export async function exerciseCompactor(page,output){
  assert.ok(report.beforeSystem>100000000);assert.ok(report.afterSystem<100000000);assert.ok(report.afterBytes<report.beforeBytes*.7);
  assertFiveMBudget(files['native-duplicate-lods.ydd'],'compacted.ydd');
  await frame.locator('#compact-ydd-result').filter({hasText:'Use o YTD original'}).waitFor();
+ const next=page.waitForEvent('download',{timeout:180000});await frame.locator('#compact-ydd-file').setInputFiles('tests/fixtures/native-fragmented-shared-lods.ydd');
+ const fixed=await next,fixedTarget=path.join(output,'compact-fragmented-ydd.zip');await fixed.saveAs(fixedTarget);
+ const fixedFiles=unzipSync(await readFile(fixedTarget)),fixedReport=JSON.parse(new TextDecoder().decode(fixedFiles['relatorio-ydd.json']));
+ assert.ok(fixedReport.beforeSystem>100000000);assert.ok(fixedReport.afterSystem<100000000);assertFiveMBudget(fixedFiles['native-fragmented-shared-lods.ydd'],'fixed.ydd');
+ assert.equal(Object.keys(fixedFiles).length,2,'page layout optimization leaves the original YTD alone');
 }
