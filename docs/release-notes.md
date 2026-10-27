@@ -1,11 +1,11 @@
-# Godoy 3D Modding 0.11.2 beta
+# Godoy 3D Modding 0.11.3 beta
 
-- A aba 05 incorpora a operação do Teste 1 confirmado pelo usuário no grzyClothTool: reabre YDD/YTD, sincroniza nomes/hashes/material e resalva o par antes de gerar o ZIP.
-- Verifica os arquivos finais: todos os LODs, bytes dos vértices (posição, normal, UV, cores e pesos), índices, paletas de ossos e todos os pixels/mipmaps devem permanecer iguais. Rejeita pares sem diffuse correspondente.
-- “Usar próximo índice”, histórico por gênero/componente neste computador e opção “Avançar índice após exportar”, ativada por padrão. É possível desativar o avanço ou informar um índice manualmente para atualizar uma peça.
-- A interface mostra os nomes do par exportado e avisa quando reutiliza um índice já exportado. O histórico local não conhece os índices usados em outros programas ou computadores; confira o pack/grzy.
-- A ponte confirma a normalização e o relatório conversao.json registra o perfil. Mantém pintura, atlas, posicionamento e osso selecionado.
+- Corrige falhas como “Biblioteca local indisponível: Internal error” que impediam importar/carregar o ped e listar seus ossos quando o IndexedDB não abria.
+- No portable, a biblioteca usa arquivos locais do aplicativo por gênero, separados entre preview e esqueleto, com gravação atômica. Não depende do IndexedDB para salvar novos peds.
+- Registros antigos são migrados quando podem ser lidos; a biblioteca antiga não é apagada nem reinicializada automaticamente. Se ela estiver inacessível, carregue o ped do GTA ou importe novamente uma vez.
+- Se tanto disco quanto IndexedDB falharem, o ped e o esqueleto ficam utilizáveis na sessão atual, com aviso explícito de que precisarão ser importados após reabrir. Falha de salvamento deixa de bloquear o ped na cena e a conversão.
+- Leitura da biblioteca antiga tem prazo e tratamento de bloqueio. Remoção persistente impede que uma cópia antiga reapareça por migração.
 
-Validação com o par real enviado: a rotina de produção reproduziu byte a byte o YDD e o YTD do Teste 1 que o usuário confirmou no grzy, incluindo a pintura. O Teste 2 também foi confirmado; não é necessário aplicar suas alterações de estrutura ao exportador. Ainda não foi isolado o papel de cache/reimportação em relação ao resalvamento. Os testes de regressão cobrem o par, os nomes, o histórico e o executável Windows. Aparência/animação no FiveM continua sem validação direta.
+Validação: 86 testes JS e navegador completo, incluindo IndexedDB com erro Internal error, resposta simulada de ped do CodeWalker e conversão usando esqueleto em memória. O teste do executável Windows verifica biblioteca real por IPC/disco, recarregamento com IndexedDB indisponível e exportação após simular falha também no diretório da biblioteca.
 
-Para usar: na aba 05, escolha um índice livre no seu pack, posicione a peça e exporte. Importe YDD e YTD juntos no grzy; ao substituir uma peça em um projeto existente, feche/reabra o grzy ou use um projeto novo para conferir a prévia.
+Extraia o portable completo em uma pasta nova. Se o ped antigo não reaparecer, use Carregar ped deste gênero do GTA ou importe o YDD de referência; a nova cópia será salva em disco quando disponível. Nenhum arquivo GTA foi incluído no aplicativo.

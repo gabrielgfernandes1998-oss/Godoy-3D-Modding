@@ -1,4 +1,4 @@
-# Godoy 3D Modding · 0.11.2 beta
+# Godoy 3D Modding · 0.11.3 beta
 
 Studio local de roupas, malhas e pinturas de veículos para GTA V Legacy/FiveM. Developed by Gabriel Godoy.
 
@@ -6,7 +6,7 @@ Studio local de roupas, malhas e pinturas de veículos para GTA V Legacy/FiveM. 
 
 Os downloads são publicados em [GitHub Releases](https://github.com/gabrielgfernandes1998-oss/Godoy-3D-Modding/releases). O workflow [Windows portable release](https://github.com/gabrielgfernandes1998-oss/Godoy-3D-Modding/actions/workflows/portable-release.yml) compila e publica o ZIP e o SHA-256 quando uma tag `v` correspondente à versão do `package.json` é enviada.
 
-Extraia **todo o ZIP** `Godoy-3D-Modding-0.11.2-Windows-x64-Portable.zip` e execute `Godoy3DModding.exe`. Não precisa instalar Node.js, Python ou .NET no computador de uso. Requer driver com suporte a WebGL. O executável não é assinado digitalmente.
+Extraia **todo o ZIP** `Godoy-3D-Modding-0.11.3-Windows-x64-Portable.zip` e execute `Godoy3DModding.exe`. Não precisa instalar Node.js, Python ou .NET no computador de uso. Requer driver com suporte a WebGL. O executável não é assinado digitalmente.
 
 Os arquivos são processados localmente. Salve seus projetos em uma pasta escolhida por você; o Pack de roupas oferece recuperação de autosave e projeto `.godoypack` com os assets incluídos. O pacote não inclui arquivos originais GTA, ped base ou modelos comerciais.
 
@@ -225,10 +225,10 @@ A referência funcional e as diferenças restantes estão em [grzyClothTool-refe
 O YDD contém somente o OBJ, com o esqueleto do ped e peso de 100% no osso escolhido; a geometria do corpo não é incluída. LOD alto e baixo usam a mesma malha; não há simplificação automática, física nem pesos deformáveis por múltiplos ossos. O módulo 05 não impõe teto fixo de tamanho de OBJ, vértices totais ou 32 partes. Importação e preparo ocorrem em workers com cancelamento; o limite prático depende da memória disponível. Geometrias são divididas automaticamente para índices de 16 bits e vértices idênticos são reutilizados sem remover faces ou alterar UVs/normais. A exportação usa transferência binária temporária, eliminando o teto de JSON de 32 MB. Permanecem o endereçamento/contadores do YDD e o orçamento de leitura de 256 MB de páginas RSC7; excedê-los exige otimizar ou separar recursos. Imagens até 20 MB/16 megapixels. A aparência e o acompanhamento das animações devem ser conferidos no FiveM Legacy com os assets reais.
 
 
-Na 0.11.2, o mapa UV da interface usa uma amostra de linhas em malhas densas para manter a navegação fluida. A geometria e o UV exportados continuam completos. Guias UV de até 100 mil faces saem em PNG; acima disso, saem em SVG completo, sem rasterizar milhões de linhas na interface. A textura diffuse continua em PNG e YTD. Vértices com diferenças de UV ou normal não são unidos pela compactação. Os módulos 01–04 mantêm seus limites existentes.
+Na 0.11.3, o mapa UV da interface usa uma amostra de linhas em malhas densas para manter a navegação fluida. A geometria e o UV exportados continuam completos. Guias UV de até 100 mil faces saem em PNG; acima disso, saem em SVG completo, sem rasterizar milhões de linhas na interface. A textura diffuse continua em PNG e YTD. Vértices com diferenças de UV ou normal não são unidos pela compactação. Os módulos 01–04 mantêm seus limites existentes.
 
 
-### GLB com cores, imagens e peças independentes (0.11.2)
+### GLB com cores, imagens e peças independentes (0.11.3)
 
 Importe um GLB estático com as imagens PNG/JPEG/WebP embutidas. O modo **Atlas dos materiais** lê imagens e fatores de cor base, separa componentes físicos desconectados e os distribui em áreas UV próprias. Peças de cor uniforme recebem UVs novos, sem sobreposição. O atlas recomenda resolução de até 4096 para preservar a densidade das imagens; reduzir a resolução pode perder detalhe. O YDD e o YTD anteriores não ganham essa correção automaticamente: reimporte o GLB e exporte um par novo.
 
@@ -239,3 +239,5 @@ Exportação mantém uma diffuse única no YTD, com PNG, guia UV e relatório da
 Na pintura de roupas, o texto permite espelhamento horizontal/vertical. O pincel oferece cor lisa, couro, ripstop e tecido com cor, escala e intensidade ajustáveis. Os padrões são efeitos de cor gravados no PNG/YTD, sem relevo geométrico.
 
 A aba 05 resalva o par YDD/YTD com CodeWalker e valida nomes, referências, malha e pixels antes de exportar. O histórico local ajuda a escolher o próximo índice; “Avançar índice após exportar” pode ser desativado para atualizar uma peça. Confira os índices do seu pack e reimporte o par em projeto novo no grzy ao verificar uma substituição.
+
+A biblioteca de peds do portable é salva em arquivos locais do aplicativo, separada do IndexedDB. Registros antigos legíveis são migrados; se a biblioteca antiga não abrir, carregue o ped do GTA ou importe novamente. Quando o salvamento estiver indisponível, o ped/esqueleto permanece utilizável na sessão e a interface informa essa limitação.

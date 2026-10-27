@@ -2,6 +2,7 @@ const fs=require('node:fs/promises');
 const path=require('node:path');
 const os=require('node:os');
 const {validateParts,writeParts}=require('./converter-transfer.cjs');
+const {createPedStorage}=require('./ped-storage.cjs');
 const {spawn}=require('node:child_process');
 const {validGame,discoverGame}=require('./gta-discovery.cjs');
 
@@ -28,6 +29,13 @@ function registerNativeBridge({app,ipcMain,dialog,getWindow}) {
   let busy=false;
   const allowed=event=>{if(event.sender!==getWindow()?.webContents||event.senderFrame?.url!=='godoy://app/index.html')throw Error('Origem não autorizada.');};
   const bundled=path.join(process.resourcesPath,'codewalker-local');
+  const pedStorage=createPedStorage(path.join(app.getPath('userData'),'reference-peds'));
+  for(const [operation,method] of [['read','read'],['write','write'],['delete','remove']])ipcMain.handle('godoy:ped-library-'+operation,async(event,gender,kind,record)=>{
+    allowed(event);
+    try{return await pedStorage[method](gender,kind,record);}
+    catch(error){throw Error(`Não foi possível ${operation==='read'?'ler':operation==='write'?'salvar':'remover'} a cópia local do ped${error.code?' ('+error.code+')':''}: ${error.message}`);}
+  });
+
   const readConfig=async()=>{try{return JSON.parse(await fs.readFile(configFile,'utf8'));}catch{return {};}};
   const save=async config=>{await fs.mkdir(path.dirname(configFile),{recursive:true});await fs.writeFile(configFile,JSON.stringify(config));};
   const resolveConfig=async()=> {

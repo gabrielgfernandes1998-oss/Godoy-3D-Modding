@@ -1,3 +1,4 @@
+import {exercisePedStorageFailure} from './ped-storage-flow.mjs';
 import {exerciseGlbConverter} from './glb-converter-flow.mjs';
 import {exerciseConverter} from './converter-flow.mjs';
 import {_electron} from 'playwright';
@@ -186,6 +187,7 @@ try {
 
   }
   if(process.platform==='win32'){await exerciseConverter(page,output);await exerciseGlbConverter(page,output);}
+  await exercisePedStorageFailure(page,output,{desktop});
   assert.deepEqual(errors,[]);assert.deepEqual(failures,[]);
   await page.click('[data-tab=pack]');await mkdir('.test-output',{recursive:true});
   await page.screenshot({path:`.test-output/desktop-${process.platform}.png`});

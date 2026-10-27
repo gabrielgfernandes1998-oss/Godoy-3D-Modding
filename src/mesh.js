@@ -7,7 +7,7 @@ import {GLTFExporter} from 'three/addons/exporters/GLTFExporter.js';
 import {parseYdd} from '../modules/vehicles/src/formats/ydd.js';
 import {parseYft} from '../modules/vehicles/src/formats/yft.js';
 import {mergeStaticMeshes} from './mesh-core.js';
-import {rememberPed,readPed,forgetPed,rememberPedSkeleton,readPedSkeleton,forgetPedSkeleton} from './ped-library.js';
+import {rememberPed,readPed,forgetPed,rememberPedSkeleton,readPedSkeleton,forgetPedSkeleton,pedLibraryInfo} from './ped-library.js';
 import {SceneHistory,snapshotTransform,applyTransform,sameTransform} from './scene-history.js';
 import {nativeMatrix,sourceUnchanged,previewBindMatrix} from './ydd-export.js';
 import {visibleBounds,placePivot,pivotDelta,frameScene,placeImportedObj,moveToContext} from './scene-placement.js';
@@ -41,7 +41,7 @@ const grid=new THREE.GridHelper(10,20,0x634250,0x302831);scene.add(grid);
 const content=new THREE.Group();content.name='GodoyScene';scene.add(content);
 const reference=new THREE.Group();reference.name='PedReference';scene.add(reference);
 const pedPanel=document.createElement('section');pedPanel.id='ped-library';
-pedPanel.innerHTML='<h2>Ped de referência</h2><label>Personagem<select id="ped-gender"><option value="male">Masculino · mp_m_freemode_01</option><option value="female">Feminino · mp_f_freemode_01</option></select></label><p id="ped-status" class="hint" role="status">Consultando biblioteca local…</p><label><input id="ped-visible" type="checkbox" checked> Mostrar ped</label><label><input id="ped-transparent" type="checkbox"> Ped transparente</label><button id="forget-ped">Remover ped salvo deste gênero</button><p class="hint">Importe uma vez um YDD ou GLB autorizado; ele será lembrado neste computador. A referência não entra na exportação GLB.</p>';
+pedPanel.innerHTML='<h2>Ped de referência</h2><label>Personagem<select id="ped-gender"><option value="male">Masculino · mp_m_freemode_01</option><option value="female">Feminino · mp_f_freemode_01</option></select></label><p id="ped-status" class="hint" role="status">Consultando biblioteca local…</p><p id="ped-library-status" class="hint" role="status"></p><label><input id="ped-visible" type="checkbox" checked> Mostrar ped</label><label><input id="ped-transparent" type="checkbox"> Ped transparente</label><button id="forget-ped">Remover ped salvo deste gênero</button><p class="hint">Importe uma vez um YDD ou GLB autorizado; ele será lembrado neste computador. A referência não entra na exportação GLB.</p>';
 $('#open-ped').after(pedPanel);
 const pivot=new THREE.Group();pivot.name='SelectionPivot';scene.add(pivot);
 const transform=new TransformControls(camera,renderer.domElement);scene.add(transform.getHelper());
@@ -200,6 +200,9 @@ function disposeGroup(group) {
   });
 }
 function clearReference() {disposeGroup(reference);reference.clear();}
+
+const libraryNotice=()=>{$('#ped-library-status').textContent=pedLibraryInfo().message;};
+window.addEventListener('godoy-ped-library-status',libraryNotice);libraryNotice();
 let restoreSequence=0;
 async function restorePed() {
   const sequence=++restoreSequence,gender=$('#ped-gender').value;
@@ -214,7 +217,7 @@ $('#ped-file').onchange=e=>guard(async()=> {
   const file=e.target.files[0];if(!file)return;
   const sequence=++restoreSequence,gender=$('#ped-gender').value;
   if(!await load(file,true,sequence))return;
-  try {await rememberPed(gender,file);if(/\.ydd$/i.test(file.name))await rememberPedSkeleton(gender,new Uint8Array(await file.arrayBuffer()));else await forgetPedSkeleton(gender);$('#ped-status').textContent=`Ped salvo e carregado: ${file.name}`;await converter?.refreshBones();}
+  try {const previewSaved=await rememberPed(gender,file);const skeletonSaved=/\.ydd$/i.test(file.name)?await rememberPedSkeleton(gender,new Uint8Array(await file.arrayBuffer())):await forgetPedSkeleton(gender);if(sequence!==restoreSequence)return;const persistent=previewSaved.persistent&&skeletonSaved.persistent;$('#ped-status').textContent=`${persistent?'Ped salvo e carregado':'Ped carregado nesta sessão'}: ${file.name}`;if(!persistent)$('#ped-library-status').textContent='Ped disponível somente nesta sessão. Guarde seus arquivos e importe novamente ao reabrir.';await converter?.refreshBones();}
   catch(error) {$('#ped-status').textContent=`Ped carregado, mas não salvo: ${error.message}`;}
   finally {e.target.value='';}
 })();
@@ -399,12 +402,13 @@ if(!native) {
       for(const asset of result.assets)group.add(await load(new File([asset.bytes],asset.name),true,null,true));
       group.name=`Ped · ${result.ped}`;
       if(sequence!==restoreSequence){disposeGroup(group);return;}
-      await rememberPedSkeleton(gender,result.assets[0].bytes);
-      installPed(group);await converter?.refreshBones();$('#ped-status').textContent=`Ped do GTA carregado: ${result.ped}`;
+      installPed(group);
+      const skeletonSaved=await rememberPedSkeleton(gender,result.assets[0].bytes);if(sequence!==restoreSequence)return;await converter?.refreshBones();$('#ped-status').textContent=`Ped do GTA carregado: ${result.ped}`;
       $('#native-status').textContent='Ped base carregado via CodeWalker. Pose estática; roupas da cena preservadas.'+(result.missing.length?' Componentes ausentes: '+result.missing.join(', '):'');
       try {
         const data=await new GLTFExporter().parseAsync(group,{binary:true,onlyVisible:false});
-        await rememberPed(gender,new File([data],result.ped+'.glb'));
+        const previewSaved=await rememberPed(gender,new File([data],result.ped+'.glb'));
+        if(!skeletonSaved.persistent||!previewSaved.persistent)$('#ped-library-status').textContent='Ped disponível somente nesta sessão. Guarde seus arquivos e importe novamente ao reabrir.';
       }catch(error){$('#native-status').textContent+=' Não foi possível guardar a cópia local: '+error.message;}
     } catch(error) {if(!group.parent)disposeGroup(group);$('#native-status').textContent=error.message;}
     finally{$('#load-native-ped').disabled=false;$('#configure-native').disabled=false;}

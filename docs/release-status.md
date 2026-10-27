@@ -1,3 +1,11 @@
+# Estado da versão 0.11.3 beta
+
+O fluxo anterior usava exclusivamente IndexedDB. Erro ao abrir a biblioteca interrompia leitura de esqueleto/refreshBones; no carregamento GTA, await rememberPedSkeleton vinha antes de installPed e descartava o grupo em caso de falha. Novo backend desktop/ped-storage.cjs usa arquivos GPD1 limitados a 80 MB no userData/reference-peds, nomes fixos por gênero/tipo, validação de entrada, troca por rename e registros de remoção para não ressuscitar cópias legadas. IPC restrito à janela principal autorizada, sem acesso a caminhos fornecidos pelo renderer.
+
+src/ped-library.js prioriza o backend nativo, migra registros legíveis do IndexedDB e mantém cache da sessão compartilhado entre módulos. Falhas dos backends não impedem importar, carregar o ped, listar ossos ou converter; dados inválidos continuam rejeitados. Abertura/transação IndexedDB tem prazo, erro e blocked tratados; conexão tardia é fechada. Não há deleteDatabase nem limpeza do perfil. Interface separa carregamento de persistência e informa quando somente a sessão está disponível.
+
+Validação local: 86 testes JS, build e navegador completo passaram. Regressão na interface injeta DOMException Internal error no IndexedDB, carrega o retorno simulado do CodeWalker e converte um OBJ usando o esqueleto da sessão. Testes unitários cobrem disco, vistas de bytes, gêneros/tipos, reabertura, registros corrompidos, migração sem apagar a origem, timeout/bloqueio, remoção e falhas simultâneas. Windows adiciona teste do IPC/disco real com IndexedDB indisponível, recarrega a biblioteca sem cache de sessão e simula diretório inválido para confirmar importação e exportação em memória.
+
 # Estado da versão 0.11.2 beta
 
 Os dois pares diagnósticos foram confirmados pelo usuário na interface do grzyClothTool 1.2.1. O Teste 1 conservava a estrutura, aplicando nomes/hashes novos e load/build/save do par; o Teste 2 mudava também layout/paletas/esqueleto. Isso confirma compatibilidade, sem isolar cache/reimportação de normalização. A correção da máscara em 0.11.1, sozinha, não resolveu o caso reportado.
