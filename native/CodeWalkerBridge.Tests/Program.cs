@@ -346,3 +346,37 @@ TestManualAtlas();Console.WriteLine("Manual atlas: original UV unchanged, source
  foreach(var enumeration in meta.EnumInfos){var expected=MetaTypes.GetEnumInfo(enumeration.EnumNameHash);Check(expected.EnumKey==enumeration.EnumKey&&expected.Entries.Length==enumeration.Entries.Length,"enum schema agrees with CodeWalker");for(int i=0;i<expected.Entries.Length;i++)Check(expected.Entries[i].EntryNameHash==enumeration.Entries[i].EntryNameHash&&expected.Entries[i].EntryValue==enumeration.Entries[i].EntryValue,"enum entries agree with CodeWalker");}
  Console.WriteLine("Pack compiler: CodeWalker reads mixed clothing/props YMT, anchors, variants, hair/heel values and flags PASS");
 }
+
+// Converted high/low LODs share physical buffers, while both retain full geometry.
+{
+ var shared=new YddFile();shared.Load(converted.ydd);var high=shared.Drawables[0].DrawableModels.High[0].Geometries[0];var low=shared.Drawables[0].DrawableModels.Low[0].Geometries[0];
+ Check(ReferenceEquals(high.VertexData,low.VertexData)&&ReferenceEquals(high.VertexBuffer,low.VertexBuffer)&&ReferenceEquals(high.IndexBuffer,low.IndexBuffer),"converted LOD buffers are physically shared");
+ var origin=high.VertexData.GetVector3(0,0);var move=Matrix.Translation(.25f,.5f,.75f);var edited=new YddFile();edited.Load(YddEditor.Export(shared,Request(move,"preserve"),null));
+ foreach(var model in edited.Drawables[0].AllModels)Near(model.Geometries[0].VertexData.GetVector3(0,0),Vector3.TransformCoordinate(origin,move),"shared buffer transformed exactly once across LODs");
+ var atlasFile=new YddFile();atlasFile.Load(converted.ydd);YddAtlas.Build(atlasFile,JsonSerializer.SerializeToElement(new{atlas=true,ytdData=Convert.ToBase64String(converted.ytd),additions=new[]{addition},atlasMaxResolution=4096}));
+ Console.WriteLine("Shared LODs: same buffers, full geometry, transform once and subsequent atlas edit PASS");
+}
+{
+ var legacy=Fixture();var d=legacy.Drawables[0];var shader=d.ShaderGroup.Shaders.data_items[0];
+ DrawableModel LargeModel(){
+  var geometries=new List<DrawableGeometry>();const int count=60000;
+  for(int part=0;part<20;part++){
+   var info=new VertexDeclaration{Flags=95,Types=VertexDeclarationTypes.GTAV1};info.UpdateCountAndStride();var bytes=new byte[count*info.Stride];
+   for(int i=0;i<count;i++){
+    var row=bytes.AsSpan(i*info.Stride,info.Stride);int face=i/3,corner=i%3;float x=face%200*.01f+(corner==1?.005f:0),y=face/200*.01f+(corner==2?.005f:0);
+    BitConverter.TryWriteBytes(row,x);BitConverter.TryWriteBytes(row[4..],y);BitConverter.TryWriteBytes(row[8..],2+part*.01f);row[12]=255;BitConverter.TryWriteBytes(row[28..],1f);row[32]=row[33]=row[34]=row[35]=255;BitConverter.TryWriteBytes(row[36..],x/2);BitConverter.TryWriteBytes(row[40..],y);
+   }
+   var data=new VertexData{Info=info,VertexCount=count,VertexStride=info.Stride,VertexBytes=bytes};var indices=Enumerable.Range(0,count).Select(i=>(ushort)i).ToArray();
+   geometries.Add(new DrawableGeometry{VertexData=data,VertexBuffer=new VertexBuffer{Data1=data,Info=info,VertexCount=count,VertexStride=info.Stride},IndexBuffer=new IndexBuffer{Indices=indices,IndicesCount=count},BoneIds=new ushort[]{2},VerticesCount=count,VertexStride=info.Stride,IndicesCount=count,TrianglesCount=count/3,Shader=shader,ShaderID=0});
+  }
+  var model=new DrawableModel{GeometriesCount1=20,GeometriesCount2=20,GeometriesCount3=20,Geometries=geometries.ToArray(),ShaderMapping=new ushort[20],HasSkin=1,RenderMask=255};model.RebuildBounds();return model;
+ }
+ d.DrawableModels=new DrawableModelsBlock{High=new[]{LargeModel()},Low=new[]{LargeModel()}};d.BuildAllModels();d.BuildVertexDecls();d.BuildRenderMasks();
+ var legacyBytes=legacy.Save();var before=FiveMResource.Size(legacyBytes);Console.WriteLine($"Legacy fixture system {before.system}");Check(before.system>FiveMResource.Limit,"fixture reproduces RAGE oversized graphics segment even when compressed file is small");
+ bool rejected=false;try{FiveMResource.Check(legacyBytes);}catch(Exception){rejected=true;}Check(rejected,"unsafe YDD rejected by streaming guard");
+ File.WriteAllBytes("tests/fixtures/native-duplicate-lods.ydd",legacyBytes);
+ var compact=FiveMResource.Compact(legacyBytes);var after=FiveMResource.Size(compact);Check(after.system<before.system*.7&&after.system<FiveMResource.Limit,"sharing duplicated LODs reduces streaming graphics below budget");
+ var check=new YddFile();check.Load(compact);Check(check.Drawables[0].AllModels.All(m=>m.Geometries.Sum(g=>g.IndexBuffer.Indices.Length/3)==400000),"all 400000 triangles retained in each LOD");
+ Check(FiveMResource.Compact(compact).SequenceEqual(compact),"repeated compaction is byte-idempotent");
+ Console.WriteLine($"Large YDD lossless: file {legacyBytes.Length} -> {compact.Length}; system {before.system} -> {after.system}; 400000 triangles per LOD preserved PASS");
+}

@@ -1,3 +1,4 @@
+import {mountYddCompactor} from './ydd-compact-ui.js';
 import * as THREE from 'three';
 import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
 import {TransformControls} from 'three/addons/controls/TransformControls.js';
@@ -419,3 +420,5 @@ if(new URLSearchParams(location.search).get('mode')==='converter') {
  converter=startObjConverter({getSelection:()=>selection,native,status,refreshResources:()=>collectResources(content,resources)});$('#open-obj').after(cancelImport);
  document.addEventListener('godoy-converter-place',e=>{const {object,point}=e.detail;if(object!==selection)return;const before=snapshotTransform(object),box=visibleBounds(object);object.position.add(point.clone().sub(box.getCenter(new THREE.Vector3())));object.updateMatrixWorld(true);recordTransform(object,before,snapshotTransform(object));focus(object);status('OBJ levado ao osso. Ajuste posição, giro e escala antes de converter. Ctrl+Z desfaz.');});
 }
+
+mountYddCompactor({native,container:document.querySelector('aside'),status});

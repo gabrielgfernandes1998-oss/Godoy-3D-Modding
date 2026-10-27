@@ -1,3 +1,4 @@
+import {assertFiveMBudget} from './resource-budget.js';
 import { zipSync, strToU8 } from 'fflate';
 import { parseYdd } from '../modules/vehicles/src/formats/ydd.js';
 import { parseYtd } from '../modules/vehicles/src/formats/ytd.js';
@@ -18,6 +19,7 @@ export function createClothingPack({pack,gender,files,settings={}}) {
   }
   for(const file of files) {
     if(!/\.(ydd|ytd)$/i.test(file.name)) continue;
+    if(/\.ydd$/i.test(file.name)&&file.bytes instanceof Uint8Array)assertFiveMBudget(file.bytes,file.name);
     if(!(file.bytes instanceof Uint8Array)||!file.bytes.length||file.bytes.length>80*1024*1024) throw Error('Cada arquivo deve ter entre 1 byte e 80 MB.');
     total+=file.bytes.length; if(total>256*1024*1024) throw Error('Divida o pack: limite de 256 MB por exportação.');
     const name=file.name.split('^').at(-1);

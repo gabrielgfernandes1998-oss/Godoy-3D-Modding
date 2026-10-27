@@ -1,11 +1,10 @@
-# Godoy 3D Modding 0.11.4 beta
+# Godoy 3D Modding 0.11.5 beta
 
-- Corrige falhas como “Biblioteca local indisponível: Internal error” que impediam importar/carregar o ped e listar seus ossos quando o IndexedDB não abria.
-- No portable, a biblioteca usa arquivos locais do aplicativo por gênero, separados entre preview e esqueleto, com gravação atômica. Não depende do IndexedDB para salvar novos peds.
-- Registros antigos são migrados quando podem ser lidos; a biblioteca antiga não é apagada nem reinicializada automaticamente. Se ela estiver inacessível, carregue o ped do GTA ou importe novamente uma vez.
-- Se tanto disco quanto IndexedDB falharem, o ped e o esqueleto ficam utilizáveis na sessão atual, com aviso explícito de que precisarão ser importados após reabrir. Falha de salvamento deixa de bloquear o ped na cena e a conversão.
-- Leitura da biblioteca antiga tem prazo e tratamento de bloqueio. Remoção persistente impede que uma cópia antiga reapareça por migração.
+- Corrige a duplicação dos buffers idênticos de High/Low na conversão OBJ/GLB para YDD. Mantém todos os triângulos, UVs, posição, escala, cores e vínculo ao osso. O YTD não é reduzido nem recomprimido.
+- Adiciona **Compactar YDD já exportado** nas abas 03/05. Escolha seu YDD antigo, extraia o ZIP resultante e use o YTD original. O relatório compara tamanho do arquivo e memória reservada.
+- Verifica o tamanho reservado pelo RSC7 e bloqueia a exportação/importação no Pack acima do orçamento conservador de 100 MB por região ou arquivo. Se compartilhar buffers não bastar, é necessário reduzir a geometria na origem.
+- Mantém a edição de posição e atlas compatível com buffers compartilhados, aplicando cada transformação uma única vez.
 
-Validação: 86 testes JS e navegador completo, incluindo IndexedDB com erro Internal error, resposta simulada de ped do CodeWalker e conversão usando esqueleto em memória. O teste do executável Windows verifica biblioteca real por IPC/disco, recarregamento com IndexedDB indisponível e exportação após simular falha também no diretório da biblioteca.
+Validação local: 88 testes JavaScript, navegador completo e testes nativos. Um recurso sintético com 400 mil triângulos por LOD caiu de 128 para 64 MiB reservados, sem remover geometria. No YDD do chaveiro fornecido, o arquivo caiu de 18.995.494 para 9.584.219 bytes, com região de sistema de 64 para 32 MiB. A mochila de 114.908 KB ainda precisa ser testada pelo usuário, assim como a renderização no FiveM.
 
-Extraia o portable completo em uma pasta nova. Se o ped antigo não reaparecer, use Carregar ped deste gênero do GTA ou importe o YDD de referência; a nova cópia será salva em disco quando disponível. Nenhum arquivo GTA foi incluído no aplicativo.
+Extraia o portable completo numa pasta nova. Novas conversões usam a otimização automaticamente; para arquivos já gerados, use o compactador. LODs completos continuam tendo o mesmo custo de renderização; esta versão reduz armazenamento duplicado, sem simplificação.

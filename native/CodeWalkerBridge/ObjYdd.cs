@@ -15,7 +15,7 @@ static class ObjYdd {
         var bone=skeleton.Bones.Items.First(b=>b.Tag==tag);
         if(bone.Index<0||bone.Index>255)throw new Exception("Índice de osso acima do limite de 255.");
         var parts=ReadParts(request);
-        long graphics=parts.Sum(p=>44L*p.count+2L*p.indices.Length)*2;
+        long graphics=parts.Sum(p=>44L*p.count+2L*p.indices.Length);
         if(graphics>=0x10000000L)throw new Exception("A geometria não cabe no endereçamento de 28 bits do YDD. Reduza a malha ou divida em recursos diferentes.");
         int size=request.GetProperty("textureSize").GetInt32();if(size is not (512 or 1024 or 2048 or 4096))throw new Exception("Resolução inválida.");
         var pixels=request.TryGetProperty("pixelsFile",out var pixelFile)?File.ReadAllBytes(pixelFile.GetString()!):Convert.FromBase64String(request.GetProperty("pixels").GetString()??"");
@@ -41,9 +41,12 @@ static class ObjYdd {
             }).ToArray();
             var model=new DrawableModel{HasSkin=1,BoneIndex=0,RenderMask=255,Geometries=geometries,ShaderMapping=new ushort[geometries.Length],GeometriesCount1=(ushort)geometries.Length,GeometriesCount2=(ushort)geometries.Length,GeometriesCount3=(ushort)geometries.Length};model.RebuildBounds();return model;
         }
-        var drawable=new Drawable{Name=name,Skeleton=skeleton,LightAttributes=new ResourceSimpleList64<LightAttributes>(),ShaderGroup=new ShaderGroup{Shaders=new ResourcePointerArray64<ShaderFX>{data_items=new[]{shader}}},DrawableModels=new DrawableModelsBlock{High=new[]{Model()},Low=new[]{Model()}},LodDistHigh=999,LodDistMed=999,LodDistLow=999,LodDistVlow=999};
+        var high=Model();
+        var low=new DrawableModel{GeometriesCount1=high.GeometriesCount1,GeometriesCount2=high.GeometriesCount2,GeometriesCount3=high.GeometriesCount3,HasSkin=high.HasSkin,BoneIndex=high.BoneIndex,RenderMask=high.RenderMask,ShaderMapping=high.ShaderMapping.ToArray(),Geometries=high.Geometries.Select(g=>new DrawableGeometry{VertexData=g.VertexData,VertexBuffer=g.VertexBuffer,IndexBuffer=g.IndexBuffer,BoneIds=g.BoneIds,VerticesCount=g.VerticesCount,VertexStride=g.VertexStride,IndicesCount=g.IndicesCount,TrianglesCount=g.TrianglesCount,Shader=g.Shader,ShaderID=g.ShaderID}).ToArray()};low.RebuildBounds();
+        var drawable=new Drawable{Name=name,Skeleton=skeleton,LightAttributes=new ResourceSimpleList64<LightAttributes>(),ShaderGroup=new ShaderGroup{Shaders=new ResourcePointerArray64<ShaderFX>{data_items=new[]{shader}}},DrawableModels=new DrawableModelsBlock{High=new[]{high},Low=new[]{low}},LodDistHigh=999,LodDistMed=999,LodDistLow=999,LodDistVlow=999};
         drawable.BuildAllModels();drawable.BuildVertexDecls();drawable.BuildRenderMasks();
         var file=new YddFile{Drawables=new[]{drawable},DrawableDict=new DrawableDictionary{Hashes=new[]{JenkHash.GenHash(name)},Drawables=new ResourcePointerArray64<Drawable>{data_items=new[]{drawable}}}};
+        FiveMResource.Share(file);
         var edit=JsonSerializer.SerializeToElement(new{matrix=Matrix.Identity.ToArray(),bone="preserve"});
         var saved=YddEditor.Export(file,edit,null);var savedYtd=ytd.Save();
         // Parsing geometry alone is insufficient: CodeWalker/grzy skip models whose
@@ -105,7 +108,7 @@ static class ObjYdd {
             for(int part=0;part<count;part++) {
                 uint n=reader.ReadUInt32(),indexCount=reader.ReadUInt32();
                 if(n<1||n>65535||indexCount<3||indexCount%3!=0||32L*n+2L*indexCount>stream.Length-stream.Position||indexCount>int.MaxValue)throw new Exception("Contagem ou tamanho de geometria binária inválido.");
-                graphics+=(44L*n+2L*indexCount)*2;if(graphics>=0x10000000L)throw new Exception("A geometria não cabe no endereçamento de 28 bits do YDD. Reduza a malha ou divida em recursos diferentes.");
+                graphics+=(44L*n+2L*indexCount);if(graphics>=0x10000000L)throw new Exception("A geometria não cabe no endereçamento de 28 bits do YDD. Reduza a malha ou divida em recursos diferentes.");
                 float[] Floats(int size){var values=new float[size];for(int i=0;i<size;i++){float v=reader.ReadSingle();if(!float.IsFinite(v)||Math.Abs(v)>100000)throw new Exception("Coordenadas OBJ inválidas.");values[i]=v;}return values;}
                 var positions=Floats((int)n*3);var normals=Floats((int)n*3);var uvs=Floats((int)n*2);var indices=new ushort[indexCount];
                 for(int i=0;i<indexCount;i++){indices[i]=reader.ReadUInt16();if(indices[i]>=n)throw new Exception("Índice OBJ inválido.");}

@@ -1,3 +1,4 @@
+import {exerciseCompactor} from './compact-flow.mjs';
 import {exercisePedStorageFailure} from './ped-storage-flow.mjs';
 import {exerciseGlbConverter} from './glb-converter-flow.mjs';
 import {exerciseConverter} from './converter-flow.mjs';
@@ -186,7 +187,7 @@ try {
     for(let y=0;y<objTexture.height;y++)assert.deepEqual(afterPixels.slice(y*objTexture.width*4,(y*objTexture.width+objTexture.width/2)*4),beforePixels.slice(y*objTexture.width*4,(y*objTexture.width+objTexture.width/2)*4),'Painting the OBJ must preserve the entire clothing side of the atlas');
 
   }
-  if(process.platform==='win32'){await exerciseConverter(page,output);await exerciseGlbConverter(page,output);}
+  if(process.platform==='win32'){await exerciseConverter(page,output);await exerciseGlbConverter(page,output);await exerciseCompactor(page,output);}
   await exercisePedStorageFailure(page,output,{desktop});
   assert.deepEqual(errors,[]);assert.deepEqual(failures,[]);
   await page.click('[data-tab=pack]');await mkdir('.test-output',{recursive:true});

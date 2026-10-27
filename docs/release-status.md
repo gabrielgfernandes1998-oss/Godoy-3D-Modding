@@ -1,3 +1,13 @@
+# Estado da versão 0.11.5 beta
+
+Implementação e validação local concluídas: compartilhamento exato dos buffers de geometria, edição/atlas sobre buffers compartilhados, compactação de YDD existente por IPC restrito, preflight RSC7 e relatório de memória. 88 testes JS, suíte nativa e navegador completo passaram. Compilação Windows e teste do executável serão confirmados pela automação de release.
+
+A malha sintética reproduz a reserva de sistema de 128 MiB e passa a 64 MiB com todos os triângulos e bytes dos vértices preservados. O chaveiro privado passou de 18.995.494 para 9.584.219 bytes pelo comando real do bridge. Nenhum modelo/textura do usuário foi incluído no aplicativo. O fixture grande é sintético.
+
+A mochila reportada não foi fornecida nesta sessão; não há confirmação de tamanho final ou execução no FiveM para ela. Se não houver buffers duplicados suficientes, a compactação recusa o resultado acima do orçamento e orienta reduzir a geometria na origem.
+
+## Histórico da 0.11.4
+
 # Estado da versão 0.11.4 beta
 
 O fluxo anterior usava exclusivamente IndexedDB. Erro ao abrir a biblioteca interrompia leitura de esqueleto/refreshBones; no carregamento GTA, await rememberPedSkeleton vinha antes de installPed e descartava o grupo em caso de falha. Novo backend desktop/ped-storage.cjs usa arquivos GPD1 limitados a 80 MB no userData/reference-peds, nomes fixos por gênero/tipo, validação de entrada, troca por rename e registros de remoção para não ressuscitar cópias legadas. IPC restrito à janela principal autorizada, sem acesso a caminhos fornecidos pelo renderer.

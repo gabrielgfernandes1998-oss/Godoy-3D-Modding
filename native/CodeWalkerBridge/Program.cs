@@ -34,7 +34,7 @@ try {
     } else if(command=="create-ydd") {
         var bytes=Convert.FromBase64String(Text("pedData"));if(bytes.Length>80*1024*1024)throw new Exception("Ped acima de 80 MB.");
         var ped=new CodeWalker.GameFiles.YddFile();ped.Load(bytes);
-        var converted=ObjYdd.Create(ped,root);
+        var converted=ObjYdd.Create(ped,root);converted=(FiveMResource.Compact(converted.ydd),converted.ytd);
         if(root.TryGetProperty("outputDirectory",out var target)) {
             string path=Path.GetFullPath(target.GetString()!);if(!Directory.Exists(path))throw new Exception("Diretório temporário não encontrado.");
             File.WriteAllBytes(Path.Combine(path,"converted.ydd"),converted.ydd);File.WriteAllBytes(Path.Combine(path,"converted.ytd"),converted.ytd);result=new{ok=true,compatibility=ObjYdd.CompatibilityProfile};
@@ -52,9 +52,13 @@ try {
         if(command=="plan-atlas")result=new {ok=true,plan=YddAtlas.Plan((CodeWalker.GameFiles.YddFile)file,root)};
         else {
         var ytd=root.TryGetProperty("atlas",out var atlas)&&atlas.GetBoolean()?YddAtlas.Build((CodeWalker.GameFiles.YddFile)file,root):YddTextures.Build(root);
-        var saved=YddEditor.Export(file,root,donor);
+        var saved=FiveMResource.Compact(YddEditor.Export(file,root,donor));
         result=new {ok=true,data=Convert.ToBase64String(saved),ytdData=ytd is null?null:Convert.ToBase64String(ytd)};
         }
+    } else if(command=="compact-ydd") {
+        var inputFile=Text("inputFile");if(new FileInfo(inputFile).Length>256L*1024*1024)throw new Exception("YDD acima do limite de leitura de 256 MB.");
+        var data=File.ReadAllBytes(inputFile);var before=FiveMResource.Size(data);var saved=FiveMResource.Compact(data);var after=FiveMResource.Size(saved);
+        File.WriteAllBytes(Text("outputFile"),saved);result=new{ok=true,beforeBytes=data.Length,afterBytes=saved.Length,beforeSystem=before.system,beforeGraphics=before.graphics,afterSystem=after.system,afterGraphics=after.graphics,limit=FiveMResource.Limit};
     } else if(command=="roundtrip") {
         var bytes=Convert.FromBase64String(Text("data"));
         if(bytes.Length>80*1024*1024)throw new Exception("YDD acima de 80 MB.");

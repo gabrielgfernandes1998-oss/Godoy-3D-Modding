@@ -1,0 +1,17 @@
+import assert from 'node:assert/strict';
+import {readFile} from 'node:fs/promises';
+import path from 'node:path';
+import {unzipSync} from 'fflate';
+import {assertFiveMBudget} from '../src/resource-budget.js';
+export async function exerciseCompactor(page,output){
+ await page.locator('[data-tab=converter]').click();const frame=page.frameLocator('#converter iframe');
+ await frame.locator('#ydd-compactor summary').click();
+ const pending=page.waitForEvent('download',{timeout:180000});
+ await frame.locator('#compact-ydd-file').setInputFiles('tests/fixtures/native-duplicate-lods.ydd');
+ const download=await pending,target=path.join(output,'compact-ydd.zip');await download.saveAs(target);
+ const files=unzipSync(await readFile(target)),report=JSON.parse(new TextDecoder().decode(files['relatorio-ydd.json']));
+ assert.ok(files['native-duplicate-lods.ydd']);assert.equal(Object.keys(files).length,2,'does not replace YTD');
+ assert.ok(report.beforeSystem>100000000);assert.ok(report.afterSystem<100000000);assert.ok(report.afterBytes<report.beforeBytes*.7);
+ assertFiveMBudget(files['native-duplicate-lods.ydd'],'compacted.ydd');
+ await frame.locator('#compact-ydd-result').filter({hasText:'Use o YTD original'}).waitFor();
+}

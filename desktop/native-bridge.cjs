@@ -87,6 +87,16 @@ function registerNativeBridge({app,ipcMain,dialog,getWindow}) {
       return new Uint8Array(Buffer.from(result.data,'base64'));
     } finally {busy=false;}
   });
+  ipcMain.handle('godoy:native-compact-ydd',async(event,request)=>{
+    allowed(event);if(busy)throw Error('Aguarde a operação nativa atual.');
+    if(!request||typeof request.name!=='string'||request.name.length>240||/[\\/\0:]/.test(request.name)||!/^.+\.ydd$/i.test(request.name)||!(request.bytes instanceof Uint8Array)||!request.bytes.length||request.bytes.length>256*1024*1024)throw Error('Selecione um YDD de até 256 MB.');
+    busy=true;let directory;
+    try{
+      directory=await fs.mkdtemp(path.join(os.tmpdir(),'godoy-ydd-compact-'));const inputFile=path.join(directory,'input.ydd'),outputFile=path.join(directory,'output.ydd');await fs.writeFile(inputFile,request.bytes);
+      const config=await resolveConfig();const report=await runBridge(executable,{command:'compact-ydd',codewalkerDirectory:config.codewalkerDirectory,inputFile,outputFile});
+      return {name:request.name,bytes:new Uint8Array(await fs.readFile(outputFile)),report};
+    }finally{busy=false;if(directory)await fs.rm(directory,{recursive:true,force:true,maxRetries:3,retryDelay:100});}
+  });
   ipcMain.handle('godoy:native-create-ydd',async(event,request)=> {
     allowed(event);if(busy)throw Error('Aguarde a operação nativa atual.');
     if(!request||!Number.isInteger(request.boneTag)||request.boneTag<0||request.boneTag>65535||!['head','berd','hair','uppr','lowr','hand','feet','teef','accs','task','decl','jbib'].some(c=>new RegExp('^'+c+'_[0-9]{3}_u$').test(request.name)))throw Error('Nome ou osso inválido.');

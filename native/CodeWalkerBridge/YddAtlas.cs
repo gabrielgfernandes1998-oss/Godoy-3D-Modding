@@ -136,11 +136,11 @@ static class YddAtlas {
         var diffuseAtlas=Pixels(diffuseName,width,height,diffusePixels,TextureUsage.DIFFUSE);
         var normalAtlas=normalPixels is null?null:AuxiliaryPixels("godoy_atlas_n_"+suffix,width,height,normalPixels,TextureUsage.NORMAL);
         var specAtlas=specPixels is null?null:AuxiliaryPixels("godoy_atlas_s_"+suffix,width,height,specPixels,TextureUsage.SPECULAR);
-        var visited=new HashSet<VertexData>();
+        var visited=new Dictionary<VertexData,int>();
         foreach(var drawable in ydd.Drawables) {
             foreach(var model in drawable.AllModels)foreach(var geometry in model.Geometries) {
                 var tile=tiles[geometry.Shader];var data=geometry.VertexData;
-                if(!visited.Add(data))throw new Exception("Buffers UV compartilhados não suportados pelo atlas.");
+                if(visited.TryGetValue(data,out var previous)){if(previous!=tile.index)throw new Exception("Buffer UV compartilhado entre materiais diferentes; separe a peça antes de criar o atlas.");continue;}visited[data]=tile.index;
                 for(int i=0;i<data.VertexCount;i++) {
                     Vector2 uv=data.Info.GetComponentType(6) switch {VertexComponentType.Float2=>data.GetVector2(i,6),VertexComponentType.Half2=>(Vector2)data.GetHalf2(i,6),_=>throw new Exception("Atlas exige UV Float2 ou Half2.")};
                     if(!float.IsFinite(uv.X)||!float.IsFinite(uv.Y))throw new Exception("UV original contém coordenadas não finitas.");

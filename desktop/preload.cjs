@@ -5,6 +5,7 @@ contextBridge.exposeInMainWorld('godoyNative',Object.freeze({
   deletePedLibrary:(gender,kind)=>ipcRenderer.invoke('godoy:ped-library-delete',gender,kind),
   status:()=>ipcRenderer.invoke('godoy:native-status'),
   configure:()=>ipcRenderer.invoke('godoy:native-configure'),
+  compactYdd:request=>ipcRenderer.invoke('godoy:native-compact-ydd',request),
   createYdd:request=>ipcRenderer.invoke('godoy:native-create-ydd',request),
   exportYdd:request=>ipcRenderer.invoke('godoy:native-export-ydd',request),
   loadPed:gender=>ipcRenderer.invoke('godoy:native-ped',gender),

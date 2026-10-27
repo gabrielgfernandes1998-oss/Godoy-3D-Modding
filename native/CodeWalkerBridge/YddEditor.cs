@@ -29,7 +29,7 @@ static class YddEditor {
             }
             drawable.BuildAllModels();
             var overallMin=new Vector3(float.MaxValue);var overallMax=new Vector3(float.MinValue);int count=0;
-            var edited=new HashSet<VertexData>();
+            var edited=new Dictionary<VertexData,(Matrix matrix,bool skin)>();
             foreach(var model in drawable.AllModels) {
                 var vertexMatrix=matrix;var outputBind=Matrix.Identity;
                 if(model.HasSkin==0) {
@@ -41,7 +41,9 @@ static class YddEditor {
                 var normalMatrix=Matrix.Transpose(Matrix.Invert(vertexMatrix));
                 foreach(var geometry in model.Geometries??Array.Empty<DrawableGeometry>()) {
                     var data=geometry.VertexData??throw new Exception("Geometria sem dados de vértice.");
-                    if(!edited.Add(data))throw new Exception("Buffers compartilhados entre geometrias ainda não são suportados; exportação cancelada.");
+                    bool repeated=edited.TryGetValue(data,out var applied);
+                    if(repeated&&(applied.matrix!=vertexMatrix||applied.skin!=(model.HasSkin!=0)))throw new Exception("Buffer compartilhado com transformações diferentes. Exporte as peças separadamente.");
+                    if(!repeated)edited[data]=(vertexMatrix,model.HasSkin!=0);
                     if(data.Info.GetComponentType(0)!=VertexComponentType.Float3)throw new Exception("Formato de posição não suportado para exportação nativa.");
                     var flags=data.Info.Flags;
                     if(target is not null && model.HasSkin!=0) {
@@ -49,13 +51,13 @@ static class YddEditor {
                         geometry.BoneIds=new[]{(ushort)target.Index};
                     }
                     for(int i=0;i<data.VertexCount;i++) {
-                        var p=Vector3.TransformCoordinate(data.GetVector3(i,0),vertexMatrix);Check(p);
+                        var p=repeated?data.GetVector3(i,0):Vector3.TransformCoordinate(data.GetVector3(i,0),vertexMatrix);Check(p);
                         data.SetVector3(i,0,p);
                         // Bounds of the drawable are in the ped bind coordinate system.
                         var world=model.HasSkin==0?Vector3.TransformCoordinate(p,outputBind):p;
                         overallMin=Vector3.Min(overallMin,world);overallMax=Vector3.Max(overallMax,world);count++;
-                        if((flags&(1u<<3))!=0)Direction(data,i,3,normalMatrix);
-                        if((flags&(1u<<14))!=0)Direction(data,i,14,vertexMatrix);
+                        if(!repeated&&(flags&(1u<<3))!=0)Direction(data,i,3,normalMatrix);
+                        if(!repeated&&(flags&(1u<<14))!=0)Direction(data,i,14,vertexMatrix);
                         if(target is not null && model.HasSkin!=0) {
                             data.SetUByte4(i,1,new Color((byte)255,(byte)0,(byte)0,(byte)0));
                             data.SetUByte4(i,2,new Color((byte)0,(byte)0,(byte)0,(byte)0));
