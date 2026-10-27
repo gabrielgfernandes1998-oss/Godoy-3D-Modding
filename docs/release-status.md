@@ -1,10 +1,12 @@
 # Estado da versão 0.11.5 beta
 
-Implementação e validação local concluídas: compartilhamento exato dos buffers de geometria, edição/atlas sobre buffers compartilhados, compactação de YDD existente por IPC restrito, preflight RSC7 e relatório de memória. 88 testes JS, suíte nativa e navegador completo passaram. Compilação Windows e teste do executável serão confirmados pela automação de release.
+Implementação e validação local concluídas: compartilhamento exato dos buffers de geometria, edição/atlas sobre buffers compartilhados, compactação de YDD existente por IPC restrito, preflight RSC7 e relatório de memória. 88 testes JS, suíte nativa e navegador completo passaram. Compilação Windows e teste do executável confirmados pela automação de release. O teste do portable compactou o fixture grande, verificou o orçamento e o ZIP com YDD + relatório, sem substituir o YTD.
 
 A malha sintética reproduz a reserva de sistema de 128 MiB e passa a 64 MiB com todos os triângulos e bytes dos vértices preservados. O chaveiro privado passou de 18.995.494 para 9.584.219 bytes pelo comando real do bridge. Nenhum modelo/textura do usuário foi incluído no aplicativo. O fixture grande é sintético.
 
 A mochila reportada não foi fornecida nesta sessão; não há confirmação de tamanho final ou execução no FiveM para ela. Se não houver buffers duplicados suficientes, a compactação recusa o resultado acima do orçamento e orienta reduzir a geometria na origem.
+
+Release [v0.11.5](https://github.com/gabrielgfernandes1998-oss/Godoy-3D-Modding/releases/tag/v0.11.5) publicada após [workflow 40598622898](https://github.com/gabrielgfernandes1998-oss/Godoy-3D-Modding/actions/runs/40598622898) passar. Job Windows 122521681938; publicação 122522981111. ZIP baixado integralmente e SHA-256 conferido: 200795503 bytes; `7df868a3e13b836a86837d49de5cfcaaa1f3950ef030ffddd14f45b88f4f0ab8`.
 
 ## Histórico da 0.11.4
 
