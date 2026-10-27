@@ -4,9 +4,11 @@ Correção de fragmentação de páginas YDD implementada em native/CodeWalkerBr
 
 No ZIP privado da mochila: original 117.619.092 bytes e reserva de sistema 164.626.432; apenas compartilhar buffers deixava 100.663.296 bytes reservados; a nova saída tem 58.604.903 bytes e reserva 81.788.928. Cada LOD mantém 103 geometrias, 1.523.975 vértices e 2.233.750 triângulos. Verificação nativa compara bytes de vértices/índices e metadados; parser JS também leu ambos os LODs. YTD não alterado. Nenhum asset da mochila será incluído no repositório ou release; o fixture novo é sintético.
 
-Testes nativos passaram, incluindo recurso já compartilhado com reserva de 128 MiB reparado para 72 MiB e textura embutida preservada. 88 testes JS passaram. Compilação e teste Windows serão registrados após a automação. Execução no FiveM continua pendente.
+Testes nativos passaram, incluindo recurso já compartilhado com reserva de 128 MiB reparado para 72 MiB e textura embutida preservada. 88 testes JS passaram. Compilação e teste do executável Windows concluídos: ambos os arquivos do compactador produziram ZIPs válidos abaixo do orçamento, incluindo o caso já compartilhado. Execução no FiveM continua pendente.
 
 A candidata v0.11.6 não foi publicada: o teste Windows excedeu os 20 segundos padrão do Playwright ao enviar o fixture de 20 MB para o input, já localizado. A v0.11.7 mantém as mesmas verificações e a mesma implementação, dá até 120 segundos para transferência dos arquivos e registra cada estágio do compactador.
+
+Release [v0.11.7](https://github.com/gabrielgfernandes1998-oss/Godoy-3D-Modding/releases/tag/v0.11.7) publicada após [workflow 40604137659](https://github.com/gabrielgfernandes1998-oss/Godoy-3D-Modding/actions/runs/40604137659) passar. Job Windows 122540224428; publicação 122541572849. ZIP baixado integralmente e SHA-256 conferido: 200802599 bytes; `1cbaa8ec095d22897c93d4e62c383116bdf67328bcc5daf1c7e1a4bbd90d4804`.
 
 ## Histórico da 0.11.5
 
