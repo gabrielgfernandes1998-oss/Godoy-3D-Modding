@@ -1,10 +1,12 @@
-# Estado da versão 0.11.3 beta
+# Estado da versão 0.11.4 beta
 
 O fluxo anterior usava exclusivamente IndexedDB. Erro ao abrir a biblioteca interrompia leitura de esqueleto/refreshBones; no carregamento GTA, await rememberPedSkeleton vinha antes de installPed e descartava o grupo em caso de falha. Novo backend desktop/ped-storage.cjs usa arquivos GPD1 limitados a 80 MB no userData/reference-peds, nomes fixos por gênero/tipo, validação de entrada, troca por rename e registros de remoção para não ressuscitar cópias legadas. IPC restrito à janela principal autorizada, sem acesso a caminhos fornecidos pelo renderer.
 
 src/ped-library.js prioriza o backend nativo, migra registros legíveis do IndexedDB e mantém cache da sessão compartilhado entre módulos. Falhas dos backends não impedem importar, carregar o ped, listar ossos ou converter; dados inválidos continuam rejeitados. Abertura/transação IndexedDB tem prazo, erro e blocked tratados; conexão tardia é fechada. Não há deleteDatabase nem limpeza do perfil. Interface separa carregamento de persistência e informa quando somente a sessão está disponível.
 
 Validação local: 86 testes JS, build e navegador completo passaram. Regressão na interface injeta DOMException Internal error no IndexedDB, carrega o retorno simulado do CodeWalker e converte um OBJ usando o esqueleto da sessão. Testes unitários cobrem disco, vistas de bytes, gêneros/tipos, reabertura, registros corrompidos, migração sem apagar a origem, timeout/bloqueio, remoção e falhas simultâneas. Windows adiciona teste do IPC/disco real com IndexedDB indisponível, recarrega a biblioteca sem cache de sessão e simula diretório inválido para confirmar importação e exportação em memória.
+
+O candidato 0.11.3 não foi publicado: execução [40446925372](https://github.com/gabrielgfernandes1998-oss/Godoy-3D-Modding/actions/runs/40446925372) cancelada após o teste Windows ficar preso na confirmação nativa de alterações não salvas ao recarregar a cena. A automação agora aceita esse diálogo no perfil de teste antes da navegação, como já fazia no encerramento. O aplicativo mantém sua confirmação normal. Backend e testes locais passaram; a validação Windows é repetida em 0.11.4.
 
 # Estado da versão 0.11.2 beta
 

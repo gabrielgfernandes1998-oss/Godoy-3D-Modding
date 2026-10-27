@@ -1,4 +1,4 @@
-# Godoy 3D Modding 0.11.3 beta
+# Godoy 3D Modding 0.11.4 beta
 
 - Corrige falhas como “Biblioteca local indisponível: Internal error” que impediam importar/carregar o ped e listar seus ossos quando o IndexedDB não abria.
 - No portable, a biblioteca usa arquivos locais do aplicativo por gênero, separados entre preview e esqueleto, com gravação atômica. Não depende do IndexedDB para salvar novos peds.

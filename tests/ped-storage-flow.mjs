@@ -4,6 +4,9 @@ import path from 'node:path';
 import {unzipSync} from 'fflate';
 import {parseYdd} from '../modules/vehicles/src/formats/ydd.js';
 export async function exercisePedStorageFailure(page,output,{desktop=null}={}){
+ // Reloading an edited scene triggers the app's native unsaved-changes dialog.
+ // Accept it in this isolated test profile before navigation, not just in cleanup.
+ if(desktop)await desktop.evaluate(({dialog})=>{dialog.showMessageBoxSync=()=>1;});
  const bytes=await readFile('tests/fixtures/native-clothing.ydd');
  await page.addInitScript(()=>{if(!location.search.includes('mode=converter'))return;Object.defineProperty(globalThis,'indexedDB',{configurable:true,value:{open(){const r={};queueMicrotask(()=>{r.error=new DOMException('Internal error.','UnknownError');r.onerror?.();});return r;}}});});
  if(!desktop)await page.evaluate(bytes=>{window.godoyNative={...window.godoyNative,status:async()=>({available:true,configured:true,coreAvailable:true}),loadPed:async()=>({ped:'mp_m_freemode_01',assets:[{name:'native-clothing.ydd',bytes:new Uint8Array(bytes)}],missing:[]})};},Array.from(bytes));
