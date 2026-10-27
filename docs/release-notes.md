@@ -1,4 +1,4 @@
-# Godoy 3D Modding 0.11.6 beta
+# Godoy 3D Modding 0.11.7 beta
 
 - Corrige YDDs que continuavam acima do limite do FiveM por desperdício na organização das páginas, mesmo depois de compartilhar os buffers dos LODs.
 - O compactador testa organizações válidas, mantém cada bloco inteiro e alinhado e escolhe uma reserva menor. A organização original continua como alternativa. O serializador usa as mesmas estruturas CodeWalker, sem modificar o compilador global de YTD/YMT/peds.
