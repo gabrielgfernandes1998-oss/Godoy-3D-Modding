@@ -8,6 +8,10 @@ Validação local: 86 testes JS, build e navegador completo passaram. Regressão
 
 O candidato 0.11.3 não foi publicado: execução [40446925372](https://github.com/gabrielgfernandes1998-oss/Godoy-3D-Modding/actions/runs/40446925372) cancelada após o teste Windows ficar preso na confirmação nativa de alterações não salvas ao recarregar a cena. A automação agora aceita esse diálogo no perfil de teste antes da navegação, como já fazia no encerramento. O aplicativo mantém sua confirmação normal. Backend e testes locais passaram; a validação Windows é repetida em 0.11.4.
 
+Validação final no [run 40447878320](https://github.com/gabrielgfernandes1998-oss/Godoy-3D-Modding/actions/runs/40447878320): 86 testes JavaScript, 7 Python, suíte nativa, packs e executável Windows passaram. O teste Windows bloqueou o IndexedDB, importou o ped pela interface, conferiu os bytes do esqueleto pelo IPC/disco, esvaziou o cache de sessão e recarregou a referência com os ossos disponíveis. Depois tornou o diretório da biblioteca inválido, importou novamente e exportou YDD/YTD a partir do esqueleto em memória. A interface informou sessão apenas; erro de persistência não bloqueou a conversão. O teste de navegador também carregou a resposta simulada do CodeWalker com IndexedDB em Internal error.
+
+[Release 0.11.4](https://github.com/gabrielgfernandes1998-oss/Godoy-3D-Modding/releases/tag/v0.11.4) publicada; ZIP baixado e SHA-256 conferido: 200786210 bytes; `6e04ce75dbd1c17d02e992fe4a4816c9337b08c13671086341a749a6230b4112`. Não houve teste de extração com uma instalação GTA real neste ambiente; a lógica de extração não foi alterada.
+
 # Estado da versão 0.11.2 beta
 
 Os dois pares diagnósticos foram confirmados pelo usuário na interface do grzyClothTool 1.2.1. O Teste 1 conservava a estrutura, aplicando nomes/hashes novos e load/build/save do par; o Teste 2 mudava também layout/paletas/esqueleto. Isso confirma compatibilidade, sem isolar cache/reimportação de normalização. A correção da máscara em 0.11.1, sozinha, não resolveu o caso reportado.
