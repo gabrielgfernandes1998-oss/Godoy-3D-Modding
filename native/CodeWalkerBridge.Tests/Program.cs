@@ -50,14 +50,18 @@ JsonElement ConvertRequest(int boneTag=11816)=>JsonSerializer.SerializeToElement
 var converted=ObjYdd.Create(Fixture(),ConvertRequest());var convertedDoc=new YddFile();convertedDoc.Load(converted.ydd);var convertedTexture=new YtdFile();convertedTexture.Load(converted.ytd);
 Check(convertedDoc.Drawables.Length==1&&convertedDoc.Drawables[0].Name=="accs_007_u","new OBJ drawable name");
 Check((convertedDoc.Drawables[0].RenderMaskHigh&1)!=0&&(convertedDoc.Drawables[0].RenderMaskLow&1)!=0,"converted drawable is visible in CodeWalker high/low render passes");
+Check(convertedDoc.Drawables[0].FlagsHigh==1&&convertedDoc.Drawables[0].FlagsLow==1&&convertedDoc.Drawables[0].FlagsMed==0&&convertedDoc.Drawables[0].FlagsVlow==0,"RAGE LOD model counts agree with actual model lists independently of preview masks");
 Check(convertedDoc.DrawableDict.Hashes[0]==JenkHash.GenHash("accs_007_u"),"new drawable dictionary hash");
 foreach(var model in convertedDoc.Drawables[0].AllModels) {
  Check((model.RenderMask&1)!=0,"converted model survives CodeWalker/grzy final-render filter");
- Check(model.Geometries.All(g=>g.Shader.Name.Hash==JenkHash.GenHash("ped")&&g.Shader.FileName.Hash==JenkHash.GenHash("ped_default.sps")),"ped shader family and variant match clothing conventions");
+ Check(model.Flags==1&&model.SkeletonBindUnk1==1,"skin flag and matrix count describe the single-bone palette");
+ Check(model.Geometries.All(g=>g.Shader.Name.Hash==JenkHash.GenHash("ped_default")&&g.Shader.FileName.Hash==JenkHash.GenHash("ped_default.sps")),"shader family matches the actual SPS variant");
+ Check(model.Geometries.All(g=>g.VertexData.Info.Flags==127&&g.VertexStride==48),"ped_default skinned vertex declaration includes both colour channels");
  Check(model.HasSkin==1&&model.Geometries.Length==1,"new YDD contains OBJ alone, no ped geometry");var g=model.Geometries[0];Check(g.VertexData.VertexCount==3&&g.BoneIds.SequenceEqual(new ushort[]{1}),"OBJ vertex count and chosen pelvis palette");
  Near(g.VertexData.GetVector3(0,0),new Vector3(.1f,.1f,2),"OBJ world placement in bind pose");
  Check(g.VertexData.GetUByte4(0,1).R==255&&g.VertexData.GetUByte4(0,2).R==0,"single-bone 100 percent weights");
  Check(g.VertexData.GetColour(0,4).R==255,"white vertex colors avoid dark diffuse");
+ Check(ReferenceEquals(g.VertexBuffer.Data1,g.VertexData)&&ReferenceEquals(g.VertexBuffer.Data2,g.VertexData),"both vertex data references describe the same non-distinct stream");
  Check(g.VertexData.GetVector2(0,6)==new Vector2(.2f,.3f),"converter retains supplied UV");
  Check(((TextureBase)g.Shader.ParametersList.Parameters[0].Data).Name=="accs_diff_007_a_uni","converter YDD sampler matches YTD name");
 }
@@ -75,6 +79,27 @@ for(int mi=0;mi<convertedDoc.Drawables[0].AllModels.Length;mi++) {
 var again=ObjYdd.NormalizePair(normalizedPair.ydd,normalizedPair.ytd,"accs_021_u");var againTex=new YtdFile();againTex.Load(again.ytd);Check(againTex.TextureDict.Textures.data_items[0].Data.FullData.SequenceEqual(ct.Data.FullData),"repeated pair normalization preserves pixels");
 var mismatched=new YtdFile();mismatched.Load(converted.ytd);var mismatchedT=mismatched.TextureDict.Textures.data_items[0];mismatchedT.Name="unrelated";mismatched.TextureDict.BuildFromTextureList(new List<Texture>{mismatchedT});bool mismatchRejected=false;try{ObjYdd.NormalizePair(converted.ydd,mismatched.Save(),"accs_021_u");}catch(Exception){mismatchRejected=true;}Check(mismatchRejected,"unlinked YDD/YTD pair rejected before export");
 Console.WriteLine("Confirmed grzy Test 1 paired normalization: identity, all LODs, rig, mip pixels, repeat save and mismatch rejection PASS");
+{
+ var oldBytes=File.ReadAllBytes("tests/fixtures/native-unsafe-shared-headers.ydd");var old=new YddFile();old.Load(oldBytes);
+ FiveMResource.Share(old);var independent=old.Save();var oldRead=new YddFile();oldRead.Load(independent);FiveMResource.ValidateRuntimeHeaders(oldRead);
+ Check(oldRead.Drawables[0].FlagsHigh==0&&oldRead.Drawables[0].AllModels[0].Geometries[0].VertexStride==44,"reproduce invisible legacy converter even with independent headers");
+ var repaired=FiveMResource.Compact(independent);var fixedRead=new YddFile();fixedRead.Load(repaired);var d=fixedRead.Drawables[0];
+ Check(d.FlagsHigh==1&&d.FlagsLow==1,"repair restores nonzero RAGE LOD model counts below memory limit");
+ for(int mi=0;mi<d.AllModels.Length;mi++){
+  var a=oldRead.Drawables[0].AllModels[mi].Geometries[0];var b=d.AllModels[mi].Geometries[0];
+  Check(d.AllModels[mi].Flags==1&&d.AllModels[mi].SkeletonBindUnk1==1,"legacy skin metadata repaired");
+  Check(b.VertexStride==48&&b.VertexData.Info.Flags==127,"legacy declaration migrated to ped_default profile");
+  for(int i=0;i<a.VertexData.VertexCount;i++){
+   Check(a.VertexData.VertexBytes.AsSpan(i*44,36).SequenceEqual(b.VertexData.VertexBytes.AsSpan(i*48,36)),"positions normals weights indices and original colour bytes unchanged");
+   Check(a.VertexData.VertexBytes.AsSpan(i*44+36,8).SequenceEqual(b.VertexData.VertexBytes.AsSpan(i*48+40,8)),"UV bytes unchanged after adding second colour");
+  }
+  Check(a.IndexBuffer.Indices.SequenceEqual(b.IndexBuffer.Indices)&&a.BoneIds.SequenceEqual(b.BoneIds),"repair preserves every triangle and bone palette");
+  Check(((TextureBase)a.Shader.ParametersList.Parameters[0].Data).Name==((TextureBase)b.Shader.ParametersList.Parameters[0].Data).Name,"repair retains external YTD sampler name");
+  Check(b.Shader.ParameterCount==13&&b.Shader.TextureParametersCount==5,"ped_default material uses its own parameter layout");
+ }
+ Check(FiveMResource.Compact(repaired).SequenceEqual(repaired),"render/profile repair is idempotent");
+ Console.WriteLine("Invisible converter: independent headers, zero LOD counts, skin flags, exact preserved attribute bytes, valid material layout and repeat repair PASS");
+}
 var headConverted=new YddFile();headConverted.Load(ObjYdd.Create(Fixture(),ConvertRequest(31086)).ydd);Check(headConverted.Drawables[0].AllModels[0].Geometries[0].BoneIds[0]==2,"converter head selection");
 bool absentBone=false;try{ObjYdd.Create(Fixture(),ConvertRequest(999));}catch(Exception){absentBone=true;}Check(absentBone,"converter missing bone rejected");
 bool invalidConversion=false;try{ObjYdd.Create(Fixture(),JsonSerializer.SerializeToElement(new{name="../bad",boneTag=11816}));}catch(Exception){invalidConversion=true;}Check(invalidConversion,"converter unsafe name rejected");

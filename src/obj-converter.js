@@ -1,4 +1,4 @@
-import {assertYddRuntimeHeaders} from './ydd-runtime.js';
+import {assertYddRuntimeHeaders,assertYddLodCounts} from './ydd-runtime.js';
 import {boneOptionLabel} from './bone-labels.js';
 import {assertFiveMBudget} from './resource-budget.js';
 import * as THREE from 'three';
@@ -74,7 +74,7 @@ export function startObjConverter({getSelection,native,status,refreshResources})
   const validBones=converterBones(pedBytes),boneTag=Number($('#convert-bone').value);if(!$('#convert-bone').value||!validBones.some(b=>b.tag===boneTag))throw Error('Carregue o ped e selecione um osso válido.');
   await textureTask;const uvMode=object.userData.converterMode;if(!object.userData.materialAtlas)paintCanvas();const pixels=new Uint8Array(canvas.getContext('2d').getImageData(0,0,canvas.width,canvas.height).data);const size=canvas.width;
   status('Preparando a geometria…');const parts=await converterPartsAsync(object,{signal:preparation.signal,progress:status});$('#convert-cancel').hidden=true;status('CodeWalker: gerando YDD, esqueleto, UV e YTD; reabrindo para conferir…');
-   const result=await native.createYdd({name,boneTag,pedBytes,parts,textureSize:size,pixels});if(result.compatibility!=='codewalker-pair-roundtrip-v1')throw Error('Atualize o portable para exportar o par normalizado.');const doc=parseYdd(result.ydd,{maxInputBytes:256*1024*1024,maxGeometries:65535,maxLodVertices:Infinity,maxLodIndices:Infinity}),dict=parseYtd(result.ytd);assertYddRuntimeHeaders(doc,name);const texture=dict.textures[0],streaming=assertFiveMBudget(result.ydd,name+'.ydd');
+   const result=await native.createYdd({name,boneTag,pedBytes,parts,textureSize:size,pixels});if(result.compatibility!=='codewalker-pair-roundtrip-v1')throw Error('Atualize o portable para exportar o par normalizado.');const doc=parseYdd(result.ydd,{maxInputBytes:256*1024*1024,maxGeometries:65535,maxLodVertices:Infinity,maxLodIndices:Infinity}),dict=parseYtd(result.ytd);assertYddRuntimeHeaders(doc,name);assertYddLodCounts(doc,name);const texture=dict.textures[0],streaming=assertFiveMBudget(result.ydd,name+'.ydd');
    if(doc.drawables.length!==1||dict.textures.length!==1||doc.drawables[0].name!==name||texture.name!==name.slice(0,-2).replace(/_(\d{3})$/,'_diff_$1')+'_a_uni'||doc.drawables[0].shaders[0]?.diffuseName!==texture.name)throw Error('A verificação dos arquivos convertidos falhou.');
    const exportCanvas=document.createElement('canvas');exportCanvas.width=exportCanvas.height=size;exportCanvas.getContext('2d').putImageData(new ImageData(texture.decode(),size,size),0,0);
    const geometries=doc.drawables.flatMap(d=>d.readLod(0)),faces=geometries.reduce((n,g)=>n+g.indices.length/3,0);let guide;

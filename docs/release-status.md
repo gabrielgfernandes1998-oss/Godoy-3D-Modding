@@ -1,3 +1,19 @@
+# Estado da versão 0.11.9 beta — validação em andamento
+
+O log do usuário confirmou 115 bolsas e seleção estável em global 114 / coleção mochi / local 0 / textura 0. Metadata grzy foi lida por JS e CodeWalker: componente hand, um drawable e uma textura. O diagnóstico inicialmente confundia o nome curto retornado pelas natives com o prefixo completo de stream; corrigido em 85fdb1c, sem atribuir esse erro ao arquivo do usuário.
+
+O YDD funcional de referência foi inspecionado localmente: FlagsHigh=1, model Flags=1 e contagem de matrizes/palette=128. A cópia anterior da mochila e as fixtures do conversor tinham listas High/Low presentes mas contagens zero, flags de skin zero e contagem de matrizes zero. O exportador Sollumz v2.6.1 confirma a semântica desses campos: contagens por LOD, flag de skin e matrix_count. O material anterior também misturava família ped com variante ped_default.sps e declaração sem Colour1. A definição pública de shader confirma o layout e os parâmetros de ped_default.
+
+YddRender gera o perfil consistente e migra somente a assinatura exata do conversor antigo. A migração copia bytes de posição/normal/pesos/índices de skin/Colour0 e UV sem recalcular; adiciona Colour1 branco, mantém índices e palettes, preserva referência ao YTD. Contagens de LOD zeradas são reparadas também em recursos sem essa assinatura. Nenhuma mudança global no CodeWalker. O compactador nativo chama o reparo antes de deduplicar/reorganizar e reabre/compara o resultado; valida contagens não zeradas. O frontend valida as contagens nas saídas do conversor e compactador. O perfil novo mantém Data1/Data2 apontando para o mesmo stream, como a importação XML CodeWalker. O YDD funcional de referência passou pelo comando real do bridge e permaneceu byte a byte idêntico.
+
+Referências de semântica: [Sollumz v2.6.1 ydrexport.py](https://github.com/Sollumz/Sollumz/blob/v2.6.1/ydr/ydrexport.py), funções set_model_xml_properties/set_drawable_xml_flags; [definição de shaders](https://github.com/Sollumz/Sollumz/blob/v2.6.1/cwxml/Shaders.xml), ped_default. Sem código ou material do asset copiado.
+
+Cópia anterior da mochila: 58.361.303 bytes, 88.080.384 bytes reservados, reparo idempotente e comparação completa dos atributos originais em ambos os LODs passou. O YDD mochi final enviado neste turno excedeu o limite técnico de transferência de 32 MiB; solicitado ZIP/partes para validar essa versão exata. Nenhum asset do usuário foi publicado ou adicionado ao repositório. A renderização no FiveM continua pendente.
+
+91 testes JS, suíte nativa e navegador completo passaram localmente. A regressão nativa usa uma conversão antiga com cabeçalhos já separados e comprova o reparo das contagens, flags de skin, layout, bytes de todos os atributos originais e idempotência. O teste Windows verifica conversão e reparo antigo pela interface. Compilação/teste Windows ainda em andamento.
+
+## Histórico 0.11.8
+
 # Estado da versão 0.11.8 beta
 
 O exportador anterior compartilhava cabeçalhos mutáveis de VertexBuffer/IndexBuffer. A leitura CodeWalker e os previews toleravam a estrutura, mas os mesmos campos poderiam receber fixup mais de uma vez no runtime. A correção separa os cabeçalhos (copiando todos os metadados) e limita a deduplicação aos dados brutos. IndexBuffer.IndicesBlock continua sendo criado separadamente pelo CodeWalker; YddLayout coloca os payloads ushort idênticos no mesmo endereço somente quando pertencem a índices, sem compartilhar seus cabeçalhos. Sem alterações globais no compilador CodeWalker.

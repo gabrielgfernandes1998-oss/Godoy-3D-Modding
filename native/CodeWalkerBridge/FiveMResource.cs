@@ -50,11 +50,11 @@ static class FiveMResource {
     }
     public static byte[] Compact(byte[] bytes,bool enforce=true){
         Size(bytes);if(BitConverter.ToInt32(bytes,4)!=165)throw new Exception("Selecione um YDD GTA V Legacy.");
-        var file=new YddFile();file.Load(bytes);var counts=Share(file);
+        var file=new YddFile();file.Load(bytes);var rendering=YddRender.Repair(file);var counts=Share(file);
         var original=Size(bytes);
-        var saved=counts.vertices+counts.indices>0||original.system>Limit||original.graphics>Limit?YddLayout.Save(file):bytes;
+        var saved=rendering>0||counts.vertices+counts.indices>0||original.system>Limit||original.graphics>Limit?YddLayout.Save(file):bytes;
         if(enforce)Check(saved);
-        var check=new YddFile();check.Load(saved);ValidateRuntimeHeaders(check);
+        var check=new YddFile();check.Load(saved);ValidateRuntimeHeaders(check);YddRender.ValidateCounts(check);
         for(int di=0;di<file.Drawables.Length;di++){
             var a=file.Drawables[di];var b=check.Drawables[di];
             if(a.Name!=b.Name||a.AllModels.Length!=b.AllModels.Length||a.BoundingCenter!=b.BoundingCenter||a.BoundingBoxMin!=b.BoundingBoxMin||a.BoundingBoxMax!=b.BoundingBoxMax||a.BoundingSphereRadius!=b.BoundingSphereRadius)throw new Exception("Compactação alterou nomes ou LODs.");

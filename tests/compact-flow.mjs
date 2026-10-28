@@ -1,5 +1,5 @@
 import {parseYdd} from '../modules/vehicles/src/formats/ydd.js';
-import {assertYddRuntimeHeaders} from '../src/ydd-runtime.js';
+import {assertYddRuntimeHeaders,assertYddLodCounts} from '../src/ydd-runtime.js';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import path from 'node:path';
@@ -25,6 +25,6 @@ export async function exerciseCompactor(page,output){
  assert.ok(fixedReport.beforeSystem>100000000);assert.ok(fixedReport.afterSystem<100000000);assertFiveMBudget(fixedFiles['native-fragmented-shared-lods.ydd'],'fixed.ydd');
  assert.equal(Object.keys(fixedFiles).length,2,'page layout optimization leaves the original YTD alone');
  const legacyPending=page.waitForEvent('download',{timeout:240000});await frame.locator('#compact-ydd-file').setInputFiles('tests/fixtures/native-unsafe-shared-headers.ydd',{timeout:120000});
- const legacyDownload=await legacyPending,legacyPath=path.join(output,'repaired-fixup.zip');await legacyDownload.saveAs(legacyPath);const legacyFiles=unzipSync(await readFile(legacyPath));assertYddRuntimeHeaders(parseYdd(legacyFiles['native-unsafe-shared-headers.ydd']));
+ const legacyDownload=await legacyPending,legacyPath=path.join(output,'repaired-fixup.zip');await legacyDownload.saveAs(legacyPath);const legacyFiles=unzipSync(await readFile(legacyPath));const legacyDoc=parseYdd(legacyFiles['native-unsafe-shared-headers.ydd']);assertYddRuntimeHeaders(legacyDoc);assertYddLodCounts(legacyDoc);
  console.log('YDD compactor: raw-data sharing, repaired legacy headers and budgets verified');
 }

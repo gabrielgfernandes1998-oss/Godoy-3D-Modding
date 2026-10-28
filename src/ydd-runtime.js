@@ -14,3 +14,13 @@ export function assertYddRuntimeHeaders(doc,name='YDD'){
  }
  return doc;
 }
+
+// The preview walks model lists directly; RAGE also consumes the LOD count byte.
+export function assertYddLodCounts(doc,name='YDD'){
+ const r=doc.resource;
+ for(const drawable of r.list(0x30,512).filter(p=>p!==null))for(const [i,offset] of [0x50,0x58,0x60,0x68].entries()){
+  const list=r.ptr(drawable+offset,16);if(list==null)continue;
+  if(r.list(list,1024).some(p=>p!==null)&&r.u8(drawable+0x80+i*4)===0)throw Error(`${name}: LOD com modelos presentes e contagem de renderização zero. Use Compactar YDD nas abas 03/05 na versão atualizada.`);
+ }
+ return doc;
+}

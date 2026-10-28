@@ -1,12 +1,11 @@
-# Godoy 3D Modding 0.11.8 beta
+# Godoy 3D Modding 0.11.9 beta
 
-- Corrige cabeçalhos de VertexBuffer/IndexBuffer compartilhados entre geometrias/LODs, que deixam os mesmos campos de ponteiro sujeitos a fixup repetido no carregamento. Cada geometria agora recebe cabeçalhos independentes. Somente dados brutos idênticos de vértices/índices são compartilhados; o limite de 100.000.000 bytes permanece ativo.
-- **Compactar YDD já exportado** repara essa estrutura em arquivos antigos, mesmo quando já estão abaixo do limite de memória. Use o resultado com o YTD original. Conversão e exportação nativa de malhas usam a mesma correção.
-- Valida as regiões virtual/física dos ponteiros conhecidos e a independência dos cabeçalhos após serializar/reabrir. O editor e o Pack detectam cabeçalhos de buffer reutilizados em geometrias distintas e orientam atualizar o YDD antes da exportação.
-- Traduz os ossos do conversor para português: Quadril / bacia, Tórax / peito, Pé — lado direito, controles auxiliares e expressões faciais. Preserva o nome técnico e o ID, inclusive nos valores usados na exportação. Lados esquerdo/direito correspondem ao personagem.
+- Corrige a contagem de modelos dos LODs nas conversões OBJ/GLB. O preview percorria as listas mesmo com FlagsHigh/FlagsLow zerados; o exportador agora grava 1 para cada LOD presente, separadamente da máscara de renderização.
+- Grava o flag de skin e a contagem de matrizes para a palette de um osso. Posição, escala, osso escolhido e pesos são preservados.
+- Usa a família e os parâmetros do material ped_default.sps com a declaração de vértices correspondente, incluindo Colour1. A versão anterior misturava a família ped e o arquivo ped_default.sps com um layout incompleto.
+- Compactar YDD já exportado também repara contagens zeradas e reconhece o perfil exato das conversões antigas do Godoy para migrar o material/layout. Mantém os bytes dos atributos originais, triângulos, UVs, cores originais, pesos e referência à textura. Adiciona somente o segundo canal de cor neutro. Materiais de terceiros não são substituídos por esse perfil.
+- Mantém a correção de cabeçalhos independentes de buffers e o orçamento de 100.000.000 bytes. O parser da saída e a ponte nativa verificam que nenhum LOD com modelos permaneceu com contagem zero.
 
-No arquivo privado da mochila, a saída mantém todos os vértices, índices, UVs, cores, pesos e esqueleto; 103 geometrias e 2.233.750 triângulos por LOD. YDD de 58.601.890 bytes com reserva de sistema de 81.788.928 bytes e cabeçalhos independentes. YTD não alterado.
+Na cópia privada anterior da mochila, o reparo produziu um YDD de 58.361.303 bytes e reserva de sistema de 88.080.384 bytes. Comparação de todos os atributos originais, índices e palettes passou nos dois LODs; YTD não alterado. O log FiveM enviado pelo usuário confirma que a coleção mochi / hand / local 0 está registrada e permanece selecionada, mas isso não comprova renderização. A confirmação visual desta correção no jogo depende de novo teste do usuário.
 
-Regressões incluem um YDD antigo de cabeçalhos compartilhados abaixo do orçamento, reparo idempotente, inspeção dos campos de fixup dos buffers e validação de dados completos. Essa inspeção estrutural não executa o RAGE: a renderização no FiveM precisa ser confirmada pelo usuário.
-
-Extraia o portable completo em uma pasta nova. Para o arquivo que apresentou o erro, abra **03/05 → Compactar YDD já exportado**, selecione o YDD final usado no pack (por exemplo, accs_007_u.ydd), extraia o resultado e substitua o YDD antigo. Continue usando o YTD correspondente. Novas conversões recebem a correção automaticamente.
+Extraia o portable completo em uma pasta nova. Em 03 ou 05, abra Compactar YDD já exportado e selecione o YDD final da mochila. Substitua somente esse YDD no recurso pelo resultado e mantenha o YTD correspondente. Reinicie o recurso e reconecte ao servidor antes de testar. Conversões novas já recebem o perfil corrigido.

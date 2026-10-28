@@ -15,7 +15,7 @@ static class ObjYdd {
         var bone=skeleton.Bones.Items.First(b=>b.Tag==tag);
         if(bone.Index<0||bone.Index>255)throw new Exception("Índice de osso acima do limite de 255.");
         var parts=ReadParts(request);
-        long graphics=parts.Sum(p=>44L*p.count+2L*p.indices.Length);
+        long graphics=parts.Sum(p=>(long)YddRender.PedStride*p.count+2L*p.indices.Length);
         if(graphics>=0x10000000L)throw new Exception("A geometria não cabe no endereçamento de 28 bits do YDD. Reduza a malha ou divida em recursos diferentes.");
         int size=request.GetProperty("textureSize").GetInt32();if(size is not (512 or 1024 or 2048 or 4096))throw new Exception("Resolução inválida.");
         var pixels=request.TryGetProperty("pixelsFile",out var pixelFile)?File.ReadAllBytes(pixelFile.GetString()!):Convert.FromBase64String(request.GetProperty("pixels").GetString()??"");
@@ -24,27 +24,26 @@ static class ObjYdd {
         string textureName=name[..^2].Insert(name[..^2].LastIndexOf('_'),"_diff")+"_a_uni";
         var texture=YddAtlas.Pixels(textureName,size,size,pixels,TextureUsage.DIFFUSE);
         var ytd=new YtdFile{TextureDict=new TextureDictionary()};ytd.TextureDict.BuildFromTextureList(new List<Texture>{texture});
-        var shader=new ShaderFX{Name=new MetaHash(JenkHash.GenHash("ped")),FileName=new MetaHash(JenkHash.GenHash("ped_default.sps")),RenderBucket=0,RenderBucketMask=0xff01};
-        shader.ParametersList=new ShaderParametersBlock{Owner=shader,Count=2,Hashes=new[]{(MetaName)JenkHash.GenHash("diffusesampler"),(MetaName)JenkHash.GenHash("matmaterialcolorscale")},Parameters=new[]{new ShaderParameter{DataType=0,Data=new TextureBase{Name=textureName,NameHash=texture.NameHash,Unknown_32h=2}},new ShaderParameter{DataType=1,Data=Vector4.One}}};
-        shader.ParameterCount=2;shader.TextureParametersCount=1;shader.ParameterSize=shader.ParametersList.ParametersSize;shader.ParameterDataSize=shader.ParametersList.ParametersDataSize;
+        var shader=YddRender.PedMaterial(new TextureBase{Name=textureName,NameHash=texture.NameHash,Unknown_32h=2});
         DrawableModel Model() {
             var geometries=parts.Select(part=> {
-                var info=new VertexDeclaration{Flags=95,Types=VertexDeclarationTypes.GTAV1};info.UpdateCountAndStride();
+                var info=new VertexDeclaration{Flags=YddRender.PedDeclaration,Types=VertexDeclarationTypes.GTAV1};info.UpdateCountAndStride();
                 var data=new VertexData{Info=info,VertexCount=part.count,VertexStride=info.Stride,VertexBytes=new byte[part.count*info.Stride]};
                 for(int i=0;i<part.count;i++) {
                     data.SetVector3(i,0,new Vector3(part.positions[i*3],part.positions[i*3+1],part.positions[i*3+2]));
                     var n=new Vector3(part.normals[i*3],part.normals[i*3+1],part.normals[i*3+2]);if(n.LengthSquared()<1e-12)n=Vector3.UnitZ;else n.Normalize();data.SetVector3(i,3,n);
                     data.SetVector2(i,6,new Vector2(part.uvs[i*2],part.uvs[i*2+1]));
                     data.SetUByte4(i,1,new Color((byte)255,(byte)0,(byte)0,(byte)0));data.SetUByte4(i,2,new Color((byte)0,(byte)0,(byte)0,(byte)0));data.SetColour(i,4,new Color((byte)255,(byte)255,(byte)255,(byte)255));
+                    data.SetColour(i,5,new Color((byte)255,(byte)255,(byte)255,(byte)255));
                 }
-                return new DrawableGeometry{VertexData=data,VertexBuffer=new VertexBuffer{Data1=data,Info=info,VertexCount=(uint)part.count,VertexStride=info.Stride},IndexBuffer=new IndexBuffer{Indices=part.indices,IndicesCount=(uint)part.indices.Length},BoneIds=new[]{(ushort)bone.Index},VerticesCount=(ushort)part.count,VertexStride=info.Stride,IndicesCount=(uint)part.indices.Length,TrianglesCount=(uint)part.indices.Length/3,Shader=shader,ShaderID=0};
+                return new DrawableGeometry{VertexData=data,VertexBuffer=new VertexBuffer{Data1=data,Data2=data,Info=info,VertexCount=(uint)part.count,VertexStride=info.Stride},IndexBuffer=new IndexBuffer{Indices=part.indices,IndicesCount=(uint)part.indices.Length},BoneIds=new[]{(ushort)bone.Index},VerticesCount=(ushort)part.count,VertexStride=info.Stride,IndicesCount=(uint)part.indices.Length,TrianglesCount=(uint)part.indices.Length/3,Shader=shader,ShaderID=0};
             }).ToArray();
-            var model=new DrawableModel{HasSkin=1,BoneIndex=0,RenderMask=255,Geometries=geometries,ShaderMapping=new ushort[geometries.Length],GeometriesCount1=(ushort)geometries.Length,GeometriesCount2=(ushort)geometries.Length,GeometriesCount3=(ushort)geometries.Length};model.RebuildBounds();return model;
+            var model=new DrawableModel{HasSkin=1,Flags=1,SkeletonBindUnk1=1,BoneIndex=0,RenderMask=255,Geometries=geometries,ShaderMapping=new ushort[geometries.Length],GeometriesCount1=(ushort)geometries.Length,GeometriesCount2=(ushort)geometries.Length,GeometriesCount3=(ushort)geometries.Length};model.RebuildBounds();return model;
         }
         var high=Model();
-        var low=new DrawableModel{GeometriesCount1=high.GeometriesCount1,GeometriesCount2=high.GeometriesCount2,GeometriesCount3=high.GeometriesCount3,HasSkin=high.HasSkin,BoneIndex=high.BoneIndex,RenderMask=high.RenderMask,ShaderMapping=high.ShaderMapping.ToArray(),Geometries=high.Geometries.Select(g=>new DrawableGeometry{VertexData=g.VertexData,VertexBuffer=g.VertexBuffer,IndexBuffer=g.IndexBuffer,BoneIds=g.BoneIds,VerticesCount=g.VerticesCount,VertexStride=g.VertexStride,IndicesCount=g.IndicesCount,TrianglesCount=g.TrianglesCount,Shader=g.Shader,ShaderID=g.ShaderID}).ToArray()};low.RebuildBounds();
+        var low=new DrawableModel{GeometriesCount1=high.GeometriesCount1,GeometriesCount2=high.GeometriesCount2,GeometriesCount3=high.GeometriesCount3,HasSkin=high.HasSkin,Flags=high.Flags,SkeletonBindUnk1=high.SkeletonBindUnk1,BoneIndex=high.BoneIndex,RenderMask=high.RenderMask,ShaderMapping=high.ShaderMapping.ToArray(),Geometries=high.Geometries.Select(g=>new DrawableGeometry{VertexData=g.VertexData,VertexBuffer=g.VertexBuffer,IndexBuffer=g.IndexBuffer,BoneIds=g.BoneIds,VerticesCount=g.VerticesCount,VertexStride=g.VertexStride,IndicesCount=g.IndicesCount,TrianglesCount=g.TrianglesCount,Shader=g.Shader,ShaderID=g.ShaderID}).ToArray()};low.RebuildBounds();
         var drawable=new Drawable{Name=name,Skeleton=skeleton,LightAttributes=new ResourceSimpleList64<LightAttributes>(),ShaderGroup=new ShaderGroup{Shaders=new ResourcePointerArray64<ShaderFX>{data_items=new[]{shader}}},DrawableModels=new DrawableModelsBlock{High=new[]{high},Low=new[]{low}},LodDistHigh=999,LodDistMed=999,LodDistLow=999,LodDistVlow=999};
-        drawable.BuildAllModels();drawable.BuildVertexDecls();drawable.BuildRenderMasks();
+        drawable.BuildAllModels();drawable.BuildVertexDecls();drawable.BuildRenderMasks();drawable.FlagsHigh=1;drawable.FlagsLow=1;
         var file=new YddFile{Drawables=new[]{drawable},DrawableDict=new DrawableDictionary{Hashes=new[]{JenkHash.GenHash(name)},Drawables=new ResourcePointerArray64<Drawable>{data_items=new[]{drawable}}}};
         FiveMResource.Share(file);
         var edit=JsonSerializer.SerializeToElement(new{matrix=Matrix.Identity.ToArray(),bone="preserve"});
@@ -52,6 +51,7 @@ static class ObjYdd {
         // Parsing geometry alone is insufficient: CodeWalker/grzy skip models whose
         // final-render bit is absent, even when vertices and textures are valid.
         var visible=new YddFile();visible.Load(saved);
+        YddRender.ValidateCounts(visible);
         if(visible.Drawables.Any(d=>(d.RenderMaskHigh&1)==0||(d.RenderMaskLow&1)==0||d.AllModels.Any(m=>(m.RenderMask&1)==0)))throw new Exception("YDD convertido sem máscara de visibilidade válida.");
         var check=new YtdFile();check.Load(savedYtd);var actual=check.TextureDict.Textures.data_items.Single();
         if(actual.Name!=textureName||actual.Width!=size||!actual.Data.FullData.SequenceEqual(texture.Data.FullData))throw new Exception("Falha ao verificar a textura convertida.");
@@ -108,7 +108,7 @@ static class ObjYdd {
             for(int part=0;part<count;part++) {
                 uint n=reader.ReadUInt32(),indexCount=reader.ReadUInt32();
                 if(n<1||n>65535||indexCount<3||indexCount%3!=0||32L*n+2L*indexCount>stream.Length-stream.Position||indexCount>int.MaxValue)throw new Exception("Contagem ou tamanho de geometria binária inválido.");
-                graphics+=(44L*n+2L*indexCount);if(graphics>=0x10000000L)throw new Exception("A geometria não cabe no endereçamento de 28 bits do YDD. Reduza a malha ou divida em recursos diferentes.");
+                graphics+=((long)YddRender.PedStride*n+2L*indexCount);if(graphics>=0x10000000L)throw new Exception("A geometria não cabe no endereçamento de 28 bits do YDD. Reduza a malha ou divida em recursos diferentes.");
                 float[] Floats(int size){var values=new float[size];for(int i=0;i<size;i++){float v=reader.ReadSingle();if(!float.IsFinite(v)||Math.Abs(v)>100000)throw new Exception("Coordenadas OBJ inválidas.");values[i]=v;}return values;}
                 var positions=Floats((int)n*3);var normals=Floats((int)n*3);var uvs=Floats((int)n*2);var indices=new ushort[indexCount];
                 for(int i=0;i<indexCount;i++){indices[i]=reader.ReadUInt16();if(indices[i]>=n)throw new Exception("Índice OBJ inválido.");}
