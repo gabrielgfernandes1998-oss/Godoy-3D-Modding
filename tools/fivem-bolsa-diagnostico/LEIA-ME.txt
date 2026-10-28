@@ -7,9 +7,11 @@ TESTE TEMPORARIO DA BOLSA NO FIVEM
 5. Abra F8 e execute: godoy_bolsa
 6. Confira a bolsa no personagem e envie um print das linhas [Godoy bolsa] do F8.
 
-O teste procura mp_m_freemode_01_mochi, componente hand (5), peca local 0,
+O teste procura a colecao mochi, componente hand (5), peca local 0,
 textura 0. Nao depende do numero mostrado pela loja.
-Para outra colecao: godoy_bolsa nome_completo_da_colecao indice_local textura
+Para outra colecao: godoy_bolsa nome_da_colecao indice_local textura
+O nome da colecao retornado pelo jogo pode ser curto (mochi), diferente do
+prefixo dos arquivos do stream (mp_m_freemode_01_mochi). O teste aceita ambos.
 
 Para voltar a bolsa anterior: godoy_bolsa_restaurar
 Depois do teste: stop godoy_bolsa_diagnostico no console do servidor.

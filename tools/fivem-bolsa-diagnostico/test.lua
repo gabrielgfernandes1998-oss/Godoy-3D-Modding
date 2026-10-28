@@ -3,6 +3,7 @@ local commands, messages, threads, mutations = {}, {}, {}, {}
 local present, drawables, textures, valid = true, 1, 1, true
 local ped, model = 1, 123
 local selected = {collection='', index=4, texture=2, palette=1}
+local collectionName = 'mochi'
 local function copy(v) return {collection=v.collection,index=v.index,texture=v.texture,palette=v.palette} end
 function print(text) messages[#messages+1] = text end
 function RegisterCommand(name, callback) commands[name] = callback end
@@ -10,7 +11,7 @@ function PlayerPedId() return ped end
 function GetEntityModel() return model end
 function joaat(name) return name == 'mp_m_freemode_01' and 123 or 456 end
 function GetPedCollectionsCount() return present and 2 or 1 end
-function GetPedCollectionName(_, i) return i == 0 and '' or 'mp_m_freemode_01_mochi' end
+function GetPedCollectionName(_, i) return i == 0 and '' or collectionName end
 function GetNumberOfPedCollectionDrawableVariations() return drawables end
 function GetNumberOfPedCollectionTextureVariations() return textures end
 function GetPedDrawableGlobalIndexFromCollection() return 113 end
@@ -47,7 +48,7 @@ local native=SetPedCollectionComponentVariation; SetPedCollectionComponentVariat
 run(); assert(#mutations == 0 and contains('Native indisponivel'))
 SetPedCollectionComponentVariation=native
 run(); drain()
-assert(#mutations == 1 and selected.collection == 'mp_m_freemode_01_mochi' and selected.index == 0)
+assert(#mutations == 1 and selected.collection == 'mochi' and selected.index == 0)
 assert(contains('indices globais validos de 0 a 113') and contains('global=113'))
 assert(contains('A selecao permaneceu no alvo'))
 run(); drain(); commands.godoy_bolsa_restaurar()
@@ -58,4 +59,10 @@ assert(contains('A selecao mudou depois de aplicar'))
 local before=#mutations; ped=2; commands.godoy_bolsa_restaurar(); assert(#mutations == before)
 ped=1; run(); local count=#messages; commands.godoy_bolsa_restaurar(); drain()
 assert(#messages == count+1, 'restoring cancels pending post-check')
+run({'mp_m_freemode_01_mochi'}); drain(); assert(selected.collection == 'mochi', 'full filename prefix resolves to runtime DLC name')
+commands.godoy_bolsa_restaurar()
+collectionName='mp_m_freemode_01_mochi'; run(); drain(); assert(selected.collection == collectionName, 'short name resolves to full collection when enumerated')
+commands.godoy_bolsa_restaurar()
+collectionName='mp_f_freemode_01_mochi'; local beforeAlias=#mutations; run(); assert(#mutations == beforeAlias, 'must not resolve the other gender prefix')
+model=456; run({'mp_f_freemode_01_mochi'}); drain(); assert(selected.collection == collectionName)
 io.write('PASS: registration/index validation, no changes on rejected targets, collection application, delayed override detection, backup/restore, changed ped, cancellation\n')

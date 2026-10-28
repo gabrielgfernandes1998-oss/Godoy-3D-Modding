@@ -43,7 +43,11 @@ RegisterCommand('godoy_bolsa', function(_, args)
         log('Use o personagem freemode masculino ou feminino antes deste teste.')
         return
     end
-    local requested = args[1] or 'mp_m_freemode_01_mochi'
+    local requested = args[1] or 'mochi'
+    -- Collection natives return the runtime DLC name (e.g. mochi), which can
+    -- differ from the full stream filename prefix (mp_m_freemode_01_mochi).
+    local prefix = model == joaat('mp_m_freemode_01') and 'mp_m_freemode_01_' or 'mp_f_freemode_01_'
+    local alternate = requested:sub(1, #prefix) == prefix and requested:sub(#prefix + 1) or prefix .. requested
     local index, texture = tonumber(args[2] or '0'), tonumber(args[3] or '0')
     if not index or index % 1 ~= 0 or index < 0 or not texture or texture % 1 ~= 0 or texture < 0 then
         log('Uso: godoy_bolsa [colecao] [indice local inteiro >= 0] [textura inteira >= 0]')
@@ -54,11 +58,13 @@ RegisterCommand('godoy_bolsa', function(_, args)
     local count = GetNumberOfPedDrawableVariations(ped, component)
     log(('Componente hand / 5: %d bolsas; indices globais validos de 0 a %d.'):format(count, count - 1))
     current(ped, 'Antes')
-    local collection
+    local collection, alias
     for i = 0, GetPedCollectionsCount(ped) - 1 do
         local name = GetPedCollectionName(ped, i)
         if name == requested then collection = name; break end
+        if name == alternate then alias = name end
     end
+    collection = collection or alias
     if not collection then
         log('Colecao AUSENTE neste personagem: ' .. requested .. '. Verifique carregamento do recurso, YMT, nomes e genero.')
         return

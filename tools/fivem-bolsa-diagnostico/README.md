@@ -2,7 +2,7 @@
 
 [Baixar ZIP pronto](https://raw.githubusercontent.com/gabrielgfernandes1998-oss/Godoy-3D-Modding/main/tools/downloads/Godoy-Teste-Bolsa-FiveM.zip).
 
-Recurso temporário independente do aplicativo. Extraia a pasta `godoy_bolsa_diagnostico` em `resources`, mantenha o pack iniciado e execute `ensure godoy_bolsa_diagnostico` no console do servidor. Feche a loja e execute `godoy_bolsa` no F8 com o ped masculino. O padrão é a coleção `mp_m_freemode_01_mochi`, componente `hand` (5), índice local 0 e textura 0. O comando aceita outra coleção, índice e textura como argumentos.
+Recurso temporário independente do aplicativo. Extraia a pasta `godoy_bolsa_diagnostico` em `resources`, mantenha o pack iniciado e execute `ensure godoy_bolsa_diagnostico` no console do servidor. Feche a loja e execute `godoy_bolsa` no F8 com o ped masculino. O padrão é a coleção `mochi`, componente `hand` (5), índice local 0 e textura 0. O comando aceita outra coleção, índice e textura como argumentos. A busca prioriza o nome exato retornado pelo jogo e aceita também o prefixo completo de stream do mesmo gênero. A primeira versão buscava apenas `mp_m_freemode_01_mochi` e informava coleção ausente mesmo quando o runtime retornava `mochi`.
 
 O log registra contagem e limites de índices globais, seleção atual, presença da coleção, quantidade de bolsas/texturas, índice global correspondente e validade da combinação. Só aplica combinações reconhecidas pelas natives de coleção. Depois de 1,5 s, consulta novamente para detectar se a seleção mudou. A seleção correta permanecer aplicada não comprova que a geometria renderizou: é necessário conferir a aparência no jogo. O teste não determina sozinho qual script mudou uma seleção nem a causa de uma malha invisível.
 
