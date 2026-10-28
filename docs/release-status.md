@@ -1,4 +1,4 @@
-# Estado da versão 0.11.9 beta — validação em andamento
+# Estado da versão 0.11.9 beta
 
 O log do usuário confirmou 115 bolsas e seleção estável em global 114 / coleção mochi / local 0 / textura 0. Metadata grzy foi lida por JS e CodeWalker: componente hand, um drawable e uma textura. O diagnóstico inicialmente confundia o nome curto retornado pelas natives com o prefixo completo de stream; corrigido em 85fdb1c, sem atribuir esse erro ao arquivo do usuário.
 
@@ -10,7 +10,9 @@ Referências de semântica: [Sollumz v2.6.1 ydrexport.py](https://github.com/Sol
 
 Cópia anterior da mochila: 58.361.303 bytes, 88.080.384 bytes reservados, reparo idempotente e comparação completa dos atributos originais em ambos os LODs passou. O YDD mochi final enviado neste turno excedeu o limite técnico de transferência de 32 MiB; solicitado ZIP/partes para validar essa versão exata. Nenhum asset do usuário foi publicado ou adicionado ao repositório. A renderização no FiveM continua pendente.
 
-91 testes JS, suíte nativa e navegador completo passaram localmente. A regressão nativa usa uma conversão antiga com cabeçalhos já separados e comprova o reparo das contagens, flags de skin, layout, bytes de todos os atributos originais e idempotência. O teste Windows verifica conversão e reparo antigo pela interface. Compilação/teste Windows ainda em andamento.
+91 testes JS, suíte nativa e navegador completo passaram localmente. A regressão nativa usa uma conversão antiga com cabeçalhos já separados e comprova o reparo das contagens, flags de skin, layout, bytes de todos os atributos originais e idempotência. O teste do executável Windows passou, incluindo conversão e reparo antigo pela interface e validação independente das contagens de LOD nos arquivos baixados.
+
+Release [v0.11.9](https://github.com/gabrielgfernandes1998-oss/Godoy-3D-Modding/releases/tag/v0.11.9) publicada após [workflow 40724957698](https://github.com/gabrielgfernandes1998-oss/Godoy-3D-Modding/actions/runs/40724957698) passar. Linux 122945617107, Windows 122947764593 e publicação 122952173429. ZIP baixado integralmente e SHA-256 conferido: 200826845 bytes; `0fedf7b335e383162d925d172a891199b20dd9c5e298656fd198df595334189e`. Renderização no FiveM ainda depende do teste do usuário.
 
 ## Histórico 0.11.8
 
