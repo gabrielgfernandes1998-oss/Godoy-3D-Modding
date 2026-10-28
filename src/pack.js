@@ -1,3 +1,4 @@
+import {assertYddRuntimeHeaders} from './ydd-runtime.js';
 import {assertFiveMBudget} from './resource-budget.js';
 import { zipSync, strToU8 } from 'fflate';
 import { parseYdd } from '../modules/vehicles/src/formats/ydd.js';
@@ -13,7 +14,7 @@ export function createClothingPack({pack,gender,files,settings={}}) {
   let total=0;const parsed=new WeakMap();
   // Keep only validation metadata, not every decompressed resource in the pack.
   function read(bytes,parser){
-    if(parsed.has(bytes))return parsed.get(bytes);const raw=parser(bytes);
+    if(parsed.has(bytes))return parsed.get(bytes);const raw=parser(bytes);if(parser===parseYdd)assertYddRuntimeHeaders(raw);
     const doc=parser===parseYdd?{drawables:raw.drawables.map(d=>{for(let lod=0;lod<d.lods.length;lod++)d.readLod(lod);return {lods:d.lods,shaders:d.shaders.map(s=>({textures:s.textures.map(t=>({name:t.name}))}))};})}:{textures:raw.textures.map(t=>({name:t.name}))};
     parsed.set(bytes,doc);return doc;
   }

@@ -1,3 +1,15 @@
+# Estado da versão 0.11.8 beta
+
+O exportador anterior compartilhava cabeçalhos mutáveis de VertexBuffer/IndexBuffer. A leitura CodeWalker e os previews toleravam a estrutura, mas os mesmos campos poderiam receber fixup mais de uma vez no runtime. A correção separa os cabeçalhos (copiando todos os metadados) e limita a deduplicação aos dados brutos. IndexBuffer.IndicesBlock continua sendo criado separadamente pelo CodeWalker; YddLayout coloca os payloads ushort idênticos no mesmo endereço somente quando pertencem a índices, sem compartilhar seus cabeçalhos. Sem alterações globais no compilador CodeWalker.
+
+O reparo é aplicado também a entradas antigas abaixo do limite. Validação nativa exige cabeçalhos independentes e tags virtual/física em ponteiros conhecidos; compara geometria, esqueleto e pixels após reabrir. O teste de slots simula a visita aos campos de fixup dos buffers, sem executar o motor do jogo. Parser/Pack bloqueiam cabeçalhos de buffer usados por geometrias distintas; referências repetidas ao mesmo modelo são verificadas uma vez no organizador.
+
+Arquivo privado da mochila: 117.619.092 para 58.601.890 bytes; reserva 81.788.928. Os dados e o YTD permanecem preservados. Os 128 nomes de osso desse esqueleto receberam tradução na interface; nome técnico e ID permanecem nos rótulos e os valores exportados não mudaram. Nenhum arquivo do usuário foi adicionado ao repositório/release.
+
+90 testes JS e a suíte nativa passaram. Teste do navegador e do executável Windows serão registrados após conclusão. O erro informado pelo usuário é Invalid fixup em accs_007_u.ydd; a execução da saída corrigida no FiveM continua pendente.
+
+## Histórico da 0.11.7
+
 # Estado da versão 0.11.7 beta
 
 Correção de fragmentação de páginas YDD implementada em native/CodeWalkerBridge/YddLayout.cs, sem mudanças no alocador global CodeWalker. Compartilha buffers existentes, mantém blocos inteiros/alinhados, compara várias disposições e preserva a opção padrão quando menor. O serializador recompõe flags RSC7 e contagem de páginas do recurso. O orçamento permanece 100.000.000 bytes; não foi aumentado para MiB.

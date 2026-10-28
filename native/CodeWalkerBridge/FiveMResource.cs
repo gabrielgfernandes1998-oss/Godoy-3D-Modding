@@ -13,30 +13,40 @@ static class FiveMResource {
         var s=Size(bytes);if(s.system>Limit||s.graphics>Limit||bytes.Length>Limit)throw new Exception($"YDD ainda acima do orçamento do FiveM: arquivo {bytes.Length/1e6:F2} MB, sistema {s.system/1e6:F2} MB, gráficos {s.graphics/1e6:F2} MB. A compactação sem perda não foi suficiente. Reduza a geometria/LODs na origem; nenhum triângulo foi removido.");
     }
     static string Hash(byte[] data)=>Convert.ToHexString(SHA256.HashData(data));
-    static string IndexMetadata(IndexBuffer i)=>$"{i.VFT}/{i.Unknown_4h}/{i.IndicesCount}/{i.Unknown_Ch}/{i.Unknown_18h}/{i.Unknown_20h}/{i.Unknown_28h}/{i.Unknown_30h}/{i.Unknown_38h}/{i.Unknown_40h}/{i.Unknown_48h}/{i.Unknown_50h}/{i.Unknown_58h}";
-    static bool Standard(VertexBuffer v)=>v.Unknown_4h==1&&v.Flags==0&&v.Unknown_Ch==0&&v.Unknown_1Ch==0&&v.Unknown_28h==0&&v.Unknown_38h==0&&v.Unknown_40h==0&&v.Unknown_48h==0&&v.Unknown_50h==0&&v.Unknown_58h==0&&v.Unknown_60h==0&&v.Unknown_68h==0&&v.Unknown_70h==0&&v.Unknown_78h==0;
+    // Only raw arrays may be shared. RAGE mutates header pointer fields during fixup.
+    static T HeaderCopy<T>(T value) where T:class=>(T)typeof(object).GetMethod("MemberwiseClone",System.Reflection.BindingFlags.Instance|System.Reflection.BindingFlags.NonPublic)!.Invoke(value,null)!;
     public static (int vertices,int indices) Share(YddFile file){
-        int vertices=0,indices=0;
+        int vertices=0,indices=0;var headersV=new HashSet<VertexBuffer>();var headersI=new HashSet<IndexBuffer>();
         foreach(var d in file.Drawables){
-            var buffers=new Dictionary<string,(VertexData data,VertexBuffer buffer)>();var indexBuffers=new Dictionary<string,IndexBuffer>();
+            var buffers=new Dictionary<string,VertexData>();
             foreach(var m in d.AllModels)foreach(var g in m.Geometries){
+                if(!headersV.Add(g.VertexBuffer)){g.VertexBuffer=HeaderCopy(g.VertexBuffer);headersV.Add(g.VertexBuffer);vertices++;}
+                if(!headersI.Add(g.IndexBuffer)){g.IndexBuffer=HeaderCopy(g.IndexBuffer);headersI.Add(g.IndexBuffer);indices++;}
                 var data=g.VertexData;var vb=g.VertexBuffer;
                 // Distinct double buffers have separate semantics; leave them intact.
                 if((vb.Data1!=null&&!ReferenceEquals(vb.Data1,data))||(vb.Data2!=null&&!ReferenceEquals(vb.Data2,data)))continue;
                 string scope=$"{m.SkeletonBinding}/{g.ShaderID}/{string.Join(',',g.BoneIds??Array.Empty<ushort>())}";
                 string key=$"{scope}/{data.Info.Flags}/{(ulong)data.Info.Types}/{data.Info.Stride}/{data.Info.Count}/{data.VertexCount}/{Hash(data.VertexBytes)}";
-                if(buffers.TryGetValue(key,out var shared)&&shared.data.VertexBytes.SequenceEqual(data.VertexBytes)){
-                    if(!ReferenceEquals(shared.data,data)){g.VertexData=shared.data;if(vb.Data1!=null)vb.Data1=shared.data;if(vb.Data2!=null)vb.Data2=shared.data;vertices++;}
-                    if(Standard(vb)&&Standard(shared.buffer)&&vb.VFT==shared.buffer.VFT&&vb.VertexStride==shared.buffer.VertexStride&&vb.VertexCount==shared.buffer.VertexCount&&((vb.Data1!=null)==(shared.buffer.Data1!=null))&&((vb.Data2!=null)==(shared.buffer.Data2!=null)))g.VertexBuffer=shared.buffer;
-                }else buffers[key]=(data,vb);
-                var ib=g.IndexBuffer;var bytes=System.Runtime.InteropServices.MemoryMarshal.AsBytes(ib.Indices.AsSpan());
-                string indexKey=scope+"/"+IndexMetadata(ib)+"/"+Convert.ToHexString(SHA256.HashData(bytes));
-                if(indexBuffers.TryGetValue(indexKey,out var sharedIndex)&&sharedIndex.Indices.SequenceEqual(ib.Indices)){
-                    if(!ReferenceEquals(ib,sharedIndex)){g.IndexBuffer=sharedIndex;indices++;}
-                }else indexBuffers[indexKey]=ib;
+                if(buffers.TryGetValue(key,out var shared)&&shared.VertexBytes.SequenceEqual(data.VertexBytes)){
+                    if(!ReferenceEquals(shared,data)){g.VertexData=shared;if(vb.Data1!=null)vb.Data1=shared;if(vb.Data2!=null)vb.Data2=shared;vertices++;}
+                }else buffers[key]=data;
             }
         }
         return(vertices,indices);
+    }
+    public static void ValidateRuntimeHeaders(YddFile file){
+        var models=new HashSet<DrawableModel>();var geometries=new HashSet<DrawableGeometry>();var vertices=new HashSet<VertexBuffer>();var indices=new HashSet<IndexBuffer>();
+        void Pointer(ulong pointer){if(pointer!=0&&(pointer>>28)!=5&&(pointer>>28)!=6)throw new Exception("Ponteiro YDD fora das regiões virtual/física.");}
+        foreach(var d in file.Drawables)foreach(var m in d.AllModels){
+            Pointer(m.GeometriesPointer);Pointer(m.BoundsPointer);Pointer(m.ShaderMappingPointer);
+            if(!models.Add(m))throw new Exception("Modelo compartilhado com ponteiros mutáveis; separe os LODs antes de exportar.");
+            foreach(var g in m.Geometries){
+                foreach(var pointer in new[]{g.VertexBufferPointer,g.IndexBufferPointer,g.VertexDataPointer,g.BoneIdsPointer,g.VertexBuffer.DataPointer1,g.VertexBuffer.DataPointer2,g.VertexBuffer.InfoPointer,g.IndexBuffer.IndicesPointer})Pointer(pointer);
+                if(!geometries.Add(g))throw new Exception($"Geometria compartilhada {g.VertexBufferPointer:X}.");
+                if(!vertices.Add(g.VertexBuffer))throw new Exception($"VertexBuffer compartilhado {g.VertexBufferPointer:X}.");
+                if(!indices.Add(g.IndexBuffer))throw new Exception($"IndexBuffer compartilhado {g.IndexBufferPointer:X}.");
+            }
+        }
     }
     public static byte[] Compact(byte[] bytes,bool enforce=true){
         Size(bytes);if(BitConverter.ToInt32(bytes,4)!=165)throw new Exception("Selecione um YDD GTA V Legacy.");
@@ -44,7 +54,7 @@ static class FiveMResource {
         var original=Size(bytes);
         var saved=counts.vertices+counts.indices>0||original.system>Limit||original.graphics>Limit?YddLayout.Save(file):bytes;
         if(enforce)Check(saved);
-        var check=new YddFile();check.Load(saved);
+        var check=new YddFile();check.Load(saved);ValidateRuntimeHeaders(check);
         for(int di=0;di<file.Drawables.Length;di++){
             var a=file.Drawables[di];var b=check.Drawables[di];
             if(a.Name!=b.Name||a.AllModels.Length!=b.AllModels.Length||a.BoundingCenter!=b.BoundingCenter||a.BoundingBoxMin!=b.BoundingBoxMin||a.BoundingBoxMax!=b.BoundingBoxMax||a.BoundingSphereRadius!=b.BoundingSphereRadius)throw new Exception("Compactação alterou nomes ou LODs.");

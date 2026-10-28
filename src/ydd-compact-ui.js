@@ -1,3 +1,5 @@
+import {parseYdd} from '../modules/vehicles/src/formats/ydd.js';
+import {assertYddRuntimeHeaders} from './ydd-runtime.js';
 import {zipSync,strToU8} from 'fflate';
 import {assertFiveMBudget} from './resource-budget.js';
 export function mountYddCompactor({native,container,status}){
@@ -9,7 +11,7 @@ export function mountYddCompactor({native,container,status}){
   try{
    if(!/\.ydd$/i.test(file.name)||file.size>256*1024*1024)throw Error('Selecione um YDD de até 256 MB.');
    result.textContent='Otimizando buffers e páginas; verificando todos os LODs…';status(result.textContent);
-   const output=await native.compactYdd({name:file.name,bytes:new Uint8Array(await file.arrayBuffer())});assertFiveMBudget(output.bytes,file.name);
+   const output=await native.compactYdd({name:file.name,bytes:new Uint8Array(await file.arrayBuffer())});assertFiveMBudget(output.bytes,file.name);assertYddRuntimeHeaders(parseYdd(output.bytes,{maxInputBytes:256*1024*1024}),file.name);
    const archive={[file.name]:output.bytes,'relatorio-ydd.json':strToU8(JSON.stringify(output.report,null,2))},url=URL.createObjectURL(new Blob([zipSync(archive)])),link=document.createElement('a');link.href=url;link.download=file.name.replace(/\.ydd$/i,'')+'-compactado.zip';link.click();setTimeout(()=>URL.revokeObjectURL(url),30000);
    const r=output.report;result.textContent=`Arquivo ${(r.beforeBytes/1e6).toFixed(2)} → ${(r.afterBytes/1e6).toFixed(2)} MB · sistema ${(r.beforeSystem/1e6).toFixed(2)} → ${(r.afterSystem/1e6).toFixed(2)} MB. Use o YTD original.`;status('YDD compactado exportado. Malha e texturas preservadas.');
   }catch(error){result.textContent=error.message;status(error.message);}finally{button.disabled=false;}

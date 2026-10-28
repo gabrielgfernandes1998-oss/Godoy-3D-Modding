@@ -1,0 +1,12 @@
+const parts={ROOT:'Origem do esqueleto',Root:'Origem do esqueleto',Pelvis:'Quadril / bacia',Spine_Root:'Base da coluna',Spine0:'Coluna — região lombar',Spine1:'Coluna — abdômen',Spine2:'Tórax / peito',Spine3:'Parte alta das costas',Neck_1:'Pescoço',Head:'Cabeça',Thigh:'Coxa',Calf:'Panturrilha',Foot:'Pé',Toe0:'Dedão do pé',Toe:'Dedos do pé',CalfBack:'Parte de trás da panturrilha',Knee:'Joelho',Skirt:'Saia',ThighBack:'Parte de trás da coxa',ThighRoll:'Rotação da coxa',BackSkirtRoll:'Parte de trás da saia',FrontSkirtRoll:'Parte da frente da saia',Clavicle:'Clavícula / ombro',UpperArm:'Braço',Forearm:'Antebraço',Hand:'Mão',HandSide:'Lateral da mão',ForeArmRoll:'Rotação do antebraço',ArmRoll:'Rotação do braço',Elbow:'Cotovelo',Hair_Scale:'Tamanho do cabelo',Hair_Crown:'Topo do cabelo',facialRoot:'Raiz das expressões do rosto',Brow_Out_000:'Sobrancelha externa',Lid_Upper_000:'Pálpebra superior',Eye_000:'Olho',CheekBone_000:'Maçã do rosto',Lip_Corner_000:'Canto da boca',Brow_Centre_000:'Centro das sobrancelhas',UpperLipRoot_000:'Base do lábio superior',UpperLip_000:'Lábio superior',Lip_Top_000:'Parte superior do lábio',Jaw_000:'Mandíbula',LowerLipRoot_000:'Base do lábio inferior',LowerLip_000:'Lábio inferior',Lip_Bot_000:'Parte inferior do lábio',Tongue_000:'Língua',Breast:'Seio'};
+const categories={IK:'Controle de movimento',PH:'Ponto de apoio',EO:'Auxiliar',MH:'Auxiliar de movimento',SM:'Auxiliar da roupa',RB:'Auxiliar de rotação',SPR:'Articulação elástica',FB:'Rosto'};
+export function boneTranslation(name){
+ const match=/^(SKEL|IK|PH|EO|MH|SM|RB|SPR|FB|FACIAL)_(.*)$/.exec(name);if(!match)return null;
+ let [,category,part]=match,side='';const sided=/^([LRM])_(.*)$/.exec(part);
+ if(sided){part=sided[2];side={L:' — lado esquerdo',R:' — lado direito',M:' — centro'}[sided[1]];}
+ let label=parts[part];const finger=/^Finger(Top|Bulge)?([0-4])([0-2])$/.exec(part);
+ if(finger){const fingers=['polegar','indicador','dedo médio','anelar','dedo mínimo'],section=finger[1]==='Top'?'ponta':finger[1]==='Bulge'?'volume':['base','meio','ponta'][Number(finger[3])];label=`Dedo ${fingers[Number(finger[2])].replace(/^dedo /,'')} — ${section}`;}
+ if(!label)return null;
+ return `${categories[category]?categories[category]+': ':''}${label}${side}`;
+}
+export function boneOptionLabel(bone){const translated=boneTranslation(bone.name);return `${translated?translated+' · ':''}${bone.name} · ${bone.tag}`;}

@@ -350,11 +350,11 @@ TestManualAtlas();Console.WriteLine("Manual atlas: original UV unchanged, source
 // Converted high/low LODs share physical buffers, while both retain full geometry.
 {
  var shared=new YddFile();shared.Load(converted.ydd);var high=shared.Drawables[0].DrawableModels.High[0].Geometries[0];var low=shared.Drawables[0].DrawableModels.Low[0].Geometries[0];
- Check(ReferenceEquals(high.VertexData,low.VertexData)&&ReferenceEquals(high.VertexBuffer,low.VertexBuffer)&&ReferenceEquals(high.IndexBuffer,low.IndexBuffer),"converted LOD buffers are physically shared");
+ Check(ReferenceEquals(high.VertexData,low.VertexData)&&!ReferenceEquals(high.VertexBuffer,low.VertexBuffer)&&!ReferenceEquals(high.IndexBuffer,low.IndexBuffer),"raw vertices shared but mutable buffer headers are independent");
  var origin=high.VertexData.GetVector3(0,0);var move=Matrix.Translation(.25f,.5f,.75f);var edited=new YddFile();edited.Load(YddEditor.Export(shared,Request(move,"preserve"),null));
  foreach(var model in edited.Drawables[0].AllModels)Near(model.Geometries[0].VertexData.GetVector3(0,0),Vector3.TransformCoordinate(origin,move),"shared buffer transformed exactly once across LODs");
  var atlasFile=new YddFile();atlasFile.Load(converted.ydd);YddAtlas.Build(atlasFile,JsonSerializer.SerializeToElement(new{atlas=true,ytdData=Convert.ToBase64String(converted.ytd),additions=new[]{addition},atlasMaxResolution=4096}));
- Console.WriteLine("Shared LODs: same buffers, full geometry, transform once and subsequent atlas edit PASS");
+ Console.WriteLine("Shared raw LOD data: distinct headers, full geometry, transform once and subsequent atlas edit PASS");
 }
 {
  var legacy=Fixture();var d=legacy.Drawables[0];var shader=d.ShaderGroup.Shaders.data_items[0];
@@ -413,5 +413,19 @@ TestManualAtlas();Console.WriteLine("Manual atlas: original UV unchanged, source
  Check(FiveMResource.Size(embeddedCompact).graphics>0,"compact serializer writes real graphics pages");
  Check(embeddedRead.Drawables[0].ShaderGroup.TextureDictionary.Textures.data_items[0].Data.FullData.SequenceEqual(ct.Data.FullData),"embedded texture mip bytes preserved through page repacking");
  Console.WriteLine("Compact YDD serialization: independent graphics pages and embedded mip pixels PASS");
+}
+
+{
+ var unsafeBytes=File.ReadAllBytes("tests/fixtures/native-unsafe-shared-headers.ydd");var unsafeFile=new YddFile();unsafeFile.Load(unsafeBytes);
+ bool rejected=false;try{FiveMResource.ValidateRuntimeHeaders(unsafeFile);}catch(Exception){rejected=true;}Check(rejected,"legacy shared mutable headers detected below memory limit");
+ var repaired=FiveMResource.Compact(unsafeBytes);var fixedFile=new YddFile();fixedFile.Load(repaired);FiveMResource.ValidateRuntimeHeaders(fixedFile);
+ Check(FiveMResource.Compact(repaired).SequenceEqual(repaired),"header fixup repair is idempotent");
+ // Replay in-place fixups of each buffer's pointer slots. Each slot must be fixed only once.
+ var fixedSlots=new HashSet<ulong>();
+ foreach(var model in fixedFile.Drawables[0].AllModels)for(int i=0;i<model.Geometries.Length;i++){
+  var geometry=model.Geometries[i];var pointer=model.GeometryPointers[i];
+  foreach(ulong slot in new[]{pointer+0x18,pointer+0x38,geometry.VertexBufferPointer+0x10,geometry.VertexBufferPointer+0x20,geometry.VertexBufferPointer+0x30,geometry.IndexBufferPointer+0x10})Check(fixedSlots.Add(slot),"in-place pointer slot never visited twice");
+ }
+ Console.WriteLine("Legacy unsafe shared headers: detected, split below budget and in-place buffer fixup slots independent PASS");
 }
 class LayoutBlock(long length):ResourceSystemBlock {public override long BlockLength=>length;public override void Read(ResourceDataReader reader,params object[] parameters)=>throw new NotSupportedException();public override void Write(ResourceDataWriter writer,params object[] parameters)=>throw new NotSupportedException();}

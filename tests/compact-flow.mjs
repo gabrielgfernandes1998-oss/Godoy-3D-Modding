@@ -1,3 +1,5 @@
+import {parseYdd} from '../modules/vehicles/src/formats/ydd.js';
+import {assertYddRuntimeHeaders} from '../src/ydd-runtime.js';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import path from 'node:path';
@@ -14,7 +16,7 @@ export async function exerciseCompactor(page,output){
  const files=unzipSync(await readFile(target)),report=JSON.parse(new TextDecoder().decode(files['relatorio-ydd.json']));
  assert.ok(files['native-duplicate-lods.ydd']);assert.equal(Object.keys(files).length,2,'does not replace YTD');
  assert.ok(report.beforeSystem>100000000);assert.ok(report.afterSystem<100000000);assert.ok(report.afterBytes<report.beforeBytes*.7);
- assertFiveMBudget(files['native-duplicate-lods.ydd'],'compacted.ydd');
+ assertFiveMBudget(files['native-duplicate-lods.ydd'],'compacted.ydd');assertYddRuntimeHeaders(parseYdd(files['native-duplicate-lods.ydd']));
  await frame.locator('#compact-ydd-result').filter({hasText:'Use o YTD original'}).waitFor();
  console.log('YDD compactor: uploading already-shared fragmented fixture');
  const next=page.waitForEvent('download',{timeout:240000});await frame.locator('#compact-ydd-file').setInputFiles('tests/fixtures/native-fragmented-shared-lods.ydd',{timeout:120000});
@@ -22,5 +24,7 @@ export async function exerciseCompactor(page,output){
  const fixedFiles=unzipSync(await readFile(fixedTarget)),fixedReport=JSON.parse(new TextDecoder().decode(fixedFiles['relatorio-ydd.json']));
  assert.ok(fixedReport.beforeSystem>100000000);assert.ok(fixedReport.afterSystem<100000000);assertFiveMBudget(fixedFiles['native-fragmented-shared-lods.ydd'],'fixed.ydd');
  assert.equal(Object.keys(fixedFiles).length,2,'page layout optimization leaves the original YTD alone');
- console.log('YDD compactor: both real native ZIPs and resource budgets verified');
+ const legacyPending=page.waitForEvent('download',{timeout:240000});await frame.locator('#compact-ydd-file').setInputFiles('tests/fixtures/native-unsafe-shared-headers.ydd',{timeout:120000});
+ const legacyDownload=await legacyPending,legacyPath=path.join(output,'repaired-fixup.zip');await legacyDownload.saveAs(legacyPath);const legacyFiles=unzipSync(await readFile(legacyPath));assertYddRuntimeHeaders(parseYdd(legacyFiles['native-unsafe-shared-headers.ydd']));
+ console.log('YDD compactor: raw-data sharing, repaired legacy headers and budgets verified');
 }

@@ -7,8 +7,19 @@ static class YddLayout {
     public static byte[] Save(YddFile file){
         var root=file.DrawableDict;root.FilePagesInfo=new ResourcePagesInfo();
         ResourceBuilder.GetBlocks(root,out var sys,out var gfx);
+        // Share immutable ushort payloads, never the IndexBuffer headers that point at them.
+        var indexArrays=file.Drawables.SelectMany(d=>d.AllModels).SelectMany(m=>m.Geometries).Select(g=>g.IndexBuffer.Indices).ToHashSet();
+        var aliases=new List<(IResourceBlock alias,IResourceBlock target)>();var payloads=new Dictionary<string,ResourceSystemStructBlock<ushort>>();
+        foreach(var block in sys.OfType<ResourceSystemStructBlock<ushort>>()){
+            if(block.Items is null||block.StructureSize!=2||!indexArrays.Contains(block.Items))continue;
+            var bytes=System.Runtime.InteropServices.MemoryMarshal.AsBytes(block.Items.AsSpan());
+            var key=Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(bytes));
+            if(payloads.TryGetValue(key,out var previous)&&block.Items.SequenceEqual(previous.Items))aliases.Add((block,previous));else payloads[key]=block;
+        }
+        var omitted=aliases.Select(x=>x.alias).ToHashSet();sys=sys.Where(b=>!omitted.Contains(b)).ToList();
         Assign(sys,0x50000000,out var sf);Assign(gfx,0x60000000,out var gf);
         Validate(sys,0x50000000,sf);Validate(gfx,0x60000000,gf);
+        foreach(var pair in aliases)pair.alias.FilePosition=pair.target.FilePosition;
         root.FilePagesInfo.SystemPagesCount=(byte)sf.Count;root.FilePagesInfo.GraphicsPagesCount=(byte)gf.Count;
         using var system=new MemoryStream();using var graphics=new MemoryStream();
         var writer=new ResourceDataWriter(system,graphics);
