@@ -6,7 +6,9 @@ O reparo é aplicado também a entradas antigas abaixo do limite. Validação na
 
 Arquivo privado da mochila: 117.619.092 para 58.601.890 bytes; reserva 81.788.928. Os dados e o YTD permanecem preservados. Os 128 nomes de osso desse esqueleto receberam tradução na interface; nome técnico e ID permanecem nos rótulos e os valores exportados não mudaram. Nenhum arquivo do usuário foi adicionado ao repositório/release.
 
-90 testes JS e a suíte nativa passaram. Teste do navegador e do executável Windows serão registrados após conclusão. O erro informado pelo usuário é Invalid fixup em accs_007_u.ydd; a execução da saída corrigida no FiveM continua pendente.
+90 testes JS e a suíte nativa passaram. Navegador completo e teste do executável Windows passaram, incluindo o reparo nativo do YDD antigo de cabeçalhos compartilhados e a tradução do seletor de ossos. O erro informado pelo usuário é Invalid fixup em accs_007_u.ydd; a execução da saída corrigida no FiveM continua pendente.
+
+Release [v0.11.8](https://github.com/gabrielgfernandes1998-oss/Godoy-3D-Modding/releases/tag/v0.11.8) publicada após [workflow 40615809839](https://github.com/gabrielgfernandes1998-oss/Godoy-3D-Modding/actions/runs/40615809839) passar. Job Windows 122578634068; publicação 122579763337. ZIP baixado integralmente e SHA-256 conferido: 200806801 bytes; `7a987d66b0af2a5fd075fb8f34f76317cc1253af902ded382714d097523bc764`.
 
 ## Histórico da 0.11.7
 
