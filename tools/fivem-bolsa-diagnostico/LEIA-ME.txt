@@ -1,0 +1,20 @@
+TESTE TEMPORARIO DA BOLSA NO FIVEM
+
+1. Extraia a pasta godoy_bolsa_diagnostico dentro de resources do servidor.
+2. Mantenha o recurso da mochila instalado e iniciado normalmente.
+3. No console do servidor execute: ensure godoy_bolsa_diagnostico
+4. Entre com o personagem masculino e FECHE a loja de roupas.
+5. Abra F8 e execute: godoy_bolsa
+6. Confira a bolsa no personagem e envie um print das linhas [Godoy bolsa] do F8.
+
+O teste procura mp_m_freemode_01_mochi, componente hand (5), peca local 0,
+textura 0. Nao depende do numero mostrado pela loja.
+Para outra colecao: godoy_bolsa nome_completo_da_colecao indice_local textura
+
+Para voltar a bolsa anterior: godoy_bolsa_restaurar
+Depois do teste: stop godoy_bolsa_diagnostico no console do servidor.
+Voce pode apagar somente a pasta deste diagnostico depois de parar o recurso.
+
+O comando muda somente a bolsa do personagem atual, sem salvar no banco de
+dados. Nao edita o YDD/YTD, nao modifica outras roupas e nao inclui os assets.
+O log confirma registro/selecao; a aparencia precisa ser conferida no jogo.
