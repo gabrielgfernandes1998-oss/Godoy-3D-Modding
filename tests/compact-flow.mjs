@@ -9,7 +9,7 @@ export async function exerciseCompactor(page,output){
  await page.locator('[data-tab=converter]').click();const frame=page.frameLocator('#converter iframe');
  await frame.locator('#ydd-compactor summary').click();
  console.log('YDD compactor: uploading duplicate-LOD fixture');
- const pending=page.waitForEvent('download',{timeout:240000});
+ const pending=page.waitForEvent('download',{timeout:240000}).catch(async error=>{const ui=await frame.locator('#compact-ydd-result').textContent({timeout:3000}).catch(()=>'(indisponível)'),status=await frame.locator('#status').textContent({timeout:3000}).catch(()=>'(indisponível)');throw Error(`${error.message}\nCompactor UI: ${ui}\nStatus: ${status}`);});
  await frame.locator('#compact-ydd-file').setInputFiles('tests/fixtures/native-duplicate-lods.ydd',{timeout:120000});
  console.log('YDD compactor: upload complete; awaiting first ZIP');
  const download=await pending,target=path.join(output,'compact-ydd.zip');await download.saveAs(target);

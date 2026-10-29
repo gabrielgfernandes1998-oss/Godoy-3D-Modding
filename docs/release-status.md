@@ -1,4 +1,4 @@
-# Estado da versão 0.11.10 beta — validação em andamento
+# Estado da versão 0.11.11 beta — validação em andamento
 
 O usuário confirmou que 0.11.9 resolveu a visibilidade no FiveM. Após escolher Spine2 (24817), ainda relatou movimento semelhante ao da pelve e informou ter removido o anterior e instalado com outro nome. Os vídeos foram inspecionados, mas não foram tratados como prova isolada da causa. A nova investigação encontrou diferença entre o conversor e a referência funcional: índices de vértices sempre zero, tabela local com um único índice de osso e apenas uma matriz. A referência usa 128 matrizes, tabela identidade e índices globais.
 
@@ -10,7 +10,7 @@ A validação independente JS lê esqueleto, cabeçalho, tabela e todos os índi
 
 Teste privado usa a cópia anterior da mochila de 0.11.9, ajustando a palette local para reproduzir Spine2, sem alegar ser o último arquivo instalado do usuário. Resultado: 58.363.841 bytes; sistema 88.080.384; 128 matrizes, 128 ossos e índice global 37/tag24817 nos dois LODs. Comparação completa de posições, normais, cores, UVs, pesos e triângulos passou; somente representação dos índices/tabela muda. Nenhum asset privado foi adicionado ao repositório/release.
 
-92 testes JS, suíte nativa e navegador completo passaram localmente. Compilação e teste Windows em andamento. A confirmação do movimento no FiveM segue pendente.
+92 testes JS, suíte nativa e navegador completo passaram localmente. A candidata 0.11.10 não foi publicada: a etapa Windows excedeu 240 s esperando o primeiro download do compactador (run 40801342929, job 123210551582); as conversões e a troca de osso anteriores a essa etapa não falharam. Não foi assumida uma causa exclusiva a partir desse timeout. A 0.11.11 mantém o arquivo selecionado até terminar a leitura/processamento e mostra uma mensagem útil quando o erro não tem message, incluindo o nome disponível da exceção. O teste inclui texto da interface/status na falha, com prazo de leitura de 3 s. Um fluxo local adicional passou pelos quatro fixtures com browser, IPC registrado real e helper .NET real via transporte HTTP de teste; o sender autorizado é simulado nesse harness e isso não é um teste Electron Windows. Compilação e teste Windows serão repetidos. A confirmação do movimento no FiveM segue pendente.
 
 ## Histórico 0.11.9
 
