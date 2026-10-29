@@ -4,7 +4,7 @@ import path from 'node:path';
 import {unzipSync} from 'fflate';
 import {parseYdd} from '../modules/vehicles/src/formats/ydd.js';
 import {parseYtd} from '../modules/vehicles/src/formats/ytd.js';
-import {assertYddLodCounts} from '../src/ydd-runtime.js';
+import {assertYddLodCounts,assertConverterBone} from '../src/ydd-runtime.js';
 
 export async function exerciseConverter(page,output,{stub=false}={}) {
  if(stub){const ydd=await readFile('tests/fixtures/native-converted-obj.ydd'),ytd=await readFile('tests/fixtures/native-converted-obj.ytd');await page.evaluate(({ydd,ytd})=>{window.godoyNative={...window.godoyNative,createYdd:async request=>{window.converterRequest={name:request.name,boneTag:request.boneTag,partCount:request.parts.length,positions:request.parts[0].positions,textureSize:request.textureSize,pixel:Array.from(request.pixels.slice(0,4))};return {ydd:new Uint8Array(ydd),ytd:new Uint8Array(ytd),compatibility:'codewalker-pair-roundtrip-v1'};}};},{ydd:Array.from(ydd),ytd:Array.from(ytd)});}
@@ -27,7 +27,16 @@ export async function exerciseConverter(page,output,{stub=false}={}) {
  const doc=parseYdd(files['accs_007_u.ydd']),dict=parseYtd(files['accs_diff_007_a_uni.ytd']);assertYddLodCounts(doc);assert.equal(doc.drawables.length,1);assert.equal(dict.textures.length,1);assert.equal(dict.textures[0].name,doc.drawables[0].shaders[0].diffuseName);assert.equal(dict.textures[0].width,512);assert.deepEqual(Array.from(dict.textures[0].decode().slice(0,4)),[12,34,56,255]);
  for(let lod=0;lod<doc.drawables[0].lods.length;lod++){const geometries=doc.drawables[0].readLod(lod);assert.equal(geometries.length,1,'converted piece must not contain ped geometry');assert.equal(geometries[0].vertexCount,3);if(!stub){const y=Number(placement),g=geometries[0];assert.ok(Math.abs(g.positions[1]-y)<1e-4,'native output must keep the positioned OBJ');assert.ok(g.uvs.every(v=>v>0&&v<1),'auto UV belongs to texture');}}
  const metadata=JSON.parse(new TextDecoder().decode(files['conversao.json']));assert.equal(metadata.compatibility,'codewalker-pair-roundtrip-v1');assert.equal(metadata.bone.tag,11816);assert.equal(metadata.gender,'male');assert.equal(metadata.uv,'auto');
+ assert.equal(assertConverterBone(doc,11816).index,1);assert.equal(metadata.skinIndices,'skeleton-global');
+ await frame.locator('#convert-export-result').filter({hasText:'Osso gravado:'}).waitFor();
  if(stub){const request=await page.evaluate(()=>window.converterRequest);assert.equal(request.name,'accs_007_u');assert.equal(request.boneTag,11816);assert.equal(request.partCount,1);assert.deepEqual(request.pixel,[12,34,56,255]);}
+ if(!stub){
+  await frame.locator('#convert-bone').selectOption('31086');const changed=page.waitForEvent('download');await frame.locator('#convert-export').click();
+  const changedDownload=await changed,changedPath=path.join(output,'head-bound-obj.zip');await changedDownload.saveAs(changedPath);
+  const changedFiles=unzipSync(await readFile(changedPath)),changedDoc=parseYdd(changedFiles['accs_008_u.ydd']);
+  assert.equal(assertConverterBone(changedDoc,31086).index,2);assert.throws(()=>assertConverterBone(changedDoc,11816),/vértices exportados/);
+  await frame.locator('#convert-bone').selectOption('11816');
+ }
  // Import result back through the existing painting editor.
  await page.locator('[data-tab=clothing]').click();const clothing=page.frameLocator('#clothing iframe');
  await clothing.locator('#batch-files').setInputFiles([{name:'accs_007_u.ydd',mimeType:'application/octet-stream',buffer:Buffer.from(files['accs_007_u.ydd'])},{name:'accs_diff_007_a_uni.ytd',mimeType:'application/octet-stream',buffer:Buffer.from(files['accs_diff_007_a_uni.ytd'])}]);await clothing.locator('#batch-status').filter({hasText:'YTD associado'}).waitFor();

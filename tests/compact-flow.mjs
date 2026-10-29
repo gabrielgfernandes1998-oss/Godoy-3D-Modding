@@ -1,5 +1,5 @@
 import {parseYdd} from '../modules/vehicles/src/formats/ydd.js';
-import {assertYddRuntimeHeaders,assertYddLodCounts} from '../src/ydd-runtime.js';
+import {assertYddRuntimeHeaders,assertYddLodCounts,assertConverterBone} from '../src/ydd-runtime.js';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import path from 'node:path';
@@ -27,4 +27,8 @@ export async function exerciseCompactor(page,output){
  const legacyPending=page.waitForEvent('download',{timeout:240000});await frame.locator('#compact-ydd-file').setInputFiles('tests/fixtures/native-unsafe-shared-headers.ydd',{timeout:120000});
  const legacyDownload=await legacyPending,legacyPath=path.join(output,'repaired-fixup.zip');await legacyDownload.saveAs(legacyPath);const legacyFiles=unzipSync(await readFile(legacyPath));const legacyDoc=parseYdd(legacyFiles['native-unsafe-shared-headers.ydd']);assertYddRuntimeHeaders(legacyDoc);assertYddLodCounts(legacyDoc);
  console.log('YDD compactor: raw-data sharing, repaired legacy headers and budgets verified');
+ const bonePending=page.waitForEvent('download',{timeout:240000});await frame.locator('#compact-ydd-file').setInputFiles('tests/fixtures/native-local-bone-indices.ydd',{timeout:120000});
+ const boneDownload=await bonePending,bonePath=path.join(output,'repaired-skin.zip');await boneDownload.saveAs(bonePath);const boneFiles=unzipSync(await readFile(bonePath));
+ assert.equal(assertConverterBone(parseYdd(boneFiles['native-local-bone-indices.ydd']),11816).index,1);
+ console.log('YDD compactor: old local skin palette repaired to skeleton-global vertex indices');
 }

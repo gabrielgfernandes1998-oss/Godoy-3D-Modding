@@ -50,7 +50,7 @@ static class FiveMResource {
     }
     public static byte[] Compact(byte[] bytes,bool enforce=true){
         Size(bytes);if(BitConverter.ToInt32(bytes,4)!=165)throw new Exception("Selecione um YDD GTA V Legacy.");
-        var file=new YddFile();file.Load(bytes);var rendering=YddRender.Repair(file);var counts=Share(file);
+        var file=new YddFile();file.Load(bytes);var rendering=YddRender.Repair(file)+PedSkin.Repair(file);var counts=Share(file);
         var original=Size(bytes);
         var saved=rendering>0||counts.vertices+counts.indices>0||original.system>Limit||original.graphics>Limit?YddLayout.Save(file):bytes;
         if(enforce)Check(saved);

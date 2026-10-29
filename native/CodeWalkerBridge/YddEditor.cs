@@ -48,7 +48,7 @@ static class YddEditor {
                     var flags=data.Info.Flags;
                     if(target is not null && model.HasSkin!=0) {
                         if((flags&6)!=6||!IsBytes(data.Info.GetComponentType(1))||!IsBytes(data.Info.GetComponentType(2)))throw new Exception("Pesos/índices incompatíveis com vínculo rígido.");
-                        geometry.BoneIds=new[]{(ushort)target.Index};
+                        geometry.BoneIds=PedSkin.Identity(drawable.Skeleton!);
                     }
                     for(int i=0;i<data.VertexCount;i++) {
                         var p=repeated?data.GetVector3(i,0):Vector3.TransformCoordinate(data.GetVector3(i,0),vertexMatrix);Check(p);
@@ -60,7 +60,7 @@ static class YddEditor {
                         if(!repeated&&(flags&(1u<<14))!=0)Direction(data,i,14,vertexMatrix);
                         if(target is not null && model.HasSkin!=0) {
                             data.SetUByte4(i,1,new Color((byte)255,(byte)0,(byte)0,(byte)0));
-                            data.SetUByte4(i,2,new Color((byte)0,(byte)0,(byte)0,(byte)0));
+                            data.SetUByte4(i,2,new Color((byte)target.Index,(byte)0,(byte)0,(byte)0));
                         }
                     }
                     var vb=geometry.VertexBuffer;
@@ -69,6 +69,7 @@ static class YddEditor {
                     if(vb.Data1 is not null)vb.Data1=data;if(vb.Data2 is not null)vb.Data2=data;
                 }
                 if(target is not null)model.BoneIndex=model.HasSkin==0?(byte)target.Index:(byte)0;
+                if(target is not null&&model.HasSkin!=0){model.Flags|=1;model.SkeletonBindUnk1=(byte)PedSkin.Identity(drawable.Skeleton!).Length;}
                 model.RebuildBounds();
             }
             if(count==0)throw new Exception("YDD sem vértices.");

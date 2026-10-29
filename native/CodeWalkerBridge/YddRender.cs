@@ -36,7 +36,7 @@ static class YddRender {
                 // authored materials and unknown vertex formats remain untouched.
                 if(shader.Name.Hash!=JenkHash.GenHash("ped")||shader.FileName.Hash!=JenkHash.GenHash("ped_default.sps")||p?.Parameters?.Length!=2||p.Hashes.Length!=2||(uint)p.Hashes[0]!=JenkHash.GenHash("diffusesampler")||(uint)p.Hashes[1]!=JenkHash.GenHash("matmaterialcolorscale")||p.Parameters[0].Data is not TextureBase diffuse)continue;
                 var geometries=d.AllModels.SelectMany(m=>m.Geometries).Where(g=>ReferenceEquals(g.Shader,shader)).ToArray();
-                if(geometries.Length==0||geometries.Any(g=>g.VertexData.Info.Flags!=95||g.VertexData.VertexStride!=44||g.VertexBuffer.Data2!=null&&!ReferenceEquals(g.VertexBuffer.Data2,g.VertexData)))continue;
+                if(geometries.Length==0||geometries.Any(g=>g.VertexData.Info.Flags!=95||g.VertexData.Info.Types!=VertexDeclarationTypes.GTAV1||g.VertexData.VertexStride!=44||g.VertexBuffer.Data2!=null&&!ReferenceEquals(g.VertexBuffer.Data2,g.VertexData)))continue;
                 shaders[i]=PedMaterial(diffuse);replacements[shader]=shaders[i];changed++;
             }
             var upgraded=new Dictionary<VertexData,VertexData>();

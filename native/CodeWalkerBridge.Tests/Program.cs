@@ -31,9 +31,9 @@ var fixture=Fixture();var original=fixture.Save();
 var m=Matrix.Scaling(2,3,4)*Matrix.RotationZ(.4f)*Matrix.Translation(1,-2,-1);
 var output=YddEditor.Export(fixture,Request(m,"pelvis"),null);var result=new YddFile();result.Load(output);
 Check(result.Drawables[0].AllModels.Length==2,"all LODs retained");
-foreach(var model in result.Drawables[0].AllModels){var g=model.Geometries[0];Check(g.BoneIds.SequenceEqual(new ushort[]{1}),"pelvis palette");for(int i=0;i<3;i++){
+foreach(var model in result.Drawables[0].AllModels){var g=model.Geometries[0];Check(g.BoneIds.SequenceEqual(new ushort[]{0,1,2}),"skeleton identity palette");for(int i=0;i<3;i++){
  Near(g.VertexData.GetVector3(i,0),Vector3.TransformCoordinate(new Vector3(i%2,i/2,2),m),"transformed position");
- Check(g.VertexData.GetUByte4(i,1).R==255&&g.VertexData.GetUByte4(i,2).R==0,"rigid skin weights");
+ Check(g.VertexData.GetUByte4(i,1).R==255&&g.VertexData.GetUByte4(i,2).R==1,"rigid skin weights select global pelvis index");
  Check(g.VertexData.GetVector2(i,6)==new Vector2(i%2,i/2),"UV retained");
  Near(g.VertexData.GetVector3(i,3),Vector3.UnitZ,"normal normalized");
 }}
@@ -54,12 +54,12 @@ Check(convertedDoc.Drawables[0].FlagsHigh==1&&convertedDoc.Drawables[0].FlagsLow
 Check(convertedDoc.DrawableDict.Hashes[0]==JenkHash.GenHash("accs_007_u"),"new drawable dictionary hash");
 foreach(var model in convertedDoc.Drawables[0].AllModels) {
  Check((model.RenderMask&1)!=0,"converted model survives CodeWalker/grzy final-render filter");
- Check(model.Flags==1&&model.SkeletonBindUnk1==1,"skin flag and matrix count describe the single-bone palette");
+ Check(model.Flags==1&&model.SkeletonBindUnk1==3,"skin flag and matrix count describe the complete skeleton palette");
  Check(model.Geometries.All(g=>g.Shader.Name.Hash==JenkHash.GenHash("ped_default")&&g.Shader.FileName.Hash==JenkHash.GenHash("ped_default.sps")),"shader family matches the actual SPS variant");
  Check(model.Geometries.All(g=>g.VertexData.Info.Flags==127&&g.VertexStride==48),"ped_default skinned vertex declaration includes both colour channels");
- Check(model.HasSkin==1&&model.Geometries.Length==1,"new YDD contains OBJ alone, no ped geometry");var g=model.Geometries[0];Check(g.VertexData.VertexCount==3&&g.BoneIds.SequenceEqual(new ushort[]{1}),"OBJ vertex count and chosen pelvis palette");
+ Check(model.HasSkin==1&&model.Geometries.Length==1,"new YDD contains OBJ alone, no ped geometry");var g=model.Geometries[0];Check(g.VertexData.VertexCount==3&&g.BoneIds.SequenceEqual(new ushort[]{0,1,2}),"OBJ vertex count and complete identity palette");
  Near(g.VertexData.GetVector3(0,0),new Vector3(.1f,.1f,2),"OBJ world placement in bind pose");
- Check(g.VertexData.GetUByte4(0,1).R==255&&g.VertexData.GetUByte4(0,2).R==0,"single-bone 100 percent weights");
+ Check(g.VertexData.GetUByte4(0,1).R==255&&g.VertexData.GetUByte4(0,2).R==1,"single-bone 100 percent weights select global pelvis index");
  Check(g.VertexData.GetColour(0,4).R==255,"white vertex colors avoid dark diffuse");
  Check(ReferenceEquals(g.VertexBuffer.Data1,g.VertexData)&&ReferenceEquals(g.VertexBuffer.Data2,g.VertexData),"both vertex data references describe the same non-distinct stream");
  Check(g.VertexData.GetVector2(0,6)==new Vector2(.2f,.3f),"converter retains supplied UV");
@@ -87,20 +87,54 @@ Console.WriteLine("Confirmed grzy Test 1 paired normalization: identity, all LOD
  Check(d.FlagsHigh==1&&d.FlagsLow==1,"repair restores nonzero RAGE LOD model counts below memory limit");
  for(int mi=0;mi<d.AllModels.Length;mi++){
   var a=oldRead.Drawables[0].AllModels[mi].Geometries[0];var b=d.AllModels[mi].Geometries[0];
-  Check(d.AllModels[mi].Flags==1&&d.AllModels[mi].SkeletonBindUnk1==1,"legacy skin metadata repaired");
+  Check(d.AllModels[mi].Flags==1&&d.AllModels[mi].SkeletonBindUnk1==3,"legacy skin metadata repaired");
   Check(b.VertexStride==48&&b.VertexData.Info.Flags==127,"legacy declaration migrated to ped_default profile");
   for(int i=0;i<a.VertexData.VertexCount;i++){
-   Check(a.VertexData.VertexBytes.AsSpan(i*44,36).SequenceEqual(b.VertexData.VertexBytes.AsSpan(i*48,36)),"positions normals weights indices and original colour bytes unchanged");
+   Check(a.VertexData.VertexBytes.AsSpan(i*44,16).SequenceEqual(b.VertexData.VertexBytes.AsSpan(i*48,16))&&a.VertexData.VertexBytes.AsSpan(i*44+20,16).SequenceEqual(b.VertexData.VertexBytes.AsSpan(i*48+20,16)),"positions normals weights and original colour bytes unchanged");
+   Check(a.BoneIds[a.VertexData.GetUByte4(i,2).R]==b.BoneIds[b.VertexData.GetUByte4(i,2).R],"intended bone preserved when local indices become skeleton-global");
    Check(a.VertexData.VertexBytes.AsSpan(i*44+36,8).SequenceEqual(b.VertexData.VertexBytes.AsSpan(i*48+40,8)),"UV bytes unchanged after adding second colour");
   }
-  Check(a.IndexBuffer.Indices.SequenceEqual(b.IndexBuffer.Indices)&&a.BoneIds.SequenceEqual(b.BoneIds),"repair preserves every triangle and bone palette");
+  Check(a.IndexBuffer.Indices.SequenceEqual(b.IndexBuffer.Indices)&&b.BoneIds.SequenceEqual(new ushort[]{0,1,2}),"repair preserves every triangle and expands the palette to the skeleton");
   Check(((TextureBase)a.Shader.ParametersList.Parameters[0].Data).Name==((TextureBase)b.Shader.ParametersList.Parameters[0].Data).Name,"repair retains external YTD sampler name");
   Check(b.Shader.ParameterCount==13&&b.Shader.TextureParametersCount==5,"ped_default material uses its own parameter layout");
  }
  Check(FiveMResource.Compact(repaired).SequenceEqual(repaired),"render/profile repair is idempotent");
  Console.WriteLine("Invisible converter: independent headers, zero LOD counts, skin flags, exact preserved attribute bytes, valid material layout and repeat repair PASS");
 }
-var headConverted=new YddFile();headConverted.Load(ObjYdd.Create(Fixture(),ConvertRequest(31086)).ydd);Check(headConverted.Drawables[0].AllModels[0].Geometries[0].BoneIds[0]==2,"converter head selection");
+var headConverted=new YddFile();headConverted.Load(ObjYdd.Create(Fixture(),ConvertRequest(31086)).ydd);Check(headConverted.Drawables[0].AllModels[0].Geometries[0].VertexData.GetUByte4(0,2).R==2,"converter head selection uses skeleton-global index");
+{
+ var ped=Fixture();var skeleton=ped.Drawables[0].Skeleton;
+ skeleton.Bones.Items=skeleton.Bones.Items.Append(new Bone{Name="SKEL_Spine2",Index=3,Index2=3,Tag=24817,ParentIndex=1,Translation=new Vector3(0,0,.4f),Scale=Vector3.One,Rotation=Quaternion.Identity}).ToArray();
+ skeleton.BuildIndices();skeleton.BuildBoneTags();skeleton.AssignBoneParents();skeleton.BuildTransformations();skeleton.BuildBonesMap();
+ var pelvis=new YddFile();pelvis.Load(ObjYdd.Create(ped,ConvertRequest(11816)).ydd);
+ var thorax=new YddFile();thorax.Load(ObjYdd.Create(ped,ConvertRequest(24817)).ydd);
+ // Independent CPU pose test for the identity/global indexing profile used by
+ // authored ped clothing. This is not execution of the GTA animation engine.
+ var pose=new[]{Matrix.Identity,Matrix.Translation(.5f,0,0),Matrix.Identity,Matrix.RotationZ(.6f)*Matrix.Translation(0,.4f,0)};
+ Vector3 Posed(DrawableGeometry g,int vertex){
+  var p=g.VertexData.GetVector3(vertex,0);var w=g.VertexData.GetUByte4(vertex,1);var b=g.VertexData.GetUByte4(vertex,2);
+  var weights=new[]{w.R,w.G,w.B,w.A};var indices=new[]{b.R,b.G,b.B,b.A};var result=Vector3.Zero;
+  for(int i=0;i<4;i++)if(weights[i]!=0)result+=Vector3.TransformCoordinate(p,pose[indices[i]])*(weights[i]/255f);
+  return result;
+ }
+ for(int mi=0;mi<thorax.Drawables[0].AllModels.Length;mi++){
+  var a=pelvis.Drawables[0].AllModels[mi].Geometries[0];var b=thorax.Drawables[0].AllModels[mi].Geometries[0];
+  for(int i=0;i<3;i++){
+   var p=a.VertexData.GetVector3(i,0);Near(p,b.VertexData.GetVector3(i,0),"changing bone keeps bind-pose placement");
+   Near(Posed(a,i),Vector3.TransformCoordinate(p,pose[1]),"pelvis follows pelvis pose");
+   Near(Posed(b,i),Vector3.TransformCoordinate(p,pose[3]),"Spine2 follows torso pose");
+   Check((Posed(a,i)-Posed(b,i)).Length()>.1f,"pelvis and Spine2 no longer produce the same posed vertex");
+  }
+ }
+ var legacyBytes=File.ReadAllBytes("tests/fixtures/native-local-bone-indices.ydd");var old=new YddFile();old.Load(legacyBytes);
+ var oldGeometry=old.Drawables[0].AllModels[0].Geometries[0];var oldPoint=oldGeometry.VertexData.GetVector3(0,0);
+ Near(Posed(oldGeometry,0),oldPoint,"legacy converter's vertex index zero follows root under global indexing");
+ var repaired=FiveMResource.Compact(legacyBytes);var fixedFile=new YddFile();fixedFile.Load(repaired);PedSkin.Verify(fixedFile,11816);
+ var fixedGeometry=fixedFile.Drawables[0].AllModels[0].Geometries[0];Near(Posed(fixedGeometry,0),Vector3.TransformCoordinate(oldPoint,pose[1]),"legacy selected pelvis recovered from compact palette");
+ Check(FiveMResource.Compact(repaired).SequenceEqual(repaired),"global skin repair is idempotent");
+ Check(oldGeometry.VertexData.VertexBytes.AsSpan(0,16).SequenceEqual(fixedGeometry.VertexData.VertexBytes.AsSpan(0,16))&&oldGeometry.VertexData.VertexBytes.AsSpan(20,28).SequenceEqual(fixedGeometry.VertexData.VertexBytes.AsSpan(20,28)),"skin repair changes blend indices while preserving position weights normal colours and UV bytes");
+ Console.WriteLine("Ped global skin: pelvis vs Spine2 independent CPU poses, unchanged bind placement, legacy root-index regression and idempotent repair PASS");
+}
 bool absentBone=false;try{ObjYdd.Create(Fixture(),ConvertRequest(999));}catch(Exception){absentBone=true;}Check(absentBone,"converter missing bone rejected");
 bool invalidConversion=false;try{ObjYdd.Create(Fixture(),JsonSerializer.SerializeToElement(new{name="../bad",boneTag=11816}));}catch(Exception){invalidConversion=true;}Check(invalidConversion,"converter unsafe name rejected");
 Directory.CreateDirectory("tests/fixtures");File.WriteAllBytes("tests/fixtures/native-converted-obj.ydd",converted.ydd);File.WriteAllBytes("tests/fixtures/native-converted-obj.ytd",converted.ytd);
@@ -111,7 +145,7 @@ object LargeObjPart(int count) {
 }
 var largeObjRequest=JsonSerializer.SerializeToElement(new{name="accs_008_u",boneTag=11816,parts=new[]{LargeObjPart(65535),LargeObjPart(54465)},textureSize=512,pixels=Convert.ToBase64String(convertPixels)});
 var largeConverted=new YddFile();largeConverted.Load(ObjYdd.Create(Fixture(),largeObjRequest).ydd);
-foreach(var model in largeConverted.Drawables[0].AllModels){Check(model.Geometries.Length==2,"automatically split OBJ stays in one drawable at every LOD");Check(model.Geometries.Sum(g=>g.VertexData.VertexCount)==120000,"converter above old 100000 cap retains every vertex");Check(model.Geometries.All(g=>g.VertexData.VertexCount<=65535&&g.IndexBuffer.Indices.Max()<g.VertexData.VertexCount),"split native index range fits each geometry");Check(model.Geometries.All(g=>g.BoneIds.SequenceEqual(new ushort[]{1})),"all automatic parts use the selected bone");}
+foreach(var model in largeConverted.Drawables[0].AllModels){Check(model.Geometries.Length==2,"automatically split OBJ stays in one drawable at every LOD");Check(model.Geometries.Sum(g=>g.VertexData.VertexCount)==120000,"converter above old 100000 cap retains every vertex");Check(model.Geometries.All(g=>g.VertexData.VertexCount<=65535&&g.IndexBuffer.Indices.Max()<g.VertexData.VertexCount),"split native index range fits each geometry");Check(model.Geometries.All(g=>g.BoneIds.SequenceEqual(new ushort[]{0,1,2})&&g.VertexData.GetUByte4(0,2).R==1),"all automatic parts use the selected global bone");}
 string binaryPartFile=Path.GetTempFileName();
 try {
  using(var stream=File.Create(binaryPartFile))using(var writer=new BinaryWriter(stream)){
@@ -140,7 +174,7 @@ foreach(var model in joined.Drawables[0].AllModels) {
 }
 var transformedJoin=new YddFile();transformedJoin.Load(YddEditor.Export(Fixture(),JsonSerializer.SerializeToElement(new{matrix=m.ToArray(),bone="pelvis",additions=new[]{addition}}),null));
 Near(transformedJoin.Drawables[0].AllModels[0].Geometries[1].VertexData.GetVector3(0,0),Vector3.TransformCoordinate(new Vector3(.1f,.1f,2),m),"combined YDD transform");
-Check(transformedJoin.Drawables[0].AllModels[0].Geometries[1].BoneIds[0]==1,"combined YDD rig rebind");
+Check(transformedJoin.Drawables[0].AllModels[0].Geometries[1].VertexData.GetUByte4(0,2).R==1,"combined YDD rig rebind");
 var rigidAddition=new {positions=new float[]{.1f,.1f,4,.2f,.1f,4,.1f,.2f,4},normals=addition.normals,uvs=addition.uvs,indices=addition.indices};
 var rigidJoined=new YddFile();rigidJoined.Load(YddEditor.Export(Fixture(false,2),JsonSerializer.SerializeToElement(new{matrix=Matrix.Identity.ToArray(),bone="preserve",additions=new[]{rigidAddition}}),null));
 Near(Vector3.TransformCoordinate(rigidJoined.Drawables[0].AllModels[0].Geometries[1].VertexData.GetVector3(0,0),rigidJoined.Drawables[0].Skeleton.Bones.Items[2].AbsTransform),new Vector3(.1f,.1f,4),"OBJ rigid bone-local conversion");

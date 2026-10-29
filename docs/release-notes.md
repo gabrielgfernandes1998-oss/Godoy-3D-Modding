@@ -1,11 +1,13 @@
-# Godoy 3D Modding 0.11.9 beta
+# Godoy 3D Modding 0.11.10 beta
 
-- Corrige a contagem de modelos dos LODs nas conversões OBJ/GLB. O preview percorria as listas mesmo com FlagsHigh/FlagsLow zerados; o exportador agora grava 1 para cada LOD presente, separadamente da máscara de renderização.
-- Grava o flag de skin e a contagem de matrizes para a palette de um osso. Posição, escala, osso escolhido e pesos são preservados.
-- Usa a família e os parâmetros do material ped_default.sps com a declaração de vértices correspondente, incluindo Colour1. A versão anterior misturava a família ped e o arquivo ped_default.sps com um layout incompleto.
-- Compactar YDD já exportado também repara contagens zeradas e reconhece o perfil exato das conversões antigas do Godoy para migrar o material/layout. Mantém os bytes dos atributos originais, triângulos, UVs, cores originais, pesos e referência à textura. Adiciona somente o segundo canal de cor neutro. Materiais de terceiros não são substituídos por esse perfil.
-- Mantém a correção de cabeçalhos independentes de buffers e o orçamento de 100.000.000 bytes. O parser da saída e a ponte nativa verificam que nenhum LOD com modelos permaneceu com contagem zero.
+- Corrige o vínculo animado do conversor: os vértices agora recebem o índice global do osso escolhido, com tabela completa de ossos e contagem de matrizes correspondente ao esqueleto. Antes, a escolha mudava uma tabela local de um osso, enquanto os vértices continuavam com índice zero. O perfil padrão de roupas de ped usa a tabela completa e índices do esqueleto.
+- A troca de pelve para tórax é verificada no arquivo binário exportado, incluindo todos os vértices. O resultado mostra Osso gravado, nome/ID, índice e peso 100%; conversao.json registra o vínculo lido do YDD e o perfil skeleton-global.
+- Compactar YDD já exportado reconhece e repara conversões antigas do Godoy com esse perfil local rígido. Recupera o osso indicado na tabela antiga; preserva posições, escala, normais, UVs, cores, pesos, triângulos, material e referência ao YTD. Atualiza os índices e a representação da tabela de ossos. Arquivos de terceiros com outro perfil não recebem essa migração.
+- O vínculo rígido nas exportações da aba 03 também usa índices globais e tabela completa. Preservar pesos continua preservando o rig original.
+- Mantém as correções de visibilidade, contagens de LOD, material, cabeçalhos de buffers e orçamento de memória das versões anteriores.
 
-Na cópia privada anterior da mochila, o reparo produziu um YDD de 58.361.303 bytes e reserva de sistema de 88.080.384 bytes. Comparação de todos os atributos originais, índices e palettes passou nos dois LODs; YTD não alterado. O log FiveM enviado pelo usuário confirma que a coleção mochi / hand / local 0 está registrada e permanece selecionada, mas isso não comprova renderização. A confirmação visual desta correção no jogo depende de novo teste do usuário.
+Na cópia anterior da mochila, um caso privado reproduziu a seleção de Spine2: 128 ossos/matrizes e índice global 37 (tag 24817) em todos os vértices dos dois LODs. O resultado tem 58.363.841 bytes e reserva de sistema de 88.080.384 bytes. O reparo preservou todos os atributos fora dos índices de osso e todos os triângulos. Nenhum asset do usuário foi publicado.
 
-Extraia o portable completo em uma pasta nova. Em 03 ou 05, abra Compactar YDD já exportado e selecione o YDD final da mochila. Substitua somente esse YDD no recurso pelo resultado e mantenha o YTD correspondente. Reinicie o recurso e reconecte ao servidor antes de testar. Conversões novas já recebem o perfil corrigido.
+Extraia o portable completo em uma pasta nova. Você pode reconverter com Tórax / peito — SKEL_Spine2 (24817), ou usar 03/05 → Compactar YDD já exportado no arquivo que já foi exportado com esse osso. Substitua o YDD no recurso usando o YTD correspondente, reinicie o recurso e reconecte antes de testar.
+
+O teste de pose é uma simulação CPU com índices globais, não a execução do motor GTA. A correção do movimento no FiveM precisa ser confirmada pelo usuário. A malha continua rígida em um osso: mochila/alças e cinturão ainda se movem juntos; dividir os pesos por região é uma função separada.

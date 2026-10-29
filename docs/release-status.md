@@ -1,3 +1,19 @@
+# Estado da versão 0.11.10 beta — validação em andamento
+
+O usuário confirmou que 0.11.9 resolveu a visibilidade no FiveM. Após escolher Spine2 (24817), ainda relatou movimento semelhante ao da pelve e informou ter removido o anterior e instalado com outro nome. Os vídeos foram inspecionados, mas não foram tratados como prova isolada da causa. A nova investigação encontrou diferença entre o conversor e a referência funcional: índices de vértices sempre zero, tabela local com um único índice de osso e apenas uma matriz. A referência usa 128 matrizes, tabela identidade e índices globais.
+
+Referências: [Sollumz v2.6.1 ydrexport.py](https://github.com/Sollumz/Sollumz/blob/v2.6.1/ydr/ydrexport.py), get_bone_ids e set_model_xml_properties; [vertex_buffer_builder.py](https://github.com/Sollumz/Sollumz/blob/v2.6.1/ydr/vertex_buffer_builder.py), get_bone_by_vgroup e _get_weights_indices. A implementação nova segue esse perfil: tabela identidade do esqueleto, contagem de matrizes completa e índice global nos vértices.
+
+PedSkin limita o reparo a modelos rígidos do perfil antigo do conversor (declaração GTAV1/127/48, shader ped_default correspondente, palette de um osso e peso 255 somente no primeiro componente, índice ativo zero). Preserva streams distintos e formatos não reconhecidos. Copia o stream e isola cabeçalhos antes de remapear, incluindo referências compartilhadas entre LODs. Recupera a intenção do osso pela palette antiga e produz tabela completa. Compactação verifica reabertura e segue o orçamento de memória; o reparo é idempotente. Vínculo rígido em YddEditor também passa a usar a tabela completa; preservar continua sem reatribuir os ossos.
+
+A validação independente JS lê esqueleto, cabeçalho, tabela e todos os índices/pesos dos vértices; rejeita o perfil antigo e uma corrupção somente no segundo vértice. A confirmação na interface e o JSON usam o vínculo lido do YDD. A regressão nativa serializa/reabre pelve e Spine2 com poses distintas e aplica skinning CPU por índices globais: o caso antigo segue raiz, o novo segue o osso solicitado. Isso não executa RAGE nem confirma por si só o movimento no jogo. O teste Windows exporta pelve e cabeça pela interface e reabre ambos, além de reparar a fixture local antiga.
+
+Teste privado usa a cópia anterior da mochila de 0.11.9, ajustando a palette local para reproduzir Spine2, sem alegar ser o último arquivo instalado do usuário. Resultado: 58.363.841 bytes; sistema 88.080.384; 128 matrizes, 128 ossos e índice global 37/tag24817 nos dois LODs. Comparação completa de posições, normais, cores, UVs, pesos e triângulos passou; somente representação dos índices/tabela muda. Nenhum asset privado foi adicionado ao repositório/release.
+
+92 testes JS, suíte nativa e navegador completo passaram localmente. Compilação e teste Windows em andamento. A confirmação do movimento no FiveM segue pendente.
+
+## Histórico 0.11.9
+
 # Estado da versão 0.11.9 beta
 
 O log do usuário confirmou 115 bolsas e seleção estável em global 114 / coleção mochi / local 0 / textura 0. Metadata grzy foi lida por JS e CodeWalker: componente hand, um drawable e uma textura. O diagnóstico inicialmente confundia o nome curto retornado pelas natives com o prefixo completo de stream; corrigido em 85fdb1c, sem atribuir esse erro ao arquivo do usuário.
