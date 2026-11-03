@@ -1,3 +1,15 @@
+# Estado da versão 0.11.12 beta
+
+A aba 03 usa o importador GLB estático com atlas já usado pelo conversor. O preview recebe a diffuse composta; imagens/UVs internos do editor não são serializados como metadados gigantes na cópia GLB. A união mantém a transformação mundial e histórico. O serializador de incorporações preserva UVs de objetos com atlas GLB e identifica uma imagem por objeto. O caminho OBJ sem imagem mantém as ilhas automáticas anteriores.
+
+YddAtlas agrupa as partes do mesmo GLB em uma única região. Planejamento considera as dimensões das imagens; a janela UV inicia com roupa e objetos separados e mostra as texturas reais. Valida as áreas no JS e no nativo. O transporte Electron valida RGBA e dimensões, grava arquivos binários temporários somente na exportação e limpa a pasta ao terminar/falhar. A geração YTD cola a imagem GLB na região e remapeia os UVs das geometrias adicionadas em todos os LODs, herdando os pesos do destino. Cores de vértice adicionadas ficam brancas para não tingir a diffuse GLB. Preserva as proteções de cabeçalhos, contagens de LOD e orçamento do recurso.
+
+95 testes JS, suíte nativa, 7 Python e fluxo completo de navegador passaram localmente. A regressão nativa usa duas partes GLB compartilhando uma imagem vermelho/verde e compara pixels/orientação, UVs, posições e pesos em cada LOD após serializar e reabrir. Rejeita sobreposição e índice de imagem ausente. O novo teste de interface exercita importação GLB com PNG/WebP/cor sólida, união, desfazer/refazer e editor UV. Um harness local adicional usa os handlers reais de desktop e helper .NET, com HTTP e sender autorizado simulado; a saída YDD/YTD foi baixada e reaberta, verificando as três cores e geometria em todos os LODs. Esse harness não é o teste do executável Windows e não executa GTA/FiveM.
+
+Compilação portable e teste do executável Windows: pendentes. Nenhum arquivo do usuário foi adicionado ao repositório ou release.
+
+## Histórico 0.11.11
+
 # Estado da versão 0.11.11 beta
 
 O usuário confirmou que 0.11.9 resolveu a visibilidade no FiveM. Após escolher Spine2 (24817), ainda relatou movimento semelhante ao da pelve e informou ter removido o anterior e instalado com outro nome. Os vídeos foram inspecionados, mas não foram tratados como prova isolada da causa. A nova investigação encontrou diferença entre o conversor e a referência funcional: índices de vértices sempre zero, tabela local com um único índice de osso e apenas uma matriz. A referência usa 128 matrizes, tabela identidade e índices globais.

@@ -487,4 +487,38 @@ TestManualAtlas();Console.WriteLine("Manual atlas: original UV unchanged, source
  }
  Console.WriteLine("Legacy unsafe shared headers: detected, split below budget and in-place buffer fixup slots independent PASS");
 }
+// Textured GLB union: shared material atlas, preserved UVs, exact colours and rig in all LODs.
+{
+ var pixelsPath=Path.GetTempFileName();
+ try {
+  var rgba=new byte[4*4*4];for(int y=0;y<4;y++)for(int x=0;x<4;x++){int i=(y*4+x)*4;rgba[i]=(byte)(y<2?255:0);rgba[i+1]=(byte)(y<2?0:255);rgba[i+3]=255;}
+  File.WriteAllBytes(pixelsPath,rgba);
+  var texturedPart=new{addition.positions,addition.normals,addition.uvs,addition.indices,textureIndex=0};
+  var request=JsonSerializer.SerializeToElement(new{matrix=Matrix.Identity.ToArray(),bone="preserve",atlas=true,ytdData=Convert.ToBase64String(originalYtd),additions=new[]{texturedPart,texturedPart},additionTextures=new[]{new{width=4,height=4,pixelsFile=pixelsPath}},atlasLayout=new{size=512,sources=new[]{new{x=0,y=0,width=128,height=128}},additions=new[]{new{x=256,y=0,width=128,height=128}}}});
+  var source=Fixture();var plan=YddAtlas.Plan(source,request);Check(plan.additionRegions!.SequenceEqual(new[]{0,0}),"GLB chunks share one image region");
+  var ytdBytes=YddAtlas.Build(source,request);var yddBytes=FiveMResource.Compact(YddEditor.Export(source,request,null));
+  var ytd=new YtdFile();ytd.Load(ytdBytes);var ydd=new YddFile();ydd.Load(yddBytes);FiveMResource.ValidateRuntimeHeaders(ydd);YddRender.ValidateCounts(ydd);
+  Check(ytd.TextureDict.Textures.data_items.Length==1,"YDD + GLB produces one diffuse atlas");
+  var texture=ytd.TextureDict.Textures.data_items[0];var pixels=CodeWalker.Utils.DDSIO.GetPixels(texture,0);
+  Check(pixels[(16*512+272)*4+2]==255&&pixels[(16*512+272)*4+1]==0,"GLB top remains red (RGBA to BGRA)");
+  Check(pixels[(112*512+272)*4+1]==255&&pixels[(112*512+272)*4+2]==0,"GLB bottom remains green without vertical flip");
+  Check(pixels[(16*512+16)*4]==90&&pixels[(16*512+16)*4+1]==60&&pixels[(16*512+16)*4+2]==30,"original YDD diffuse preserved");
+  foreach(var model in ydd.Drawables[0].AllModels){
+   Check(model.Geometries.Length==3,"both GLB chunks present in every LOD");
+   foreach(var g in model.Geometries.Skip(1))for(int i=0;i<3;i++){
+    Near(g.VertexData.GetVector3(i,0),new Vector3(addition.positions[i*3],addition.positions[i*3+1],addition.positions[i*3+2]),"GLB position preserved");
+    var uv=g.VertexData.GetVector2(i,6);var expected=new Vector2((256.5f+addition.uvs[i*2]*127)/512,(.5f+addition.uvs[i*2+1]*127)/512);
+    Check((uv-expected).Length()<.00001,"existing GLB UV is remapped, not regenerated per triangle");
+    Check(g.VertexData.GetUByte4(i,1).R==255&&g.BoneIds[g.VertexData.GetUByte4(i,2).R]==2,"GLB inherits nearest source bone weights");
+   }
+  }
+  var invalid=System.Text.Json.Nodes.JsonNode.Parse(request.GetRawText())!;invalid["atlasLayout"]!["sources"]![0]!["width"]=512;invalid["atlasLayout"]!["sources"]![0]!["height"]=512;
+  bool rejected=false;try{YddAtlas.Plan(Fixture(),JsonSerializer.SerializeToElement(invalid));}catch(Exception e){rejected=e.Message.Contains("Separe as áreas");}Check(rejected,"GLB cannot overwrite original clothing pixels");
+  var missingGlbTexture=System.Text.Json.Nodes.JsonNode.Parse(request.GetRawText())!;missingGlbTexture["additions"]![1]!["textureIndex"]=3;
+  rejected=false;try{YddAtlas.Plan(Fixture(),JsonSerializer.SerializeToElement(missingGlbTexture));}catch(Exception e){rejected=e.Message.Contains("sem textura");}Check(rejected,"missing GLB texture index rejected");
+  File.WriteAllBytes(".test-output/merged-glb.ydd",yddBytes);File.WriteAllBytes(".test-output/merged-glb.ytd",ytdBytes);
+  Console.WriteLine("GLB + YDD: one diffuse, shared atlas between chunks, colours/orientation, preserved UV/positions/rig in all LODs and overlap protection PASS");
+ }finally{File.Delete(pixelsPath);}
+}
+
 class LayoutBlock(long length):ResourceSystemBlock {public override long BlockLength=>length;public override void Read(ResourceDataReader reader,params object[] parameters)=>throw new NotSupportedException();public override void Write(ResourceDataWriter writer,params object[] parameters)=>throw new NotSupportedException();}

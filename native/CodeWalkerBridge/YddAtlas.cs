@@ -13,21 +13,42 @@ static class YddAtlas {
         return null;
     }
     static int Pow2(int n){int value=1;while(value<n)value*=2;return value;}
+    static JsonElement[] Textures(JsonElement request) {
+        if(!request.TryGetProperty("additionTextures",out var list))return Array.Empty<JsonElement>();
+        if(list.ValueKind!=JsonValueKind.Array||list.GetArrayLength()>32)throw new Exception("Texturas GLB inválidas.");
+        long total=0;
+        var items=list.EnumerateArray().ToArray();
+        foreach(var item in items){int w=item.GetProperty("width").GetInt32(),h=item.GetProperty("height").GetInt32();if(w<1||h<1||w>4096||h>4096||(total+=4L*w*h)>128L*1024*1024)throw new Exception("Texturas GLB acima do limite de leitura.");}
+        return items;
+    }
+    // All geometry chunks of one GLB share its single material atlas region.
+    public static int[] AdditionRegions(JsonElement request) {
+        var textures=Textures(request);var regions=new Dictionary<string,int>();
+        return request.GetProperty("additions").EnumerateArray().Select((part,i)=>{
+            string key="part:"+i;
+            if(part.TryGetProperty("textureIndex",out var index)){
+                int t=index.GetInt32();if(t<0||t>=textures.Length)throw new Exception("Parte GLB sem textura correspondente.");key="texture:"+t;
+            }
+            if(!regions.TryGetValue(key,out int region)){region=regions.Count;regions.Add(key,region);}return region;
+        }).ToArray();
+    }
     public static Vector2 AdditionUv(JsonElement request,int part,Vector2 uv) {
+        var regions=AdditionRegions(request);int region=regions[part];
         if(request.TryGetProperty("atlasLayout",out var layout)) {
-            var r=layout.GetProperty("additions")[part];float size=layout.GetProperty("size").GetInt32();
+            var r=layout.GetProperty("additions")[region];float size=layout.GetProperty("size").GetInt32();
             return new Vector2((r.GetProperty("x").GetSingle()+.5f+uv.X*(r.GetProperty("width").GetSingle()-1))/size,(r.GetProperty("y").GetSingle()+.5f+uv.Y*(r.GetProperty("height").GetSingle()-1))/size);
         }
-        int grid=(int)Math.Ceiling(Math.Sqrt(request.GetProperty("additions").GetArrayLength()));
+        int grid=(int)Math.Ceiling(Math.Sqrt(regions.Max()+1));
         float padding=.015f;
-        return new Vector2(.5f+((part%grid+padding+uv.X*(1-2*padding))/grid)*.5f,(part/grid+padding+uv.Y*(1-2*padding))/grid);
+        return new Vector2(.5f+((region%grid+padding+uv.X*(1-2*padding))/grid)*.5f,(region/grid+padding+uv.Y*(1-2*padding))/grid);
     }
     sealed record Tile(Texture diffuse,Texture? normal,Texture? spec,int index);
     public sealed record Rect(int x,int y,int width,int height);
-    public sealed record AtlasPlan(int width,int height,int requiredSize,int divisor,int columns,int regions,int materials,int sourceWidth,int sourceHeight,int limit,bool reduced,bool fits,int auxiliaryResolution,Rect[]? sourceRects=null,Rect[]? additionRects=null,string[]? sourceNames=null);
+    public sealed record AtlasPlan(int width,int height,int requiredSize,int divisor,int columns,int regions,int materials,int sourceWidth,int sourceHeight,int limit,bool reduced,bool fits,int auxiliaryResolution,Rect[]? sourceRects=null,Rect[]? additionRects=null,string[]? sourceNames=null,int[]? additionRegions=null);
     static (YtdFile ytd,Dictionary<ShaderFX,Tile> tiles) Gather(YddFile ydd,JsonElement request) {
         var parts=request.GetProperty("additions");
         if(parts.ValueKind!=JsonValueKind.Array||parts.GetArrayLength()<1||parts.GetArrayLength()>32)throw new Exception("Atlas exige 1–32 partes OBJ.");
+        _=AdditionRegions(request);
         var bytes=Convert.FromBase64String(request.GetProperty("ytdData").GetString()!);
         if(bytes.Length>80*1024*1024)throw new Exception("YTD acima de 80 MB.");
         var ytd=new YtdFile();ytd.Load(bytes);
@@ -76,11 +97,14 @@ static class YddAtlas {
         int limit=request.TryGetProperty("atlasMaxResolution",out var option)?option.GetInt32():4096;
         if(!new[]{0,1024,2048,4096}.Contains(limit))throw new Exception("Escolha resolução máxima de 1024, 2048 ou 4096, ou preservar original.");
         int regions=tiles.Values.Max(t=>t.index)+1,sourceW=tiles.Values.Max(t=>(int)t.diffuse.Width),sourceH=tiles.Values.Max(t=>(int)t.diffuse.Height);
+        var additionRegions=AdditionRegions(request);var additionTextures=Textures(request);int additionCount=additionRegions.Max()+1;
         (int size,int columns) Size(int divisor) {
             int cellW=Pow2(Math.Max(1,sourceW/divisor)),cellH=Pow2(Math.Max(1,sourceH/divisor));
             int best=int.MaxValue,columns=1;
             for(int c=1;c<=regions;c++) {
                 int size=Pow2(Math.Max(512,Math.Max(cellW*c*2,cellH*((regions+c-1)/c))));
+                int grid=(int)Math.Ceiling(Math.Sqrt(additionCount));
+                foreach(var t in additionTextures)size=Math.Max(size,Pow2((int)Math.Ceiling(Math.Max(t.GetProperty("width").GetInt32()*2.0,t.GetProperty("height").GetInt32())*grid/(.97*divisor))));
                 if(size<best){best=size;columns=c;}
             }
             return (best,columns);
@@ -96,16 +120,20 @@ static class YddAtlas {
                     return rect;
                 }).ToArray();
             }
-            var sources=Rects("sources",regions);var additions=Rects("additions",request.GetProperty("additions").GetArrayLength());
+            var sources=Rects("sources",regions);var additions=Rects("additions",additionCount);
             bool Overlap(Rect a,Rect b)=>a.x<b.x+b.width&&b.x<a.x+a.width&&a.y<b.y+b.height&&b.y<a.y+a.height;
             foreach(var group in new[]{sources,additions})for(int i=0;i<group.Length;i++)for(int j=i+1;j<group.Length;j++)if(Overlap(group[i],group[j]))throw new Exception("Áreas de dois OBJ ou duas texturas da roupa não podem se sobrepor.");
+            if(additionTextures.Length>0&&sources.Any(s=>additions.Any(a=>Overlap(s,a))))throw new Exception("Separe as áreas da roupa e do GLB para preservar as duas texturas.");
             bool reduced=tiles.Values.Any(t=>sources[t.index].width<t.diffuse.Width||sources[t.index].height<t.diffuse.Height);
+            foreach(var (part,i) in request.GetProperty("additions").EnumerateArray().Select((p,i)=>(p,i)))if(part.TryGetProperty("textureIndex",out var ti)){
+                var texture=additionTextures[ti.GetInt32()];var r=additions[additionRegions[i]];reduced|=r.width<texture.GetProperty("width").GetInt32()||r.height<texture.GetProperty("height").GetInt32();
+            }
             bool aux=tiles.Keys.Any(s=>Slot(s,"BumpSampler") is not null||Slot(s,"NormalSampler") is not null||Slot(s,"SpecSampler") is not null);
-            return new AtlasPlan(side,side,side,1,1,regions,tiles.Count,sourceW,sourceH,limit,reduced,true,aux?Math.Min(side,2048):0,sources,additions,tiles.Values.DistinctBy(t=>t.index).OrderBy(t=>t.index).Select(t=>t.diffuse.Name).ToArray());
+            return new AtlasPlan(side,side,side,1,1,regions,tiles.Count,sourceW,sourceH,limit,reduced,true,aux?Math.Min(side,2048):0,sources,additions,tiles.Values.DistinctBy(t=>t.index).OrderBy(t=>t.index).Select(t=>t.diffuse.Name).ToArray(),additionRegions);
         }
         var original=Size(1);int divisor=1;var output=original;
         if(limit!=0)while(output.size>limit){divisor*=2;output=Size(divisor);}
-        return new AtlasPlan(output.size,output.size,original.size,divisor,output.columns,regions,tiles.Count,sourceW,sourceH,limit,divisor>1,output.size<=4096,tiles.Keys.Any(s=>Slot(s,"BumpSampler") is not null||Slot(s,"NormalSampler") is not null||Slot(s,"SpecSampler") is not null)?Math.Min(output.size,2048):0,sourceNames:tiles.Values.DistinctBy(t=>t.index).OrderBy(t=>t.index).Select(t=>t.diffuse.Name).ToArray());
+        return new AtlasPlan(output.size,output.size,original.size,divisor,output.columns,regions,tiles.Count,sourceW,sourceH,limit,divisor>1,output.size<=4096,tiles.Keys.Any(s=>Slot(s,"BumpSampler") is not null||Slot(s,"NormalSampler") is not null||Slot(s,"SpecSampler") is not null)?Math.Min(output.size,2048):0,sourceNames:tiles.Values.DistinctBy(t=>t.index).OrderBy(t=>t.index).Select(t=>t.diffuse.Name).ToArray(),additionRegions:additionRegions);
     }
     public static AtlasPlan Plan(YddFile ydd,JsonElement request) {var (_,tiles)=Gather(ydd,request);return Layout(tiles,request);}
     public static byte[] Build(YddFile ydd,JsonElement request) {
@@ -130,6 +158,23 @@ static class YddAtlas {
                 for(int y=r.y;y<r.y+r.height;y++)for(int x=r.x;x<r.x+r.width;x++){int p=(y*width+x)*4;target[p]=b;target[p+1]=g;target[p+2]=red;target[p+3]=255;}
             }
             Clear(diffusePixels,220,220,220);Clear(normalPixels,255,128,128);Clear(specPixels,0,0,0);
+        }
+        var additionImages=Textures(request);var painted=new HashSet<int>();var images=new Dictionary<int,Texture>();
+        int partIndex=0;
+        foreach(var part in request.GetProperty("additions").EnumerateArray()) {
+            int region=plan.additionRegions![partIndex++];
+            if(!part.TryGetProperty("textureIndex",out var ti)||!painted.Add(region))continue;
+            int textureIndex=ti.GetInt32();var descriptor=additionImages[textureIndex];
+            if(!images.TryGetValue(textureIndex,out var image)) {
+                int w=descriptor.GetProperty("width").GetInt32(),h=descriptor.GetProperty("height").GetInt32();
+                var path=descriptor.GetProperty("pixelsFile").GetString()!;
+                if(new FileInfo(path).Length!=4L*w*h)throw new Exception("Pixels GLB incompatíveis com a imagem.");
+                var rgba=File.ReadAllBytes(path);for(int p=0;p<rgba.Length;p+=4)(rgba[p],rgba[p+2])=(rgba[p+2],rgba[p]);
+                image=Pixels("glb_source",w,h,rgba,TextureUsage.DIFFUSE);images.Add(textureIndex,image);
+            }
+            int columns=(int)Math.Ceiling(Math.Sqrt(plan.additionRegions.Max()+1));
+            var rect=plan.additionRects?[region]??new Rect((int)Math.Round(width*(.5+(region%columns+.015)/columns*.5)),(int)Math.Round(height*((region/columns+.015)/columns)),Math.Max(4,(int)(width*.97/columns*.5)),Math.Max(4,(int)(height*.97/columns)));
+            Paste(diffusePixels,width,rect.x,rect.y,image,rect.width,rect.height,true);
         }
         string diffuseName=tiles.Values.First().diffuse.Name;
         string suffix=Guid.NewGuid().ToString("N")[..12];

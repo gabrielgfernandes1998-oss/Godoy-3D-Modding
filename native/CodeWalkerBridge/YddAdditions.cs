@@ -11,6 +11,8 @@ static class YddAdditions {
         if(list.ValueKind!=JsonValueKind.Array||list.GetArrayLength()>32)throw new Exception("Quantidade de partes OBJ inválida.");
         int total=0,partIndex=0;bool atlas=request.TryGetProperty("atlas",out var atlasFlag)&&atlasFlag.GetBoolean();
         foreach(var part in list.EnumerateArray()) {
+            var uvStart=atlas?YddAtlas.AdditionUv(request,partIndex,Vector2.Zero):Vector2.Zero;
+            var uvEnd=atlas?YddAtlas.AdditionUv(request,partIndex,Vector2.One):Vector2.One;
             var positions=Numbers(part,"positions");var normals=Numbers(part,"normals");var uvs=Numbers(part,"uvs");
             int count=positions.Length/3;total+=count;
             if(count<3||count>65535||total>100000||positions.Length!=count*3||normals.Length!=count*3||uvs.Length!=count*2)throw new Exception("OBJ exige 3–65535 vértices por parte e até 100000 no total.");
@@ -41,8 +43,11 @@ static class YddAdditions {
                     var p=Vector3.TransformCoordinate(new Vector3(positions[i*3],positions[i*3+1],positions[i*3+2]),inverse);
                     var n=Vector3.TransformNormal(new Vector3(normals[i*3],normals[i*3+1],normals[i*3+2]),normalMatrix);if(n.LengthSquared()>1e-12)n.Normalize();
                     data.SetVector3(i,0,p);
+                    if(part.TryGetProperty("textureIndex",out _))foreach(int color in new[]{4,5})if((info.Flags&(1u<<color))!=0)data.SetColour(i,color,new Color((byte)255,(byte)255,(byte)255,(byte)255));
                     if((info.Flags&8)!=0)SetDirection(data,i,3,n,info.GetComponentType(3)==VertexComponentType.Float4?template.VertexData.GetVector4(sample,3).W:0);
-                    var uv=new Vector2(uvs[i*2],uvs[i*2+1]);if(atlas)uv=YddAtlas.AdditionUv(request,partIndex,uv);
+                    var uv=new Vector2(uvs[i*2],uvs[i*2+1]);
+                    if(part.TryGetProperty("textureIndex",out _)&&(uv.X<0||uv.Y<0||uv.X>1||uv.Y>1))throw new Exception("UV do atlas GLB fora de 0–1.");
+                    if(atlas)uv=uvStart+uv*(uvEnd-uvStart);
                     switch(info.GetComponentType(6)) {
                         case VertexComponentType.Float2:data.SetVector2(i,6,uv);break;
                         case VertexComponentType.Half2:data.SetHalf2(i,6,new Half2(uv.X,uv.Y));break;

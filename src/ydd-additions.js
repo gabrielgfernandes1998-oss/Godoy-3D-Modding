@@ -1,9 +1,16 @@
 import {Matrix4,Matrix3,Vector3} from 'three';
 
+export function additionTextures(additions=[]) {
+  return additions.filter(a=>a.userData.materialAtlas).map(a=>{
+    const atlas=a.userData.materialAtlas;
+    return {width:atlas.size,height:atlas.size,pixels:new Uint8Array(atlas.pixels.buffer,atlas.pixels.byteOffset,atlas.pixels.byteLength)};
+  });
+}
 export function serializeAdditions(target,additions=[],{texturePrefix,maxVertices=100000,maxJsonBytes=10*1024*1024}={}) {
   target.updateWorldMatrix(true,true);
   const inverse=target.matrixWorld.clone().invert(),parts=[];let total=0;
-  for(const addition of additions)addition.traverseVisible(mesh=> {
+  let nextTexture=0;
+  for(const addition of additions){const textureIndex=addition.userData.materialAtlas?nextTexture++:null;addition.traverseVisible(mesh=> {
     if(!mesh.isMesh)return;if(mesh.isSkinnedMesh)throw Error('Use um OBJ estático para incorporar ao YDD.');
     const geometry=mesh.geometry,position=geometry.attributes.position;
     if(!position||position.count<3||position.count>65535||(total+=position.count)>maxVertices)throw Error(`OBJ: até 65535 vértices por parte e ${maxVertices} no total.`);
@@ -23,7 +30,10 @@ export function serializeAdditions(target,additions=[],{texturePrefix,maxVertice
     const indices=geometry.index?Array.from(geometry.index.array):Array.from({length:position.count},(_,i)=>i);
     if(indices.length%3||indices.some(i=>!Number.isInteger(i)||i<0||i>=position.count))throw Error('Triângulos OBJ inválidos.');
     if(matrix.determinant()<0)for(let i=0;i<indices.length;i+=3)[indices[i+1],indices[i+2]]=[indices[i+2],indices[i+1]];
-    if(texturePrefix) {
+    if(texturePrefix&&textureIndex!==null) {
+      if(uvs.some(v=>v<0||v>1))throw Error('UV do atlas GLB fora de 0–1. Importe novamente o GLB.');
+      parts.push({positions,normals,uvs,indices,textureIndex});
+    } else if(texturePrefix) {
       // Separate chart per triangle: works for OBJ with missing/overlapping UVs.
       // Duplicate seam vertices so every face has its own editable area.
       if(indices.length>65535)throw Error('UV automático: divida o OBJ em partes com até 21845 triângulos.');
@@ -35,7 +45,7 @@ export function serializeAdditions(target,additions=[],{texturePrefix,maxVertice
       }
       parts.push({positions:p,normals:n,uvs:uv,indices:idx,textureName:`${texturePrefix}_${parts.length+1}`});
     } else parts.push({positions,normals,uvs,indices});
-  });
+  });}
   if(parts.reduce((sum,p)=>sum+p.positions.length/3,0)>maxVertices)throw Error(`UV automático acima de ${maxVertices} vértices: reduza o OBJ.`);
   if(parts.length>32)throw Error('Até 32 partes OBJ por união.');
   if(JSON.stringify(parts).length>maxJsonBytes)throw Error(`Dados OBJ acima de ${maxJsonBytes/1024/1024} MB: reduza a geometria.`);

@@ -5,3 +5,5 @@
 `native-clothing-checker.ydd` reproduz o slot opaco `0x8ab98831` apontando para o placeholder FBX ausente `givemechecker`, com base sintética própria. Usado no teste do executável Windows para verificar atlas e pintura com o caso reportado.
 
 `native-large-diffuse.ytd` é uma textura DXT1 preta sintética 4096×4096 para verificar o cálculo de atlas grande e os modos Ajustar/Preservar sem distribuir assets GTA.
+
+`merge-materials.glb` é uma variação da fixture sintética própria `converter-materials.glb`, com PNG vermelho/verde ampliado para 128×128 e materiais azul WebP e verde sólido. Exercita a união GLB + YDD na aba 03 e a preservação das cores no atlas exportado. Nenhum modelo/imagem do usuário é incluído.

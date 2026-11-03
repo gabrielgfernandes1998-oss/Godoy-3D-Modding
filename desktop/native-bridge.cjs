@@ -2,6 +2,7 @@ const fs=require('node:fs/promises');
 const path=require('node:path');
 const os=require('node:os');
 const {validateParts,writeParts}=require('./converter-transfer.cjs');
+const {validateTextures,writeTextures}=require('./addition-transfer.cjs');
 const {createPedStorage}=require('./ped-storage.cjs');
 const {spawn}=require('node:child_process');
 const {validGame,discoverGame}=require('./gta-discovery.cjs');
@@ -74,10 +75,13 @@ function registerNativeBridge({app,ipcMain,dialog,getWindow}) {
     const additions=request.additions??[];if(!Array.isArray(additions)||additions.length>32||Buffer.byteLength(JSON.stringify(additions))>10*1024*1024)throw Error('OBJ incorporado acima do limite.');
     if(request.atlasLayout&&Buffer.byteLength(JSON.stringify(request.atlasLayout))>64*1024)throw Error('Layout UV acima do limite.');
     const data=bytes(request.bytes),pedData=request.pedBytes?bytes(request.pedBytes):undefined;
-    busy=true;
+    const textures=validateTextures(request.additionTextures??[]);
+    busy=true;let textureDirectory;
     try {
       const config=await resolveConfig();
-      const result=await runBridge(executable,{command:request.atlasPlan===true?'plan-atlas':'edit-ydd',codewalkerDirectory:config.codewalkerDirectory,data,pedData,ytdData:request.ytdBytes?bytes(request.ytdBytes):undefined,atlas:request.atlas===true,atlasMaxResolution:request.atlasMaxResolution??4096,atlasLayout:request.atlasLayout,additions,matrix:request.matrix,bone:request.bone});
+      if(textures.length&&request.atlasPlan!==true)textureDirectory=await fs.mkdtemp(path.join(os.tmpdir(),'godoy-glb-join-'));
+      const additionTextures=await writeTextures(textureDirectory,textures,{plan:request.atlasPlan===true});
+      const result=await runBridge(executable,{command:request.atlasPlan===true?'plan-atlas':'edit-ydd',codewalkerDirectory:config.codewalkerDirectory,data,pedData,ytdData:request.ytdBytes?bytes(request.ytdBytes):undefined,atlas:request.atlas===true,atlasMaxResolution:request.atlasMaxResolution??4096,atlasLayout:request.atlasLayout,additions,additionTextures,matrix:request.matrix,bone:request.bone});
       if(request.atlasPlan===true)return result.plan;
       if(typeof result.data!=='string'||result.data.length>112*1024*1024)throw Error('YDD de saída inválido.');
       if(request.ytdBytes) {
@@ -85,7 +89,7 @@ function registerNativeBridge({app,ipcMain,dialog,getWindow}) {
         return {ydd:new Uint8Array(Buffer.from(result.data,'base64')),ytd:new Uint8Array(Buffer.from(result.ytdData,'base64'))};
       }
       return new Uint8Array(Buffer.from(result.data,'base64'));
-    } finally {busy=false;}
+    } finally {busy=false;if(textureDirectory)await fs.rm(textureDirectory,{recursive:true,force:true,maxRetries:3,retryDelay:100});}
   });
   ipcMain.handle('godoy:native-compact-ydd',async(event,request)=>{
     allowed(event);if(busy)throw Error('Aguarde a operação nativa atual.');

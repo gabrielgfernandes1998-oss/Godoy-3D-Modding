@@ -25,7 +25,7 @@ try {
       '', 'Roupas e veiculos: pintura 3D/UV e exportacao YTD.',
       'Pack: gera YMT/META/fxmanifest e organiza arquivos em ZIP. Geracao YMT experimental.',
       'Malhas: ajuste a peca sobre o ped e exporte YDD; vinculo rigido a cintura/cabeca/tronco ou pesos originais.',
-      'Malhas: incorpora OBJ ao YDD e exporta atlas UV/YTD com posicionamento manual.',
+      'Malhas: incorpora OBJ/GLB ao YDD, mantem a diffuse do GLB e exporta um atlas UV/YTD unico com ajuste manual.',
       'Modulo 05: converte OBJ em novo YDD + YTD, escolhe osso do ped, UV e imagem diffuse.',
       'Conversor: vinculo rigido a um osso; nao cria pesos deformaveis, fisica ou novas geometrias YFT.',
       'Valide os recursos em um servidor FiveM Legacy antes de distribuir.',

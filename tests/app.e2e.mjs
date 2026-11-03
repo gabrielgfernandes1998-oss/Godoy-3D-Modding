@@ -1,3 +1,4 @@
+import {exerciseGlbMerge} from './glb-merge-flow.mjs';
 import {exercisePedStorageFailure} from './ped-storage-flow.mjs';
 import {exerciseGlbConverter} from './glb-converter-flow.mjs';
 import {exerciseConverter} from './converter-flow.mjs';
@@ -118,6 +119,7 @@ try {
   await mesh.locator('#uv-original').click();assert.equal(await mesh.locator('#uv-confirm').isDisabled(),false,'full-map repeated source can export');
   await page.screenshot({path:'.test-output/atlas-layout.png',fullPage:true});
   await mesh.locator('#uv-cancel').click();await mesh.locator('#status').filter({hasText:'Exportação cancelada'}).waitFor();
+  await exerciseGlbMerge(page,output,{stub:true});
   await exerciseConverter(page,output,{stub:true});await exerciseGlbConverter(page,output,{stub:true});
   await exercisePedStorageFailure(page,output);
   assert.deepEqual(errors,[]);assert.deepEqual(requests,[]);

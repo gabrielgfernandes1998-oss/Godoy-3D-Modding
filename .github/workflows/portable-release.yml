@@ -97,6 +97,7 @@ jobs:
           name: Windows-desktop-test-evidence
           path: |
             .test-output/desktop-win32.*
+            .test-output/glb-merge-atlas.png
             .test-output/converter.png
           include-hidden-files: true
           if-no-files-found: warn

@@ -143,7 +143,7 @@ A leitura real do RPF continua dependendo de validação com uma instalação lo
 
 O esqueleto da peça é preservado; quando falta o osso escolhido, pode ser usado o esqueleto do ped YDD importado/carregado do GTA, guardado por gênero. GLB sozinho não fornece um esqueleto GTA nativo. O ped em si não é modificado.
 
-O exportador recusa layouts de posição/normal não suportados, buffers compartilhados/duplos distintos e colisões próprias. A partir da 0.4.0, OBJ incorporado é gravado como geometria adicional nos LODs do YDD; GLB permanece como cópia avançada. Não converte registro de prop de cabeça para componente de roupa: se o boné for equipado pelo jogo como prop de cabeça, o recurso também precisa registrá-lo no componente apropriado para uso no cinto. Nome/META/YMT de um recurso existente não são convertidos automaticamente por este botão.
+O exportador recusa layouts de posição/normal não suportados, buffers compartilhados/duplos distintos e colisões próprias. A partir da 0.4.0, OBJ incorporado é gravado como geometria adicional nos LODs do YDD; a partir da 0.11.12 também é possível incorporar GLB estático com suas texturas pelo botão Adicionar OBJ / GLB. Não converte registro de prop de cabeça para componente de roupa: se o boné for equipado pelo jogo como prop de cabeça, o recurso também precisa registrá-lo no componente apropriado para uso no cinto. Nome/META/YMT de um recurso existente não são convertidos automaticamente por este botão.
 
 Validação automatizada cobre serialização nativa, movimento/rotação/escala, normais, UVs, vínculo rígido, pesos preservados, esqueleto doador e LODs com nível intermediário ausente. A animação real no FiveM ainda precisa ser validada com o YDD/YTD do usuário.
 
@@ -156,11 +156,26 @@ A transformação é aplicada ao objeto original; a correção do pivô não alt
 Na importação, OBJ muito distante da referência é colocado ao lado dela; se a proporção de tamanho passar de 20× ou cair abaixo de 0,05×, a escala também é adaptada e informada no status. O arquivo original não é sobrescrito.
 
 
+### Unir GLB texturizado ao YDD (0.11.12)
+
+Na guia **03 · Malhas e objetos**:
+
+1. Importe o **YDD** de destino e clique **Adicionar OBJ / GLB** para abrir um GLB estático com imagens embutidas.
+2. Ajuste posição, giro e escala do GLB na cena.
+3. Escolha a **Peça de destino**, selecione o GLB em **Objeto a incorporar** e clique **Unir OBJ / GLB à peça**. Ctrl+Z desfaz a união.
+4. Selecione o conjunto e **Associe o YTD original** da peça.
+5. Clique **Exportar YDD + ajustar UV**. O editor mostra a textura do YDD e o atlas dos materiais do GLB em regiões separadas. Mova/redimensione as áreas e confirme.
+6. Extraia o ZIP e use o **novo YDD e novo YTD juntos**. Ele também contém guia UV PNG, imagem final PNG e `atlas-info.json`.
+
+As partes de um mesmo GLB compartilham uma região de textura, mantendo os UVs de seu atlas. A textura é copiada para a região escolhida; os UVs do YDD e do GLB são remapeados para um único mapa. O editor impede que o GLB substitua pixels da área da roupa. A posição da cena e os pesos herdados são mantidos em todos os LODs; não há solda booleana nem simplificação automática.
+
+Importa a cor/diffuse dos materiais com PNG/JPEG/WebP embutidos. Normal/metallic/roughness PBR do GLB não são convertidos. Exporte GLB em pose estática sem skin/morphs ou cores por vértice. Limites da união: 65535 vértices por parte, 100000 no total e 32 partes, com até 10 MB de geometria serializada; pixels são transportados separadamente. Atlas até 4096 pode reduzir detalhes. Os UVs da roupa precisam estar no intervalo 0–1 para separar as duas texturas; prepare UVs repetidos antes de unir. Teste os arquivos reais e animações no FiveM.
+
 ### Incorporar OBJ ao YDD (0.4.0)
 
 1. Posicione o OBJ sobre o YDD.
 2. Em **Peça de destino**, escolha o YDD. Em **Objeto a incorporar**, escolha o OBJ. O OBJ pode continuar selecionado no viewport.
-3. Clique **Unir OBJ à peça**. A lista passa a mostrar um conjunto; gizmos movem os dois juntos. Ctrl+Z separa e Ctrl+Y restaura a união.
+3. Clique **Unir OBJ / GLB à peça**. A lista passa a mostrar um conjunto; gizmos movem os dois juntos. Ctrl+Z separa e Ctrl+Y restaura a união.
 4. Clique **Exportar peça YDD**. O arquivo contém a geometria original e o OBJ incorporado, com o nome original. Use o YTD correspondente.
 
 A incorporação mantém a posição mesmo com escala não uniforme no destino, converte os eixos, copia a geometria adicional aos LODs existentes e preserva os canais originais do YDD. Cada parte herda material e os quatro pesos/índices do vértice mais próximo ao seu centro; o acessório acompanha aquela região do esqueleto. Não há decimação automática para LODs. As superfícies ficam no mesmo YDD; a operação não faz solda booleana das bordas.
