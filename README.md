@@ -143,7 +143,7 @@ A leitura real do RPF continua dependendo de validação com uma instalação lo
 
 O esqueleto da peça é preservado; quando falta o osso escolhido, pode ser usado o esqueleto do ped YDD importado/carregado do GTA, guardado por gênero. GLB sozinho não fornece um esqueleto GTA nativo. O ped em si não é modificado.
 
-O exportador recusa layouts de posição/normal não suportados, buffers compartilhados/duplos distintos e colisões próprias. A partir da 0.4.0, OBJ incorporado é gravado como geometria adicional nos LODs do YDD; a partir da 0.11.12 também é possível incorporar GLB estático com suas texturas pelo botão Adicionar OBJ / GLB. Não converte registro de prop de cabeça para componente de roupa: se o boné for equipado pelo jogo como prop de cabeça, o recurso também precisa registrá-lo no componente apropriado para uso no cinto. Nome/META/YMT de um recurso existente não são convertidos automaticamente por este botão.
+O exportador recusa layouts de posição/normal não suportados, buffers compartilhados/duplos distintos e colisões próprias. A partir da 0.4.0, OBJ incorporado é gravado como geometria adicional nos LODs do YDD; a partir da 0.11.13 também é possível incorporar GLB estático com suas texturas pelo botão Adicionar OBJ / GLB. Não converte registro de prop de cabeça para componente de roupa: se o boné for equipado pelo jogo como prop de cabeça, o recurso também precisa registrá-lo no componente apropriado para uso no cinto. Nome/META/YMT de um recurso existente não são convertidos automaticamente por este botão.
 
 Validação automatizada cobre serialização nativa, movimento/rotação/escala, normais, UVs, vínculo rígido, pesos preservados, esqueleto doador e LODs com nível intermediário ausente. A animação real no FiveM ainda precisa ser validada com o YDD/YTD do usuário.
 
@@ -156,7 +156,7 @@ A transformação é aplicada ao objeto original; a correção do pivô não alt
 Na importação, OBJ muito distante da referência é colocado ao lado dela; se a proporção de tamanho passar de 20× ou cair abaixo de 0,05×, a escala também é adaptada e informada no status. O arquivo original não é sobrescrito.
 
 
-### Unir GLB texturizado ao YDD (0.11.12)
+### Unir GLB texturizado ao YDD (0.11.13)
 
 Na guia **03 · Malhas e objetos**:
 

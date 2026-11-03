@@ -1,4 +1,4 @@
-# Godoy 3D Modding 0.11.12 beta
+# Godoy 3D Modding 0.11.13 beta
 
 - A guia 03 importa OBJ e GLB pelo botão **Adicionar OBJ / GLB**. GLB estático usa as cores e imagens embutidas PNG/JPEG/WebP dos materiais, com preview texturizado.
 - **Unir OBJ / GLB à peça** incorpora o objeto ao YDD preservando a posição mostrada na cena. Cada parte herda os pesos da região mais próxima, em todos os LODs existentes.

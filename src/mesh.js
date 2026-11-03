@@ -299,7 +299,7 @@ $('#ytd-file').onchange=guard(async event=> {
   status('YTD associado. O conjunto será exportado em ZIP com YDD, YTD atualizado e mapas UV PNG.');
 });
 function showAtlasPlan(plan) {
-  const text=`Atlas ${plan.width} × ${plan.height} · ${plan.regions} área(s) de textura para ${plan.materials} material(is). `+(plan.reduced?(plan.sourceRects?'A área escolhida reduz a resolução da roupa.':`A textura da roupa será reduzida para 1/${plan.divisor} da resolução em cada eixo.`):'Resolução da roupa preservada.')+(plan.auxiliaryResolution>0&&plan.auxiliaryResolution<plan.width?` Mapas normal/brilho limitados a ${plan.auxiliaryResolution} × ${plan.auxiliaryResolution} para caber no YDD.`:'');
+  const text=`Atlas ${plan.width} × ${plan.height} · ${plan.regions} área(s) de textura para ${plan.materials} material(is). `+(plan.reduced?(plan.sourceRects?'Uma ou mais áreas escolhidas reduzem detalhes das texturas.':`A textura da roupa será reduzida para 1/${plan.divisor} da resolução em cada eixo.`):'Resolução da roupa preservada.')+(plan.auxiliaryResolution>0&&plan.auxiliaryResolution<plan.width?` Mapas normal/brilho limitados a ${plan.auxiliaryResolution} × ${plan.auxiliaryResolution} para caber no YDD.`:'');
   $('#atlas-plan').textContent=text+(plan.fits?'':' Excede o limite: escolha Ajustar até 4096.');
   return text;
 }
@@ -346,7 +346,7 @@ $('#export-ydd').onclick=guard(async()=> {
       if(!layout){status('Exportação cancelada. A cena foi mantida.');return;}
       source.atlasLayout=layout;request.atlasLayout=layout;
       plan=await native.exportYdd({...request,atlasPlan:true});showAtlasPlan(plan);
-      status(`Gerando atlas ${plan.width} × ${plan.height}…${plan.reduced?(plan.sourceRects?' A área manual da roupa reduz detalhes.':' Redução de resolução selecionada: 1/'+plan.divisor+' por eixo.'):''}`);
+      status(`Gerando atlas ${plan.width} × ${plan.height}…${plan.reduced?(plan.sourceRects?' A distribuição escolhida reduz detalhes de alguma textura.':' Redução de resolução selecionada: 1/'+plan.divisor+' por eixo.'):''}`);
     }
     const result=await native.exportYdd({...request,pedBytes:await readPedSkeleton($('#ped-gender').value)});
     const bytes=textured?result.ydd:result;

@@ -5,10 +5,15 @@ import {unzipSync} from 'fflate';
 import {parseYdd} from '../modules/vehicles/src/formats/ydd.js';
 import {parseYtd} from '../modules/vehicles/src/formats/ytd.js';
 import {assertYddRuntimeHeaders,assertYddLodCounts} from '../src/ydd-runtime.js';
-export async function exerciseGlbMerge(page,output,{stub=false}={}){
+export async function exerciseGlbMerge(page,output,{stub=false,desktop=null}={}){
  await page.locator('[data-tab=mesh]').click();await page.frameLocator('#mesh iframe').locator('#obj-file').waitFor({state:'attached'});
  if(stub)await page.evaluate(()=>{window.godoyNative.exportYdd=async request=>({width:2048,height:2048,regions:1,materials:1,columns:1,divisor:1,sourceWidth:4,sourceHeight:4,sourceNames:['original_diffuse'],reduced:false,fits:true,limit:4096,additionRegions:request.additions.map(()=>0)});});
- const frame=page.frames().find(f=>f.url().endsWith('/mesh.html'));await frame.goto(frame.url());
+ const frame=page.frames().find(f=>f.url().endsWith('/mesh.html'));
+ // The previous mesh test intentionally leaves an edited scene. Electron uses
+ // a native dialog here, which page.on('dialog') cannot accept. Discard only
+ // this isolated test scene, and restore the real dialog before the new flow.
+ if(desktop)await desktop.evaluate(({dialog})=>{globalThis.__glbMergeDialog=dialog.showMessageBoxSync;dialog.showMessageBoxSync=()=>1;});
+ try{await frame.goto(frame.url());}finally{if(desktop)await desktop.evaluate(({dialog})=>{dialog.showMessageBoxSync=globalThis.__glbMergeDialog;delete globalThis.__glbMergeDialog;});}
  const f=page.frameLocator('#mesh iframe');
  assert.match(await f.locator('#obj-file').getAttribute('accept'),/\.glb/);
  await f.locator('#mesh-file').setInputFiles('tests/fixtures/native-clothing.ydd');await f.locator('#status').filter({hasText:'native-clothing.ydd carregado'}).waitFor();

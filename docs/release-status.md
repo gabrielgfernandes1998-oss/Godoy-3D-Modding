@@ -1,4 +1,4 @@
-# Estado da versão 0.11.12 beta
+# Estado da versão 0.11.13 beta
 
 A aba 03 usa o importador GLB estático com atlas já usado pelo conversor. O preview recebe a diffuse composta; imagens/UVs internos do editor não são serializados como metadados gigantes na cópia GLB. A união mantém a transformação mundial e histórico. O serializador de incorporações preserva UVs de objetos com atlas GLB e identifica uma imagem por objeto. O caminho OBJ sem imagem mantém as ilhas automáticas anteriores.
 
@@ -6,7 +6,7 @@ YddAtlas agrupa as partes do mesmo GLB em uma única região. Planejamento consi
 
 95 testes JS, suíte nativa, 7 Python e fluxo completo de navegador passaram localmente. A regressão nativa usa duas partes GLB compartilhando uma imagem vermelho/verde e compara pixels/orientação, UVs, posições e pesos em cada LOD após serializar e reabrir. Rejeita sobreposição e índice de imagem ausente. O novo teste de interface exercita importação GLB com PNG/WebP/cor sólida, união, desfazer/refazer e editor UV. Um harness local adicional usa os handlers reais de desktop e helper .NET, com HTTP e sender autorizado simulado; a saída YDD/YTD foi baixada e reaberta, verificando as três cores e geometria em todos os LODs. Esse harness não é o teste do executável Windows e não executa GTA/FiveM.
 
-Compilação portable e teste do executável Windows: pendentes. Nenhum arquivo do usuário foi adicionado ao repositório ou release.
+A candidata 0.11.12 compilou o portable e passou nas suítes Linux, mas o novo teste recarregava uma cena editada e podia abrir o diálogo nativo síncrono de alterações não salvas. Esse diálogo não é respondido por page.on(dialog). A candidata 0.11.13 responde Descartar somente durante essa navegação no perfil isolado de teste e restaura o método original imediatamente depois; o aplicativo mantém a proteção real. A confirmação do novo executável Windows segue pendente. Nenhum arquivo do usuário foi adicionado ao repositório ou release.
 
 ## Histórico 0.11.11
 
