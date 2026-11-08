@@ -31,12 +31,40 @@ function fixtures(){
  return {ydd,ytd,rgba,dimension};
 }
 
-async function thumbnail(frame){return frame.locator('#map').evaluate(c=>c.toDataURL());}
+async function thumbnail(frame){return frame.locator('#map').evaluate(c=>({width:c.width,height:c.height,pixels:Array.from(c.getContext('2d').getImageData(0,0,c.width,c.height).data),visibility:document.visibilityState}));}
+function thumbnailDifference(actual,expected){
+ if(!actual)return {actual:'unavailable',expectedSize:[expected.width,expected.height]};
+ let changedChannels=0,significantChangedChannels=0,toleratedChannels=0,maxDelta=0,firstDifference=null;
+ if(actual.width===expected.width&&actual.height===expected.height)for(let i=0;i<actual.pixels.length;i++){
+  const delta=Math.abs(actual.pixels[i]-expected.pixels[i]);if(!delta)continue;
+  changedChannels++;maxDelta=Math.max(maxDelta,delta);
+  const alphaIndex=i-i%4+3,alpha=expected.pixels[alphaIndex];
+  // Chromium and Electron reproduced 7/409600 one-level RGB differences when
+  // magnifying our translucent source pixel. Only that resampling case is
+  // tolerated: opaque RGB, thumbnail alpha and native YTD checks stay exact.
+  const tolerated=i%4!==3&&alpha>0&&alpha<255&&actual.pixels[alphaIndex]===alpha&&delta<=1;
+  if(tolerated)toleratedChannels++;else significantChangedChannels++;
+  firstDifference??={x:Math.floor(i/4)%actual.width,y:Math.floor(i/4/actual.width),channel:i%4,actual:actual.pixels[i],expected:expected.pixels[i],actualRgba:actual.pixels.slice(i-i%4,i-i%4+4),expectedRgba:expected.pixels.slice(i-i%4,i-i%4+4)};
+ }
+ return {actualSize:[actual.width,actual.height],expectedSize:[expected.width,expected.height],visibility:actual.visibility,changedChannels,significantChangedChannels,toleratedChannels,maxDelta,firstDifference};
+}
 async function waitThumbnail(frame,expected,different=false){
- await frame.locator('#map').evaluate((c,{expected,different})=>new Promise((resolve,reject)=>{
-  const deadline=performance.now()+8000;
-  const tick=()=>{const match=c.toDataURL()===expected;if(different?!match:match)resolve();else if(performance.now()>deadline)reject(Error(different?'Adjustment preview did not change the texture':'Adjustment did not restore the expected texture'));else requestAnimationFrame(tick);};tick();
- }),{expected,different});
+ // Poll from Node instead of placing the deadline inside requestAnimationFrame:
+ // Electron can throttle an iframe's animation callbacks while a dialog closes.
+ // Compare actual pixels, not PNG encodings; see the narrow translucent-only
+ // thumbnail allowance above. All final native texture assertions are exact.
+ const deadline=Date.now()+8000;let actual=null,lastError=null;
+ while(Date.now()<deadline){
+  let timer;
+  try{
+   actual=await Promise.race([thumbnail(frame),new Promise((_,reject)=>{timer=setTimeout(()=>reject(Error('Canvas read did not respond within 2 seconds')),2000);})]);
+   lastError=null;
+   const difference=thumbnailDifference(actual,expected),match=actual.width===expected.width&&actual.height===expected.height&&difference.significantChangedChannels===0;
+   if(different?!match:match)return;
+  }catch(error){lastError=error.message;}finally{clearTimeout(timer);}
+  await new Promise(resolve=>setTimeout(resolve,80));
+ }
+ throw Error((different?'Adjustment preview did not change the texture':'Adjustment did not restore the expected texture')+': '+JSON.stringify({...thumbnailDifference(actual,expected),lastError}));
 }
 async function setRange(frame,id,value){await frame.locator(id).fill(String(value));await frame.locator(id).dispatchEvent('input');}
 

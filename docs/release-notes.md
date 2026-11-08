@@ -1,4 +1,4 @@
-# Godoy 3D Modding 0.11.14 beta
+# Godoy 3D Modding 0.11.15 beta
 
 - **02 · Pintura de roupas:** novo botão **Ajustar cor da seleção UV**. Selecione uma ilha no 3D ou no mapa UV e altere a cor preservando desenhos, textura, luz e sombra.
 - Controles de cor, intensidade, saturação, brilho e contraste. Desative Colorir para ajustar apenas saturação/brilho/contraste. A caixa Prévia permite comparar antes de aplicar; Cancelar restaura o resultado anterior.

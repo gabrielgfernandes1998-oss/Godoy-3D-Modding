@@ -1,4 +1,4 @@
-# Estado da versão 0.11.14 beta
+# Estado da versão 0.11.15 beta
 
 A pintura de roupas ganhou uma camada de ajuste não destrutiva com máscara UV obrigatória. O renderizador transforma o composto das camadas abaixo e continua a composição das camadas seguintes. O ajuste não grava uma cópia achatada nem altera os pixels da base. Os parâmetros são validados ao criar/editar/restaurar; a serialização mantém os valores e a máscara no formato de projeto existente. O ajuste é excluído de pick/movimento de objetos e dos controles gerais de brilho/contraste de raster, pois possui seus próprios controles.
 
@@ -8,7 +8,7 @@ A prévia é externa ao documento/histórico. Cancelar restaura o composto; Apli
 
 100 testes JS passaram. Um teste de camadas em Chromium cobre prévia sem mudança de estado, identidade fora da seleção, alpha semitransparente, base intacta, persistência, undo/redo, resposta a alterações nas camadas inferiores, visibilidade e rejeição de máscara ausente. O fluxo completo de navegador passou, incluindo uma fixture própria de duas ilhas UV e desenho bege/escuro em YTD lossless: preview/cancelar, aplicar, editar, desfazer/refazer, salvar/reabrir e exportação YTD. A outra ilha permanece exatamente igual e o desenho escuro e a transparência se mantêm. Nenhum arquivo ou imagem do usuário foi adicionado ao repositório/release.
 
-Portable Windows e publicação: pendentes.
+A candidata 0.11.14 compilou e passou nas suítes Linux, mas o teste Windows excedeu o prazo ao comparar a miniatura depois de Cancelar. A comparação anterior usava PNG/dataURL e espera requestAnimationFrame. O diagnóstico novo lê RGBA e usa prazo/polling no Node. A reprodução em Electron45 Linux confirmou uma diferença de apenas 1 nível em 7 dos 409600 canais da miniatura320x320, junto ao pixel semitransparente ampliado, com documento visível. A comparação da miniatura aceita até1 nível RGB apenas em pixels semitransparentes com alpha idêntico; pixels opacos e alpha permanecem exatos. A conferência do YTD real continua sem tolerância na outra ilha e no alpha; desenhos e tonalidade são verificados separadamente. O backdrop do diálogo é transparente para que a prévia não seja escurecida por cima da imagem. O fluxo completo passou em Electron45 Linux real, usando o app godoy://, sandbox e dist0.11.15; as verificações exatas do YTD continuaram passando. Portable Windows da nova candidata e publicação: pendentes.
 
 ## Histórico 0.11.13
 
