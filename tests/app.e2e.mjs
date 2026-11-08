@@ -1,3 +1,4 @@
+import {exerciseSelectionAdjustment} from './selection-adjustment-flow.mjs';
 import {exerciseGlbMerge} from './glb-merge-flow.mjs';
 import {exercisePedStorageFailure} from './ped-storage-flow.mjs';
 import {exerciseGlbConverter} from './glb-converter-flow.mjs';
@@ -121,6 +122,7 @@ try {
   await mesh.locator('#uv-cancel').click();await mesh.locator('#status').filter({hasText:'Exportação cancelada'}).waitFor();
   await exerciseGlbMerge(page,output,{stub:true});
   await exerciseConverter(page,output,{stub:true});await exerciseGlbConverter(page,output,{stub:true});
+  await exerciseSelectionAdjustment(page,output);
   await exercisePedStorageFailure(page,output);
   assert.deepEqual(errors,[]);assert.deepEqual(requests,[]);
   await mkdir('.test-output',{recursive:true});await page.click('[data-tab=pack]');await page.screenshot({path:'.test-output/studio.png',fullPage:true});

@@ -1,13 +1,12 @@
-# Godoy 3D Modding 0.11.13 beta
+# Godoy 3D Modding 0.11.14 beta
 
-- A guia 03 importa OBJ e GLB pelo botão **Adicionar OBJ / GLB**. GLB estático usa as cores e imagens embutidas PNG/JPEG/WebP dos materiais, com preview texturizado.
-- **Unir OBJ / GLB à peça** incorpora o objeto ao YDD preservando a posição mostrada na cena. Cada parte herda os pesos da região mais próxima, em todos os LODs existentes.
-- Com o YTD original associado, **Exportar YDD + ajustar UV** reúne a diffuse do YDD e o atlas dos materiais do GLB em uma única textura YTD. Os UVs do GLB são remapeados para a região escolhida, sem gerar novas ilhas por triângulo. Partes do mesmo GLB compartilham o atlas, evitando cópias redundantes da imagem.
-- O editor UV mostra as duas texturas e permite mover/redimensionar as áreas. Para GLB, começa com áreas separadas e bloqueia sobreposição com a roupa. O ZIP inclui YDD, YTD, guia UV PNG, textura PNG e relatório do atlas.
-- Mantém o fluxo OBJ com áreas cinza para pintura e as correções anteriores de ossos, LODs, material, buffers e orçamento do FiveM.
+- **02 · Pintura de roupas:** novo botão **Ajustar cor da seleção UV**. Selecione uma ilha no 3D ou no mapa UV e altere a cor preservando desenhos, textura, luz e sombra.
+- Controles de cor, intensidade, saturação, brilho e contraste. Desative Colorir para ajustar apenas saturação/brilho/contraste. A caixa Prévia permite comparar antes de aplicar; Cancelar restaura o resultado anterior.
+- O efeito é uma camada de ajuste mascarada, aplicada ao conjunto de camadas abaixo. A textura base permanece intacta. É possível ocultar, duplicar, reordenar, ajustar opacidade, desfazer/refazer e usar **Editar ajuste** para alterar os valores depois.
+- A máscara UV fica gravada na camada: limpar a seleção atual não amplia o efeito para outras partes da textura. Projetos .godoycloth guardam o ajuste e a máscara; exportações PNG/YTD incluem o resultado composto.
+- A seleção é obrigatória. O novo diálogo mostra a prévia no mapa/modelo, bloqueia os atalhos do pincel durante o ajuste e exige aplicar/cancelar antes de salvar/exportar. A troca de documento cancela a prévia temporária.
+- Mantém os recursos anteriores de GLB + YDD, atlas, ossos e exportação FiveM.
 
-Como usar: importe o YDD, adicione o GLB, ajuste sua posição/escala, escolha o YDD de destino e una. Associe o YTD original, exporte e confirme a distribuição UV. Use o novo YDD com o novo YTD juntos.
+Como usar: **02 → Ilha UV (U) → clique na área → Ajustar cor da seleção UV → escolha a cor e ajuste Brilho/Contraste → Aplicar ajuste**. Para escurecer ou clarear use Brilho: a escolha de cor preserva a luminosidade dos detalhes. Para editar depois, selecione a camada Ajuste de cor UV e clique Editar ajuste.
 
-O GLB precisa ser estático e ter suas imagens embutidas; não importa arquivos externos, skin/morphs ou cores por vértice. A composição usa a cor/diffuse dos materiais; normal/metallic/roughness PBR do GLB não são convertidos. Os mapas auxiliares compatíveis do YDD são mantidos no atlas nativo. A união mantém os limites de 65535 vértices por parte, 100000 no total e 32 partes. Texturas são transportadas separadamente em arquivos temporários binários. Atlas até 4096×4096 pode reduzir detalhes; a resolução é informada antes de exportar. Para reunir roupa com GLB em áreas separadas, os UVs da roupa precisam estar em 0–1; UVs repetidos exigem preparação anterior.
-
-Testes com fixtures sintéticas verificam cores/orientação da textura, UVs, posição, pesos, todos os LODs, uma única diffuse, editor UV e proteção contra sobreposição. A aparência e animação com arquivos reais ainda precisam ser conferidas no FiveM.
+O efeito atua na textura diffuse/base color; não altera a malha nem cria mapas de relevo. Testes com desenho claro/escuro verificam o detalhe, transparência, máscara e exportação YTD. A aparência final com a iluminação do jogo deve ser conferida no FiveM.

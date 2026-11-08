@@ -229,6 +229,7 @@ let editor = null,
   modelSource = null,
   modelFilename = null;
 function refresh() {
+  if(islandHighlight)islandHighlight.visible=!editor?.adjustmentDialog;
   texture.needsUpdate = true;
   for (const selector of ["#map", "#uv-view"]) {
     const c = $(selector),
@@ -529,6 +530,7 @@ const download = (name, blob) => {
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 };
 $("#export").onclick = () => {
+  if(editor.adjustmentDialog)return toast('Aplique ou cancele o ajuste de cor antes de exportar.');
   editor.finishPath();
   textureCanvas.toBlob(
     (blob) =>
@@ -705,6 +707,7 @@ function activeEntry() {
   return nativeTextures?.textures.find((t) => t.key === activeKey);
 }
 function flushTexture() {
+  editor.cancelAdjustment?.();
   const state = textureStates.get(activeKey);
   if (state) {
     state.canvas.getContext("2d").clearRect(0, 0, size, textureHeight);
@@ -1082,6 +1085,7 @@ $("#export-native").onclick = async () => {
   }
 };
 $("#save-project").onclick = () => {
+  if(editor.adjustmentDialog)return toast('Aplique ou cancele o ajuste de cor antes de salvar o projeto.');
   editor.finishPath();
   flushTexture();
   const project = {
@@ -1358,6 +1362,7 @@ $("#model-file").onchange = async (e) => {
 };
 const panKeys = new Set();
 window.addEventListener("keydown", (e) => {
+  if(editor.adjustmentDialog)return;
   if (
     /INPUT|TEXTAREA|SELECT/.test(e.target.tagName) ||
     e.target.isContentEditable

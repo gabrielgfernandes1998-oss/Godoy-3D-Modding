@@ -1,4 +1,5 @@
 import {patternPixels} from "./brush-pattern.js";
+import {openSelectionAdjustment} from './selection-adjustment.js';
 import {
   LayerDocument,
   canvas,
@@ -11,14 +12,14 @@ const $ = (s) => document.querySelector(s);
 export const layerPanels = `
 <section class="section layer-section"><div class="section-title">CAMADAS <span id="layer-count" class="count">2</span></div><div class="layer-actions"><button id="add-layer" title="Nova camada de pintura">＋ Pintura</button><button id="add-text" title="Adicionar texto">T Texto</button><button id="duplicate-layer" title="Duplicar camada">Duplicar</button></div><div id="layer-list" class="layer-list"></div><div class="layer-actions"><button id="layer-up" title="Subir camada">↑</button><button id="layer-down" title="Descer camada">↓</button><button id="lock-layer">Bloquear</button><button id="delete-layer" title="Excluir camada">Excluir</button></div><label class="field">Nome da camada<input id="layer-name" maxlength="120"></label><label class="field">Mesclagem<select id="layer-blend"><option value="source-over">Normal</option><option value="multiply">Multiply · Multiplicar</option><option value="overlay">Overlay · Sobrepor</option><option value="screen">Screen · Tela</option></select></label><label class="field">Opacidade <output id="layer-opacity-out">100%</output><input id="layer-opacity" type="range" min="0" max="100" value="100"></label><label class="field">Brilho <output id="layer-brightness-out">100%</output><input id="layer-brightness" type="range" min="0" max="300" value="100"></label><label class="field">Contraste <output id="layer-contrast-out">100%</output><input id="layer-contrast" type="range" min="0" max="300" value="100"></label></section>`;
 export const propertyPanels = `
-<section class="section"><div class="section-title">SELEÇÃO / MÁSCARA UV</div><p class="help" id="selection-info">Sem restrição. Use a ferramenta Ilha UV para selecionar uma região.</p><div class="layer-actions"><button id="clear-selection">Limpar seleção</button><button id="mask-layer">Mascarar camada</button><button id="unmask-layer">Remover máscara</button></div></section>
+<section class="section"><div class="section-title">SELEÇÃO / MÁSCARA UV</div><p class="help" id="selection-info">Sem restrição. Use a ferramenta Ilha UV para selecionar uma região.</p><div class="layer-actions"><button id="clear-selection">Limpar seleção</button><button id="mask-layer">Mascarar camada</button><button id="unmask-layer">Remover máscara</button></div><div class="layer-actions"><button id="adjust-selection" class="accent">Ajustar cor da seleção UV</button><button id="edit-adjustment">Editar ajuste</button></div></section>
 <section class="section" id="transform-panel"><div class="section-title">OBJETO EDITÁVEL</div><p class="help">Selecione o texto, imagem ou forma na lista. Arraste com Mover no 3D ou no mapa UV.</p><div class="field-grid"><label class="field">Posição X<input id="object-x" type="number" step="1"></label><label class="field">Posição Y<input id="object-y" type="number" step="1"></label></div><div class="field-grid object-size"><label class="field">Largura (px)<input id="object-width" type="number" min="1" max="81920"></label><label class="field">Altura (px)<input id="object-height" type="number" min="1" max="81920"></label></div><label class="field">Escala <output id="scale-out">100%</output><input id="scale" type="range" min="2" max="500" value="100"></label><label class="field">Rotação <output id="rotation-out">0°</output><input id="rotation" type="range" min="-180" max="180" value="0"></label><label class="field">Cor do objeto<input id="object-color" type="color" value="#ef4444"></label></section>
 <section class="section" id="text-panel"><div class="section-title">TEXTO EDITÁVEL</div><label class="field">Conteúdo<textarea id="text-content" rows="3" maxlength="5000">SEU TEXTO</textarea></label><label class="field">Fonte<select id="font-family"><option>Arial</option><option>Impact</option><option>Georgia</option><option>Courier New</option><option>Verdana</option></select></label><button id="import-font" class="full">Carregar fonte .TTF / .OTF</button><div class="field-grid"><label class="field">Tamanho (px)<input id="font-size" type="number" min="4" max="2000" value="110"></label><label class="field">Alinhamento<select id="text-align"><option value="center">Centro</option><option value="left">Esquerda</option><option value="right">Direita</option></select></label></div><div class="checks"><label><input id="text-bold" type="checkbox" checked> Negrito</label><label><input id="text-italic" type="checkbox"> Itálico</label></div><div class="checks"><label><input id="text-flip-x" type="checkbox"> Espelhar horizontal</label><label><input id="text-flip-y" type="checkbox"> Espelhar vertical</label></div><div class="field-grid"><label class="field">Contorno (px)<input id="text-stroke" type="number" min="0" max="300" value="2"></label><label class="field">Cor do contorno<input id="text-stroke-color" type="color" value="#ffffff"></label></div><div class="field-grid"><label class="field">Sombra: blur<input id="shadow-blur" type="number" min="0" max="300" value="0"></label><label class="field">Cor da sombra<input id="shadow-color" type="color" value="#000000"></label><label class="field">Sombra X<input id="shadow-x" type="number" min="-500" max="500" value="3"></label><label class="field">Sombra Y<input id="shadow-y" type="number" min="-500" max="500" value="3"></label></div></section>
 <section class="section" id="shape-panel"><div class="section-title">FORMAS / BÉZIER</div><label class="field">Espessura da linha (px)<input id="shape-stroke" type="number" min="1" max="300" value="8"></label><label class="field">Cor da linha<input id="shape-stroke-color" type="color" value="#ef4444"></label><div class="checks"><label><input id="shape-fill" type="checkbox" checked> Preenchimento</label><label><input id="path-closed" type="checkbox"> Fechar curva</label></div><button id="finish-path" class="full">Concluir curva (Enter)</button><p class="help">Pen: clique para criar pontos; arraste ao criar para definir as tangentes. Enter conclui. Para reeditar, selecione a curva, ative Mover e arraste os pontos/alças no mapa UV. Alt permite alças independentes.</p></section>
 <section class="section" id="bucket-panel"><div class="section-title">PREENCHIMENTO</div><label class="field">Região<select id="fill-mode"><option value="contiguous">Área de cor conectada</option><option value="selection">Seleção UV inteira</option><option value="material">Material da superfície</option></select></label><label class="field">Tolerância<input id="fill-tolerance" type="range" min="0" max="100" value="24"></label></section>
 <input id="font-file" type="file" accept=".ttf,.otf" hidden>`;
 const clamp = (v, min, max) => Math.max(min, Math.min(max, Number(v) || 0));
-const editable = (l) => l && l.type !== "raster";
+const editable = (l) => l && ['text','image','shape','path'].includes(l.type);
 export class WorkspaceEditor {
   constructor(options) {
     this.o = options;
@@ -60,6 +61,7 @@ export class WorkspaceEditor {
     }
   }
   setDocument(doc) {
+    this.cancelAdjustment?.();
     this.cancelGesture();
     this.pendingPath = null;
     this.pendingImage = null;
@@ -71,11 +73,11 @@ export class WorkspaceEditor {
     this.sync();
   }
   get hasPending() {
-    return !!this.gesture || !!this.pendingPath;
+    return !!this.gesture || !!this.pendingPath||!!this.adjustmentDialog;
   }
   render() {
     if (!this.doc) return;
-    this.doc.renderTo(this.o.output);
+    this.doc.renderTo(this.o.output,this.adjustmentPreview);
     this.o.refresh();
     this.sync();
   }
@@ -127,6 +129,8 @@ export class WorkspaceEditor {
       this.doc.update({ clip: structuredClone(this.doc.selection) });
     });
     click("#unmask-layer", () => this.doc.update({ clip: null }));
+    click('#adjust-selection',()=>openSelectionAdjustment(this));
+    click('#edit-adjustment',()=>openSelectionAdjustment(this,{edit:true}));
     click("#finish-path", () => this.finishPath());
     click("#import-font", () => $("#font-file").click());
     $("#font-file").onchange = (e) =>
@@ -810,7 +814,7 @@ export class WorkspaceEditor {
       sy = ctx.canvas.height / this.doc.height;
     ctx.save();
     ctx.scale(sx, sy);
-    if (this.doc.selection?.length) {
+    if (this.doc.selection?.length&&!this.adjustmentDialog) {
       traceMask(ctx, this.doc.selection, this.doc.width, this.doc.height);
       ctx.fillStyle = "#ef44442b";
       ctx.fill();
@@ -893,6 +897,7 @@ export class WorkspaceEditor {
           image: "Imagem",
           shape: "Forma",
           path: "Bézier",
+          adjustment: "Ajuste de cor UV",
         }[layer.type] +
         (layer.locked ? " · bloqueada" : "") +
         (layer.clip ? " · máscara" : "");
@@ -930,7 +935,10 @@ export class WorkspaceEditor {
       "#layer-brightness",
       "#layer-contrast",
     ])
-      $(id).disabled = !l || l.locked;
+      $(id).disabled = !l || l.locked||(l.type==='adjustment'&&['#layer-blend','#layer-brightness','#layer-contrast'].includes(id));
+    $('#adjust-selection').disabled=!this.doc.selection?.length||this.busy;
+    $('#edit-adjustment').disabled=l?.type!=='adjustment'||l.locked||this.busy;
+    $('#unmask-layer').disabled=l?.type==='adjustment';
     $("#lock-layer").textContent = l?.locked ? "Desbloquear" : "Bloquear";
     $("#delete-layer").disabled = !l || l.locked;
     $("#undo").disabled = this.busy || !this.doc.history.length;

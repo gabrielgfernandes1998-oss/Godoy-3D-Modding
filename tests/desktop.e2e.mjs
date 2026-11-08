@@ -1,3 +1,4 @@
+import {exerciseSelectionAdjustment} from './selection-adjustment-flow.mjs';
 import {exerciseGlbMerge} from './glb-merge-flow.mjs';
 import {exerciseCompactor} from './compact-flow.mjs';
 import {exercisePedStorageFailure} from './ped-storage-flow.mjs';
@@ -189,6 +190,7 @@ try {
 
   }
   if(process.platform==='win32'){await exerciseGlbMerge(page,output,{desktop});await exerciseConverter(page,output);await exerciseGlbConverter(page,output);await exerciseCompactor(page,output);}
+  await exerciseSelectionAdjustment(page,output);
   await exercisePedStorageFailure(page,output,{desktop});
   assert.deepEqual(errors,[]);assert.deepEqual(failures,[]);
   await page.click('[data-tab=pack]');await mkdir('.test-output',{recursive:true});

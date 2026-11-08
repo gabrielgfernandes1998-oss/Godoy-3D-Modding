@@ -1,3 +1,4 @@
+import {adjustRgba,normalizeAdjustment} from './color-adjustment.js';
 const MAX_LAYERS = 48;
 const MAX_PIXELS = 64 * 1024 * 1024;
 export function canvas(width, height) {
@@ -59,6 +60,29 @@ const number = (value, fallback, min, max) =>
 const color = (value, fallback) =>
   /^#[0-9a-f]{6}$/i.test(value || "") ? value : fallback;
 let nextId = 1;
+function adjustmentBounds(polygons,width,height) {
+  let left=width,top=height,right=0,bottom=0;
+  for(const p of polygons){
+    const us=[p[0],p[2],p[4]],vs=[p[1],p[3],p[5]],u0=Math.floor(Math.min(...us)),u1=Math.floor(Math.max(...us)),v0=Math.floor(Math.min(...vs)),v1=Math.floor(Math.max(...vs));
+    if(u1-u0>4||v1-v0>4)continue;
+    for(let du=u0;du<=u1;du++)for(let dv=v0;dv<=v1;dv++){
+      left=Math.min(left,Math.max(0,Math.floor((Math.min(...us)-du)*width)));
+      right=Math.max(right,Math.min(width,Math.ceil((Math.max(...us)-du)*width)));
+      top=Math.min(top,Math.max(0,Math.floor((Math.min(...vs)-dv)*height)));
+      bottom=Math.max(bottom,Math.min(height,Math.ceil((Math.max(...vs)-dv)*height)));
+    }
+  }
+  return {x:left,y:top,width:right-left,height:bottom-top};
+}
+function renderAdjustment(ctx,layer,width,height) {
+  if(!layer.clip?.length)return;
+  const r=adjustmentBounds(layer.clip,width,height);if(r.width<=0||r.height<=0)return;
+  const mask=canvas(r.width,r.height),m=mask.getContext('2d');m.translate(-r.x,-r.y);traceMask(m,layer.clip,width,height);m.fillStyle='#fff';m.fill();
+  const coverage=m.getImageData(0,0,r.width,r.height).data,image=ctx.getImageData(r.x,r.y,r.width,r.height),original=new Uint8ClampedArray(image.data);
+  adjustRgba(image.data,layer.adjustment);
+  for(let i=0;i<original.length;i+=4){const amount=coverage[i+3]/255*layer.opacity/100;for(let c=0;c<3;c++)image.data[i+c]=Math.round(original[i+c]+(image.data[i+c]-original[i+c])*amount);}
+  ctx.putImageData(image,r.x,r.y);
+}
 export class LayerDocument {
   constructor(width, height) {
     if (
@@ -137,6 +161,10 @@ export class LayerDocument {
     );
   }
   add(type, props = {}, record = true) {
+    if(type==='adjustment'){
+      props={...props,clip:validatePolygons(props.clip),adjustment:normalizeAdjustment(props.adjustment)};
+      if(!props.clip?.length)throw Error('Selecione uma ilha UV antes de criar o ajuste.');
+    }
     if (this.layers.length >= MAX_LAYERS)
       throw Error(`Limite de ${MAX_LAYERS} camadas atingido.`);
     if (
@@ -160,6 +188,7 @@ export class LayerDocument {
           image: "Imagem",
           shape: "Forma",
           path: "Curva Bézier",
+          adjustment: "Ajuste de cor UV",
         }[type] || "Camada",
       visible: true,
       locked: false,
@@ -212,6 +241,11 @@ export class LayerDocument {
   update(patch, record = true) {
     const layer = this.active;
     if (!layer) return;
+    if(layer.type==='adjustment'){
+      patch={...patch};
+      if('adjustment' in patch)patch.adjustment=normalizeAdjustment(patch.adjustment);
+      if('clip' in patch){patch.clip=validatePolygons(patch.clip);if(!patch.clip?.length)throw Error('O ajuste precisa de uma seleção UV.');}
+    }
     if (
       layer.locked &&
       !Object.keys(patch).every((k) => ["locked", "visible"].includes(k))
@@ -395,11 +429,14 @@ export class LayerDocument {
     if (this.layers.filter((l) => l.cached).length < 6) layer.cached = raw;
     return raw;
   }
-  renderTo(output) {
+  renderTo(output,preview=null) {
     const ctx = output.getContext("2d");
     ctx.clearRect(0, 0, this.width, this.height);
-    for (const layer of this.layers) {
+    const layers=preview&&!preview.id?[...this.layers,preview.layer]:this.layers;
+    for (const saved of layers) {
+      const layer=preview?.id===saved.id?preview.layer:saved;
       if (!layer.visible || layer.opacity <= 0) continue;
+      if(layer.type==='adjustment'){renderAdjustment(ctx,layer,this.width,this.height);continue;}
       ctx.save();
       ctx.globalAlpha = layer.opacity / 100;
       ctx.globalCompositeOperation = layer.blend;
@@ -410,7 +447,7 @@ export class LayerDocument {
   }
   pick(x, y) {
     for (const layer of [...this.layers].reverse()) {
-      if (layer.locked || !layer.visible || layer.opacity === 0) continue;
+      if (layer.locked || !layer.visible || layer.opacity === 0||layer.type==='adjustment') continue;
       if (
         this.raw(layer)
           .getContext("2d", { willReadFrequently: true })
@@ -465,7 +502,7 @@ export class LayerDocument {
     const ids = new Set();
     for (const p of state.layers) {
       if (
-        !["raster", "text", "image", "shape", "path"].includes(p.type) ||
+        !["raster", "text", "image", "shape", "path", "adjustment"].includes(p.type) ||
         typeof p.id !== "string" ||
         ids.has(p.id)
       )
@@ -512,7 +549,9 @@ export class LayerDocument {
           : "rectangle",
         anchors: validateAnchors(p.anchors || []),
         clip: validatePolygons(p.clip),
+        ...(p.type==='adjustment'?{adjustment:normalizeAdjustment(p.adjustment)}:{}),
       };
+      if(p.type==='adjustment')for(const key of ['bitmap','image','cached','png','revision'])delete props[key];
       delete props.data;
       if (p.type === "raster") {
         const image = await loadImage(p.data);
