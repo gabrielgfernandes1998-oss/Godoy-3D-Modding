@@ -233,7 +233,7 @@ function refresh() {
   texture.needsUpdate = true;
   for (const selector of ["#map", "#uv-view"]) {
     const c = $(selector),
-      cctx = c.getContext("2d");
+      cctx = c.getContext("2d",{willReadFrequently:selector==='#map'});
     cctx.clearRect(0, 0, c.width, c.height);
     const scale = Math.min(
         c.width / textureCanvas.width,

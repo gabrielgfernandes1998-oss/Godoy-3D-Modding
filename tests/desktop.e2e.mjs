@@ -1,4 +1,3 @@
-import {exerciseSelectionAdjustment} from './selection-adjustment-flow.mjs';
 import {exerciseGlbMerge} from './glb-merge-flow.mjs';
 import {exerciseCompactor} from './compact-flow.mjs';
 import {exercisePedStorageFailure} from './ped-storage-flow.mjs';
@@ -24,7 +23,7 @@ const args=['--enable-unsafe-swiftshader','--use-gl=angle','--use-angle=swiftsha
 if(process.platform==='linux')args.push('--no-sandbox');
 if(process.env.GODOY_HEADLESS)args.push('--ozone-platform=headless');
 if(process.env.GODOY_DESKTOP_APP)args.push(process.env.GODOY_DESKTOP_APP);
-let desktop;
+let desktop,regressionFailure=false;
 try {
   desktop=await _electron.launch({executablePath,args,acceptDownloads:true,timeout:30000});
   const packaged=await desktop.evaluate(({app})=>app.isPackaged);
@@ -190,23 +189,26 @@ try {
 
   }
   if(process.platform==='win32'){await exerciseGlbMerge(page,output,{desktop});await exerciseConverter(page,output);await exerciseGlbConverter(page,output);await exerciseCompactor(page,output);}
-  await exerciseSelectionAdjustment(page,output);
   await exercisePedStorageFailure(page,output,{desktop});
   assert.deepEqual(errors,[]);assert.deepEqual(failures,[]);
   await page.click('[data-tab=pack]');await mkdir('.test-output',{recursive:true});
   await page.screenshot({path:`.test-output/desktop-${process.platform}.png`});
   await writeFile(`.test-output/desktop-${process.platform}.json`,JSON.stringify({status:'passed',platform:process.platform,executable:executablePath,app:process.env.GODOY_DESKTOP_APP??'packaged executable',checks:['custom protocol assets','sandbox retained','pack download','clothing 3D paint / YTD export','editor-to-pack transfer','vehicle YFT import','mesh YDD import']},null,2));
 } catch(error) {
+  regressionFailure=true;
   if(process.env.GITHUB_ACTIONS)console.error('::error title=Packaged desktop regression::'+String(error.stack??error.message).replaceAll('%','%25').replaceAll('\r','%0D').replaceAll('\n','%0A'));
   await mkdir('.test-output',{recursive:true});
   const page=desktop?.windows()[0];
-  await page?.screenshot({path:`.test-output/desktop-${process.platform}.png`}).catch(()=>{});
+  await page?.screenshot({path:`.test-output/desktop-${process.platform}.png`,timeout:5000}).catch(()=>{});
   await writeFile(`.test-output/desktop-${process.platform}.json`,JSON.stringify({status:'failed',platform:process.platform,error:error.message},null,2));
   throw error;
 } finally {
   if(desktop) {
-    await desktop.evaluate(({dialog})=>{dialog.showMessageBoxSync=()=>1;}).catch(()=>{});
-    await desktop.close();
+    // A stalled renderer/readback must not keep a failed job alive indefinitely.
+    // Only terminate the Electron process launched by this isolated test.
+    const bounded=async(task,ms)=>{let timer;try{return await Promise.race([task,new Promise((_,reject)=>{timer=setTimeout(()=>reject(Error('Desktop cleanup timed out')),ms);})]);}finally{clearTimeout(timer);}};
+    await bounded(desktop.evaluate(({dialog})=>{dialog.showMessageBoxSync=()=>1;}),2000).catch(()=>{});
+    try{await bounded(desktop.close(),8000);}catch(error){desktop.process().kill();if(!regressionFailure)throw error;}
   }
 }
 console.log(`PASS: packaged desktop (${process.platform}), all tabs, painting and downloads`);

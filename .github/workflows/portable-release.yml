@@ -91,6 +91,8 @@ jobs:
           $env:GODOY_DESKTOP_EXE = $executable.FullName
           npm run test:desktop
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          npm run test:desktop:adjustments
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Retain Windows runtime evidence
         if: always()
         uses: actions/upload-artifact@v4
@@ -98,6 +100,7 @@ jobs:
           name: Windows-desktop-test-evidence
           path: |
             .test-output/desktop-win32.*
+            .test-output/desktop-adjustment-*
             .test-output/glb-merge-atlas.png
             .test-output/selection-adjustment.png
             .test-output/converter.png

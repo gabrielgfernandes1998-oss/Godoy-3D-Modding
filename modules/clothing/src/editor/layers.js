@@ -77,7 +77,7 @@ function adjustmentBounds(polygons,width,height) {
 function renderAdjustment(ctx,layer,width,height) {
   if(!layer.clip?.length)return;
   const r=adjustmentBounds(layer.clip,width,height);if(r.width<=0||r.height<=0)return;
-  const mask=canvas(r.width,r.height),m=mask.getContext('2d');m.translate(-r.x,-r.y);traceMask(m,layer.clip,width,height);m.fillStyle='#fff';m.fill();
+  const mask=canvas(r.width,r.height),m=mask.getContext('2d',{willReadFrequently:true});m.translate(-r.x,-r.y);traceMask(m,layer.clip,width,height);m.fillStyle='#fff';m.fill();
   const coverage=m.getImageData(0,0,r.width,r.height).data,image=ctx.getImageData(r.x,r.y,r.width,r.height),original=new Uint8ClampedArray(image.data);
   adjustRgba(image.data,layer.adjustment);
   for(let i=0;i<original.length;i+=4){const amount=coverage[i+3]/255*layer.opacity/100;for(let c=0;c<3;c++)image.data[i+c]=Math.round(original[i+c]+(image.data[i+c]-original[i+c])*amount);}

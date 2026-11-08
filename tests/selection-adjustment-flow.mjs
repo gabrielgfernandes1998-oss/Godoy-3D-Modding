@@ -31,7 +31,14 @@ function fixtures(){
  return {ydd,ytd,rgba,dimension};
 }
 
-async function thumbnail(frame){return frame.locator('#map').evaluate(c=>({width:c.width,height:c.height,pixels:Array.from(c.getContext('2d').getImageData(0,0,c.width,c.height).data),visibility:document.visibilityState}));}
+async function thumbnail(frame){
+ const result=await frame.locator('#map').evaluate(c=>{
+  const pixels=c.getContext('2d').getImageData(0,0,c.width,c.height).data;let binary='';
+  for(let i=0;i<pixels.length;i+=32768)binary+=String.fromCharCode(...pixels.subarray(i,i+32768));
+  return {width:c.width,height:c.height,rgba:btoa(binary),visibility:document.visibilityState};
+ });
+ return {...result,pixels:Buffer.from(result.rgba,'base64')};
+}
 function thumbnailDifference(actual,expected){
  if(!actual)return {actual:'unavailable',expectedSize:[expected.width,expected.height]};
  let changedChannels=0,significantChangedChannels=0,toleratedChannels=0,maxDelta=0,firstDifference=null;
@@ -51,6 +58,8 @@ function thumbnailDifference(actual,expected){
 async function waitThumbnail(frame,expected,different=false){
  // Poll from Node instead of placing the deadline inside requestAnimationFrame:
  // Electron can throttle an iframe's animation callbacks while a dialog closes.
+ // Return binary bytes as base64 rather than hundreds of thousands of CDP values.
+ // A timed-out read fails immediately: Promise.race cannot cancel evaluate.
  // Compare actual pixels, not PNG encodings; see the narrow translucent-only
  // thumbnail allowance above. All final native texture assertions are exact.
  const deadline=Date.now()+8000;let actual=null,lastError=null;
@@ -61,7 +70,7 @@ async function waitThumbnail(frame,expected,different=false){
    lastError=null;
    const difference=thumbnailDifference(actual,expected),match=actual.width===expected.width&&actual.height===expected.height&&difference.significantChangedChannels===0;
    if(different?!match:match)return;
-  }catch(error){lastError=error.message;}finally{clearTimeout(timer);}
+  }catch(error){lastError=error.message;throw Error('Adjustment thumbnail read failed (no retry queued): '+JSON.stringify({...thumbnailDifference(actual,expected),lastError}));}finally{clearTimeout(timer);}
   await new Promise(resolve=>setTimeout(resolve,80));
  }
  throw Error((different?'Adjustment preview did not change the texture':'Adjustment did not restore the expected texture')+': '+JSON.stringify({...thumbnailDifference(actual,expected),lastError}));

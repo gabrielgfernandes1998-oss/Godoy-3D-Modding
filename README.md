@@ -265,7 +265,7 @@ Na 0.11.8, o compactador também reorganiza páginas RSC7, reduzindo espaço res
 
 Na 0.11.8, cada geometria possui cabeçalhos independentes para a correção de ponteiros no carregamento. Somente os dados brutos idênticos de vértices/índices são compartilhados. Passe os YDDs gerados em versões anteriores pelo compactador atualizado antes de montar o pack. A lista de ossos do conversor mostra português, nome técnico e ID.
 
-### Mudar cor da seleção UV preservando detalhes (0.11.15)
+### Mudar cor da seleção UV preservando detalhes (0.11.16)
 
 Em **02 · Pintura de roupas**, use **Ilha UV (U)** e clique na região no 3D ou no mapa. Em **SELEÇÃO / MÁSCARA UV**, clique **Ajustar cor da seleção UV**. Escolha a cor e regule intensidade, saturação, brilho e contraste com prévia. Desmarque **Colorir** para ajustar somente saturação/luz/contraste. **Cancelar** não grava o efeito; **Aplicar ajuste** cria uma camada editável e pode ser desfeito com Ctrl+Z. A cor preserva a luminosidade dos desenhos e da textura; use Brilho para escurecer ou clarear.
 
