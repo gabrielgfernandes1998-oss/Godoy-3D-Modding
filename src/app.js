@@ -2,7 +2,7 @@ import './app.css';
 import metadata from '../package.json';
 import {startPackBuilder} from './pack-builder.js';
 const $=s=>document.querySelector(s);
-$('#app').innerHTML=`<header class="shell-header"><div class="wordmark">G<span>3D</span></div><div><h1>Godoy 3D Modding</h1><p>Developed by Gabriel Godoy <span class="badge">${metadata.version} beta · Legacy</span></p></div><button id="about">Sobre esta versão</button></header>
+$('#app').innerHTML=`<header class="shell-header"><img class="wordmark" src="${import.meta.env.BASE_URL}branding/logo.png" alt="" width="54" height="54"><div><h1>Godoy 3D Modding</h1><p>Developed by Gabriel Godoy <span class="badge">${metadata.version} beta · Legacy</span></p></div><button id="about">Sobre esta versão</button></header>
 <nav aria-label="Módulos"><button data-tab="pack" class="selected">01 <span>Pack de roupas</span></button><button data-tab="clothing">02 <span>Pintura de roupas</span></button><button data-tab="mesh">03 <span>Malhas e objetos</span></button><button data-tab="vehicles">04 <span>Pintura de veículos</span></button><button data-tab="converter">05 <span>Converter OBJ / GLB em YDD</span></button></nav>
 <main id="pack" class="tab active"></main>
 <section id="converter" class="tab editor-tab"></section><section id="clothing" class="tab editor-tab"></section><section id="mesh" class="tab editor-tab"></section><section id="vehicles" class="tab editor-tab"></section>
