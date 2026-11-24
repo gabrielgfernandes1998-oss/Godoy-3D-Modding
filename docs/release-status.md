@@ -1,3 +1,11 @@
+# Estado da versão 0.11.17 beta
+
+O editor de viaturas ganhou transformações de texto editáveis, inspeção de assentos, prévia dos canais do giroflex e gerenciamento de liveries numeradas em YTD externo. A importação em lote associa o perfil do giroflex pelo `carvariations.meta` quando há uma correspondência. A exportação do YTD mantém as outras texturas; listas compatíveis do `carvariations.meta` podem ser exportadas separadamente.
+
+A validação em Chromium usou recursos sintéticos. Os fluxos cobriram transformações, prévia, desfazer/refazer, assentos, sequência do giroflex, adição e remoção de liveries, exportação YTD e reabertura de projeto. A validação em jogo depende do GTA V Legacy ou FiveM.
+
+## Histórico 0.11.16
+
 # Estado da versão 0.11.16 beta
 
 A pintura de roupas ganhou uma camada de ajuste não destrutiva com máscara UV obrigatória. O renderizador transforma o composto das camadas abaixo e continua a composição das camadas seguintes. O ajuste não grava uma cópia achatada nem altera os pixels da base. Os parâmetros são validados ao criar/editar/restaurar; a serialização mantém os valores e a máscara no formato de projeto existente. O ajuste é excluído de pick/movimento de objetos e dos controles gerais de brilho/contraste de raster, pois possui seus próprios controles.

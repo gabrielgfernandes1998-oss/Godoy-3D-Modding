@@ -1,12 +1,26 @@
-# Godoy 3D Modding 0.11.16 beta
+# Godoy 3D Modding 0.11.17 beta
 
-- **02 · Pintura de roupas:** novo botão **Ajustar cor da seleção UV**. Selecione uma ilha no 3D ou no mapa UV e altere a cor preservando desenhos, textura, luz e sombra.
-- Controles de cor, intensidade, saturação, brilho e contraste. Desative Colorir para ajustar apenas saturação/brilho/contraste. A caixa Prévia permite comparar antes de aplicar; Cancelar restaura o resultado anterior.
-- O efeito é uma camada de ajuste mascarada, aplicada ao conjunto de camadas abaixo. A textura base permanece intacta. É possível ocultar, duplicar, reordenar, ajustar opacidade, desfazer/refazer e usar **Editar ajuste** para alterar os valores depois.
-- A máscara UV fica gravada na camada: limpar a seleção atual não amplia o efeito para outras partes da textura. Projetos .godoycloth guardam o ajuste e a máscara; exportações PNG/YTD incluem o resultado composto.
-- A seleção é obrigatória. O novo diálogo mostra a prévia no mapa/modelo, bloqueia os atalhos do pincel durante o ajuste e exige aplicar/cancelar antes de salvar/exportar. A troca de documento cancela a prévia temporária.
-- Mantém os recursos anteriores de GLB + YDD, atlas, ossos e exportação FiveM.
+Esta atualização reúne novas ferramentas no **Editor de pinturas de viaturas** para GTA V Legacy e FiveM.
 
-Como usar: **02 → Ilha UV (U) → clique na área → Ajustar cor da seleção UV → escolha a cor e ajuste Brilho/Contraste → Aplicar ajuste**. Para escurecer ou clarear use Brilho: a escolha de cor preserva a luminosidade dos detalhes. Para editar depois, selecione a camada Ajuste de cor UV e clique Editar ajuste.
+## Texto nas pinturas
 
-O efeito atua na textura diffuse/base color; não altera a malha nem cria mapas de relevo. Testes com desenho claro/escuro verificam o detalhe, transparência, máscara e exportação YTD. A aparência final com a iluminação do jogo deve ser conferida no FiveM.
+- Espelhe o texto na horizontal ou na vertical, gire de 0° a 360° e ajuste largura e altura separadamente.
+- Inverta a ordem dos caracteres em cada linha preservando o formato das letras e os acentos.
+- Combine os ajustes e acompanhe o resultado na prévia. O projeto `.paintfive` mantém o texto editável e as exportações PNG e YTD incluem as transformações.
+
+## Assentos e giroflex
+
+- Em **Inspeção da viatura**, veja no 3D os lugares do motorista e dos passageiros identificados no modelo.
+- Ative **Prévia do giroflex** para ver a posição, a cor e a sequência dos canais identificados. Importe o `carcols.meta` para escolher um perfil. Sem esse arquivo, o editor usa uma alternância demonstrativa.
+
+## Importação em lote e liveries
+
+- Em **Abrir arquivos da viatura**, selecione o YFT, os YTDs, o `carcols.meta` e o `carvariations.meta` juntos. O editor usa os metadados disponíveis para associar a textura e o perfil do giroflex.
+- Em um YTD externo com liveries numeradas já referenciadas pelo YFT, selecione uma pintura para editar, duplique-a, importe uma imagem na mesma resolução ou remova uma pintura. A remoção renumera as seguintes.
+- A exportação do YTD com a lista alterada usa o nome original do arquivo. Quando o `carvariations.meta` contém uma lista compatível, também é possível exportar uma cópia atualizada pelo painel **Liveries**.
+
+A disponibilidade dos assentos e canais depende dos pontos do modelo. Confira a iluminação e as pinturas exportadas com o mod carregado no FiveM.
+
+## Windows x64
+
+Extraia todo o ZIP e abra **Godoy3DModding.exe**. O pacote é portátil e inclui o arquivo SHA-256 para conferir o download.

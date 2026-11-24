@@ -1,4 +1,20 @@
 const clamp = (n, a, b) => Math.max(a, Math.min(b, Number(n) || 0));
+const graphemes = new Intl.Segmenter(undefined, { granularity: "grapheme" });
+function reverseCharacters(line) {
+  return Array.from(graphemes.segment(line), ({ segment }) => segment)
+    .reverse()
+    .join("");
+}
+export function objectDimensions(layer) {
+  const width = layer.width || 1,
+    height = layer.height || 1;
+  if (layer.type !== "text") return { width, height };
+  return {
+    width: width * ((layer.widthPercent ?? 100) / 100),
+    height: height * ((layer.heightPercent ?? 100) / 100),
+  };
+}
+
 export function canvas(w, h) {
   const c = document.createElement("canvas");
   c.width = w;
@@ -230,11 +246,17 @@ export class LayerDocument {
         c.textBaseline = "top";
         const lines = String(l.text || "")
           .slice(0, 500)
-          .split("\n");
+          .split("\n")
+          .map((line) => l.reverseText ? reverseCharacters(line) : line);
         const width = Math.max(1, ...lines.map((t) => c.measureText(t).width)),
           height = lines.length * fontSize * 1.25;
         l.width = width;
         l.height = height;
+        const dimensions = objectDimensions(l);
+        c.scale(
+          (dimensions.width / width) * (l.flipX ? -1 : 1),
+          (dimensions.height / height) * (l.flipY ? -1 : 1),
+        );
         c.shadowColor = l.shadowColor || "#000000";
         c.shadowBlur = clamp(l.shadowBlur, 0, 100);
         c.shadowOffsetX = clamp(l.shadowX, -200, 200);
@@ -344,9 +366,10 @@ export class LayerDocument {
         dy = y - l.y,
         px = dx * Math.cos(a) - dy * Math.sin(a),
         py = dx * Math.sin(a) + dy * Math.cos(a);
+      const { width, height } = objectDimensions(l);
       if (
-        Math.abs(px) <= Math.max(l.width || 0, 12) / 2 + 8 &&
-        Math.abs(py) <= Math.max(l.height || 0, 12) / 2 + 8
+        Math.abs(px) <= Math.max(width, 12) / 2 + 8 &&
+        Math.abs(py) <= Math.max(height, 12) / 2 + 8
       )
         return l;
     }
@@ -406,7 +429,14 @@ export class LayerDocument {
         (typeof raw.text !== "string" ||
           raw.text.length > 500 ||
           typeof raw.font !== "string" ||
-          raw.font.length > 200)
+          raw.font.length > 200 ||
+          ["flipX", "flipY", "reverseText"].some(
+            (key) => raw[key] !== undefined && typeof raw[key] !== "boolean",
+          ) ||
+          ["widthPercent", "heightPercent"].some(
+            (key) => raw[key] !== undefined &&
+              (!Number.isFinite(raw[key]) || raw[key] < 10 || raw[key] > 300),
+          ))
       )
         throw Error("Texto de camada inválido.");
       if (

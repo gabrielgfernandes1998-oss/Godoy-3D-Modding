@@ -12,11 +12,17 @@ export function rankTextureCandidates(modelName, references, candidates) {
   }).sort((a,b)=>b.score-a.score||a.file.name.localeCompare(b.file.name));
 }
 
-export function attachAssetBatch({host,openModel,readModel,parseTexture,setTextures,notify}) {
+export function attachAssetBatch({host,openModel,readModel,parseTexture,setTextures,notify,onMetadata}) {
   const panel=document.createElement('div');panel.className='section';
   panel.innerHTML='<button class="upload" id="batch-open">Abrir conjunto de modelos + YTD</button><input id="batch-files" type="file" accept=".ydd,.yft,.ytd" multiple hidden><label class="section-title" for="batch-model">MODELO DO CONJUNTO</label><select id="batch-model" class="full"></select><label class="section-title" for="batch-ytd">YTD ASSOCIADO</label><select id="batch-ytd" class="full"></select><p class="file-note" id="batch-status">Selecione os arquivos juntos para localizar o YTD por nomes e referências de materiais. Em caso de empate, escolha o dicionário.</p>';
+  if (onMetadata) {
+    panel.querySelector('#batch-open').textContent = 'Abrir arquivos da viatura';
+    panel.querySelector('#batch-files').accept += ',.meta,.xml';
+    panel.querySelector('#batch-status').textContent =
+      'Selecione o YFT, os YTDs, o carcols.meta e o carvariations.meta juntos.';
+  }
   host.prepend(panel);
-  const $=s=>panel.querySelector(s);let models=[],candidates=[],ranked=[];
+  const $=s=>panel.querySelector(s);let models=[],candidates=[],ranked=[],metadata=[];
   $('#batch-open').onclick=()=>$('#batch-files').click();
   const apply=index=> {
     const c=ranked[index];if(!c)return;
@@ -31,6 +37,7 @@ export function attachAssetBatch({host,openModel,readModel,parseTexture,setTextu
     ranked.forEach((c,i)=>$('#batch-ytd').append(new Option(`${c.file.name}${c.score?' · compatível':''}`,String(i))));
     if(ranked[0]?.score>0&&ranked[0].score!==ranked[1]?.score) {$('#batch-ytd').value='0';apply(0);}
     else $('#batch-status').textContent='Selecione o YTD correspondente. Nenhuma associação inequívoca encontrada.';
+    if (onMetadata) await onMetadata(metadata, file);
   }
   $('#batch-model').onchange=()=>chooseModel().catch(e=>notify(e.message));
   $('#batch-ytd').onchange=e=> {try{if(e.target.value!=='')apply(Number(e.target.value));}catch(error){notify(error.message);}};
@@ -45,6 +52,7 @@ export function attachAssetBatch({host,openModel,readModel,parseTexture,setTextu
         if(expanded>256*1024*1024)throw Error('Dicionários descomprimidos acima de 256 MB. Divida o conjunto.');
         nextCandidates.push({file,buffer,doc});
       }
+      metadata = onMetadata ? files.filter(f => /\.(meta|xml)$/i.test(f.name)) : [];
       models=nextModels;candidates=nextCandidates;
       $('#batch-model').replaceChildren(...models.map((f,i)=>new Option(f.name,String(i))));await chooseModel();
     } catch(error) {notify(error.message);$('#batch-status').textContent=error.message;}

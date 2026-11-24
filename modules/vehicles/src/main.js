@@ -2,6 +2,9 @@ import {attachAssetBatch} from '../../../src/asset-batch.js';
 import { CameraPan, isEditingField } from "./editor/camera-pan.js";
 import brandLogo from "../assets/logo.png";
 import { AdvancedEditor } from "./editor/advanced.js";
+import { VehicleInspector, pointsFromScene } from "./editor/vehicle-inspector.js";
+import { findVehicleSirenId, parseSirenPatterns } from "./editor/siren-patterns.js";
+import { updateLiveryVariations } from "./editor/livery-variations.js";
 import { LayerDocument } from "./editor/layers.js";
 import "./style.css";
 import * as THREE from "three";
@@ -9,6 +12,7 @@ import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { parseYft } from "./formats/yft.js";
 import { parseYdd } from "./formats/ydd.js";
 import { parseYtd, writeYtd, canWriteTexture } from "./formats/ytd.js";
+import { liveryFamily, repackLiveryDictionary } from "./formats/ytd-liveries.js";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import {
   createIcons,
@@ -72,7 +76,7 @@ document.querySelector("#app").innerHTML = `
 <header><div class="brand-lockup"><img class="brand-logo" src="${brandLogo}" alt="Godoy Paint Car" width="577" height="433"><div class="brand-credit">Developed By Gabriel Godoy</div></div><div class="header-divider"></div><div class="project-title">Pintura de viatura <small>Vehicle Studio / Projeto local</small></div><div class="header-actions"><button id="save-project">${icon("save")}<span>Salvar projeto</span></button><button id="export" class="accent">${icon("download")}<span>Exportar textura</span></button><div class="avatar">PF</div></div></header>
 <div class="workspace"><aside class="left"><div class="panel-head"><span class="eyebrow">EXPLORADOR</span><span class="count">01</span></div><div class="asset"><div class="asset-icon">${icon("car")}</div><div><strong id="asset-name">Viatura demonstrativa</strong><small id="asset-type">MODELO DE DEMONSTRAÇÃO</small></div><div class="dot"></div></div><div class="section"><button class="upload" id="import-model">${icon("folder-open")} Importar modelo</button><p class="file-note">YFT / YDD / GLB / GLTF · Projeto .paintfive<br>YFT / YTD nativos · GTA V Legacy / FiveM</p></div><div id="native-model-controls" class="section hidden"><label class="section-title" for="drawable-select">MODELO / FRAGMENTO</label><select id="drawable-select" class="full"></select><label class="section-title" for="lod-select" style="margin-top:14px">NÍVEL DE DETALHE</label><select id="lod-select" class="full"></select></div><div class="panel-head"><span class="eyebrow">TEXTURA</span><span class="count">01</span></div><div class="section" style="padding-top:0"><div class="layer active"><div class="layer-preview"></div><span><span id="texture-name">Diffuse texture</span><small id="texture-dimensions">Canvas editável · 2048 × 2048</small></span>${icon("eye")}</div><button class="upload" id="import-ytd">${icon("folder-open")} Abrir dicionário YTD</button><div id="native-texture-controls" class="hidden"><label class="section-title" for="texture-select" style="margin-top:15px">TEXTURAS DO DICIONÁRIO</label><select id="texture-select" class="full"></select><p id="native-texture-info" class="help"></p><label class="section-title" for="material-select">APLICAR NA VIATURA</label><select id="material-select" class="full"><option value="all">Todas as superfícies</option></select><button id="bind-texture" class="full" style="margin-top:8px">Vincular textura selecionada</button><button id="export-native" class="accent full" style="margin-top:10px">Exportar YTD editado</button><p class="file-note">Salva uma cópia. O arquivo original é preservado.</p></div><button class="upload" id="import-texture" style="margin-top:10px">${icon("image-plus")} Abrir textura PNG / JPG</button></div><div class="panel-head"><span class="eyebrow">BIBLIOTECA</span>${icon("images")}</div><div class="section" style="padding-top:0"><button class="upload" id="import-image">${icon("plus")} Adicionar imagem</button><p class="file-note">Aplique uma arte na viatura e ajuste sua posição diretamente no modelo.</p></div><div class="info-card"><strong>${icon("sparkles")} Sua ideia. Na superfície.</strong><p>Pinte no 3D e acompanhe cada alteração no mapa de textura, em tempo real.</p></div></aside>
 <main class="center"><div class="viewbar"><div class="tabs"><button id="tab-3d" class="active">${icon("box")} Editor 3D</button><button id="tab-uv">${icon("scan")} Mapa UV</button></div><div class="view-meta"><span class="green-dot"></span>Renderização em tempo real</div></div><div class="viewport"><canvas id="scene"></canvas><canvas id="uv-view" width="2048" height="2048"></canvas><div class="viewport-label"><strong id="view-name">PERSPECTIVA</strong><p>MATERIAL PREVIEW · STUDIO LIGHT</p></div><div class="tools"><button data-tool="orbit" title="Orbitar (V)">${icon("mouse-pointer-2")}</button><div class="tool-divider"></div><button data-tool="brush" class="active" title="Pincel (B)">${icon("paintbrush")}</button><button data-tool="erase" title="Restaurar textura base (E)">${icon("eraser")}</button><button data-tool="text" title="Texto (T)">${icon("type")}</button><button data-tool="line" title="Linha (L)">${icon("minus")}</button><button data-tool="eyedropper" title="Conta-gotas (I)">${icon("pipette")}</button><button data-tool="decal" title="Aplicar imagem (G)">${icon("image")}</button><div class="tool-divider"></div><button id="undo" title="Desfazer (Ctrl+Z)">${icon("undo-2")}</button><button id="redo" title="Refazer (Ctrl+Shift+Z)">${icon("redo-2")}</button></div><div class="view-hint"><kbd>Arraste</kbd> pintar &nbsp;·&nbsp; <kbd>Botão direito</kbd> orbitar &nbsp;·&nbsp; <kbd>Scroll</kbd> zoom &nbsp;·&nbsp; <kbd>WASD</kbd> mover câmera</div><div class="axis"><b>Y</b><i>X</i><span>Z</span></div></div><div class="view-bottom"><span>${icon("car")}<span id="mesh-info">Importe o YFT da sua viatura</span></span><button id="reset-view">${icon("focus")} Centralizar</button><span class="badge">● TEXTURA CONECTADA</span></div></main>
-<aside class="right"><div class="panel-head"><span class="prop-title">${icon("sliders-horizontal")} Propriedades</span>${icon("ellipsis")}</div><div class="section"><div class="section-title">FERRAMENTA ATIVA <span class="mini-tag" id="tool-tag">PINCEL</span></div><div class="brush-only"><div class="label-row"><label for="size">Tamanho do pincel</label><output class="value" id="size-out">32 px</output></div><input id="size" type="range" min="2" max="180" value="32"><div class="label-row"><label for="opacity">Opacidade</label><output class="value" id="opacity-out">100%</output></div><input id="opacity" type="range" min="1" max="100" value="100"><div class="label-row"><label for="softness">Suavidade</label><output class="value" id="softness-out">25%</output></div><input id="softness" type="range" min="0" max="95" value="25"></div><div class="text-controls"><label class="section-title" for="text-content">TEXTO</label><textarea id="text-content" maxlength="500" rows="3" placeholder="Digite o texto da viatura">POLÍCIA</textarea><label class="section-title" for="text-font">FONTE</label><select id="text-font" class="full"><option value="Arial">Arial</option><option value="Arial Black">Arial Black</option><option value="Georgia">Georgia</option><option value="monospace">Monoespaçada</option></select><div class="label-row"><label for="text-size">Tamanho na textura (px)</label><input id="text-size" type="number" min="12" max="512" value="96"></div><div class="label-row"><label for="text-bold">Negrito</label><input id="text-bold" type="checkbox" checked></div><div class="label-row"><label for="text-opacity">Opacidade (%)</label><input id="text-opacity" type="number" min="1" max="100" value="100"></div></div><div class="decal-controls"><p class="help">Clique e arraste no 3D ou no mapa para posicionar. Ajuste antes de aplicar.</p><div class="image-scale"><div class="label-row"><label for="scale">Escala</label><output class="value" id="scale-out">30%</output></div><input id="scale" type="range" min="3" max="100" value="30"></div><div class="label-row"><label for="rotation">Rotação</label><output class="value" id="rotation-out">0°</output></div><input id="rotation" type="range" min="-180" max="180" value="0"><button id="apply-decal" class="accent full">${icon("check")} Aplicar imagem</button><button id="cancel-decal" class="full" style="margin-top:8px">Cancelar posicionamento</button></div></div><div class="section brush-only color-section"><div class="section-title">COR</div><div class="colors">${["#c7fa68", "#e9e4d8", "#17191d", "#ef695e", "#86a7ee", "#c19de5"].map((c) => `<button class="swatch" data-color="${c}" style="background:${c}" aria-label="Cor ${c}"></button>`).join("")}</div><div class="color-entry"><input id="color" type="color" value="#c7fa68" aria-label="Cor personalizada"><span id="color-hex">#C7FA68</span></div></div><div class="section"><div class="section-title">MAPA DE TEXTURA <span style="margin-left:auto">${icon("maximize-2")}</span></div><canvas class="map" id="map" width="320" height="320"></canvas><div class="map-footer"><span>DIFFUSE / BASE COLOR</span><span id="map-size">2048²</span></div><p class="help">Abra o YFT da viatura e seu YTD. Selecione a textura para pintar e exporte uma cópia do dicionário editado ou o PNG.</p></div><div class="section"><div class="section-title">VISUALIZAÇÃO</div><button id="back-view" class="full">${icon("rotate-3d")} Alternar frente / verso</button><div class="label-row" style="margin-top:18px"><label for="wireframe">Exibir malha</label><input id="wireframe" type="checkbox"></div></div></aside></div><footer class="footer"><span><span class="green-dot"></span><b id="status">Pronto para criar</b></span><span>GODOY PAINT CAR <span> / </span> LOCAL WORKSPACE <span> / </span> v0.4.3</span></footer><div id="toast" role="status"></div><input type="file" id="model-file" accept=".glb,.gltf,.paintfive,.yft,.ydd,.ytd" hidden><input type="file" id="ytd-file" accept=".ytd" hidden><input type="file" id="texture-file" accept="image/png,image/jpeg,image/webp" hidden><input type="file" id="image-file" accept="image/png,image/jpeg,image/webp" hidden>`;
+<aside class="right"><div class="panel-head"><span class="prop-title">${icon("sliders-horizontal")} Propriedades</span>${icon("ellipsis")}</div><div class="section"><div class="section-title">FERRAMENTA ATIVA <span class="mini-tag" id="tool-tag">PINCEL</span></div><div class="brush-only"><div class="label-row"><label for="size">Tamanho do pincel</label><output class="value" id="size-out">32 px</output></div><input id="size" type="range" min="2" max="180" value="32"><div class="label-row"><label for="opacity">Opacidade</label><output class="value" id="opacity-out">100%</output></div><input id="opacity" type="range" min="1" max="100" value="100"><div class="label-row"><label for="softness">Suavidade</label><output class="value" id="softness-out">25%</output></div><input id="softness" type="range" min="0" max="95" value="25"></div><div class="text-controls"><label class="section-title" for="text-content">TEXTO</label><textarea id="text-content" maxlength="500" rows="3" placeholder="Digite o texto da viatura">POLÍCIA</textarea><label class="section-title" for="text-font">FONTE</label><select id="text-font" class="full"><option value="Arial">Arial</option><option value="Arial Black">Arial Black</option><option value="Georgia">Georgia</option><option value="monospace">Monoespaçada</option></select><div class="label-row"><label for="text-size">Tamanho na textura (px)</label><input id="text-size" type="number" min="12" max="512" value="96"></div><div class="label-row"><label for="text-bold">Negrito</label><input id="text-bold" type="checkbox" checked></div><div class="label-row"><label for="text-opacity">Opacidade (%)</label><input id="text-opacity" type="number" min="1" max="100" value="100"></div></div><div class="decal-controls"><p class="help">Clique e arraste no 3D ou no mapa para posicionar. Ajuste antes de aplicar.</p><div class="image-scale"><div class="label-row"><label for="scale">Escala</label><output class="value" id="scale-out">30%</output></div><input id="scale" type="range" min="3" max="100" value="30"><div class="label-row"><label for="rotation">Rotação</label><output class="value" id="rotation-out">0°</output></div><input id="rotation" type="range" min="-180" max="180" value="0"></div><button id="apply-decal" class="accent full">${icon("check")} Aplicar imagem</button><button id="cancel-decal" class="full" style="margin-top:8px">Cancelar posicionamento</button></div></div><div class="section brush-only color-section"><div class="section-title">COR</div><div class="colors">${["#c7fa68", "#e9e4d8", "#17191d", "#ef695e", "#86a7ee", "#c19de5"].map((c) => `<button class="swatch" data-color="${c}" style="background:${c}" aria-label="Cor ${c}"></button>`).join("")}</div><div class="color-entry"><input id="color" type="color" value="#c7fa68" aria-label="Cor personalizada"><span id="color-hex">#C7FA68</span></div></div><div class="section"><div class="section-title">MAPA DE TEXTURA <span style="margin-left:auto">${icon("maximize-2")}</span></div><canvas class="map" id="map" width="320" height="320"></canvas><div class="map-footer"><span>DIFFUSE / BASE COLOR</span><span id="map-size">2048²</span></div><p class="help">Abra o YFT da viatura e seu YTD. Selecione a textura para pintar e exporte uma cópia do dicionário editado ou o PNG.</p></div><div class="section"><div class="section-title">VISUALIZAÇÃO</div><button id="back-view" class="full">${icon("rotate-3d")} Alternar frente / verso</button><div class="label-row" style="margin-top:18px"><label for="wireframe">Exibir malha</label><input id="wireframe" type="checkbox"></div></div></aside></div><footer class="footer"><span><span class="green-dot"></span><b id="status">Pronto para criar</b></span><span>GODOY PAINT CAR <span> / </span> LOCAL WORKSPACE <span> / </span> v0.4.3</span></footer><div id="toast" role="status"></div><input type="file" id="model-file" accept=".glb,.gltf,.paintfive,.yft,.ydd,.ytd" hidden><input type="file" id="ytd-file" accept=".ytd" hidden><input type="file" id="texture-file" accept="image/png,image/jpeg,image/webp" hidden><input type="file" id="image-file" accept="image/png,image/jpeg,image/webp" hidden>`;
 createIcons({ icons });
 const $ = (s) => document.querySelector(s);
 let toastTimer;
@@ -367,7 +371,7 @@ for (const id of ["size", "opacity", "softness", "scale", "rotation"]) {
     if (id === "size" && tool === "line")
       $("#shape-stroke").value = e.target.value;
     if (id === "rotation")
-      editor?.modifyObject({ rotation: Number(e.target.value) }, id);
+      editor?.modifyObject({ rotation: Number(e.target.value) }, id, "image");
     if (
       id === "scale" &&
       (editor?.draft?.type === "image" || editor?.doc.active?.type === "image")
@@ -544,7 +548,7 @@ $("#texture-file").onchange = async (e) => {
     e.target.value = "";
   }
 };
-function installModel(imported, name, native = false) {
+function installModel(imported, name, native = false, points = []) {
   const bounds = new THREE.Box3().setFromObject(imported),
     center = bounds.getCenter(new THREE.Vector3()),
     extent = bounds.getSize(new THREE.Vector3()),
@@ -564,6 +568,7 @@ function installModel(imported, name, native = false) {
   });
   model = group;
   scene.add(model);
+  vehicleInspector.setModel(imported, points);
   $("#asset-name").textContent = name;
   $("#asset-type").textContent = native
     ? "MODELO NATIVO · UV ATIVO"
@@ -591,7 +596,7 @@ function loadModel(buffer, name) {
           });
           if (!count || missing)
             throw Error("O modelo precisa conter malhas com coordenadas UV.");
-          installModel(gltf.scene, name);
+          installModel(gltf.scene, name, false, pointsFromScene(gltf.scene));
           resolve();
         } catch (err) {
           reject(err);
@@ -615,7 +620,9 @@ let nativeModel = null,
   nativeTextures = null,
   nativeTextureName = "",
   nativeTextureBuffer = null,
-  activeKey = null;
+  activeKey = null,
+  liveryVariations = null,
+  liveryDictionaryChanged = false;
 const textureStates = new Map(),
   materialBindings = new Map();
 function copyCanvas(canvas) {
@@ -774,6 +781,7 @@ function selectTexture(key, { flush = true } = {}) {
   }
   updateHistory();
   $("#texture-select").value = key;
+  syncLiveryControls();
   $("#texture-name").textContent = entry.name;
   $("#native-texture-info").textContent =
     `${entry.formatName} · ${entry.width} × ${entry.height} · ${entry.levels} mipmap(s). Camadas e histórico pertencem a esta textura.`;
@@ -804,6 +812,176 @@ function resetMaterialOptions() {
     if (liveryIndex >= 0) select.value = String(liveryIndex);
   }
 }
+function updateTextureOptions() {
+  const select = $("#texture-select");
+  select.replaceChildren();
+  for (const entry of nativeTextures.textures) {
+    const option = new Option(
+      `${entry.name} · ${entry.formatName}${entry.supported ? "" : " · não suportado"}`,
+      entry.key,
+    );
+    option.disabled = !entry.supported;
+    select.add(option);
+  }
+}
+
+function activeLiverySet() {
+  const active = activeEntry();
+  if (nativeModel?.format !== "yft" || nativeTextures?.embedded || !active) return null;
+  const family = liveryFamily(active.name);
+  if (!family) return null;
+  const shaderUsesFamily = nativeModel.drawables[nativeModelIndex].shaders.some(
+    ({ liveryName }) => liveryName && liveryFamily(liveryName)?.prefix === family.prefix,
+  );
+  if (!shaderUsesFamily) return null;
+  const variants = nativeTextures.textures
+    .filter(({ name }) => liveryFamily(name)?.prefix === family.prefix)
+    .sort((a, b) => liveryFamily(a.name).index - liveryFamily(b.name).index);
+  const first = liveryFamily(variants[0].name).index;
+  if (variants.some(({ name }, i) => liveryFamily(name).index !== first + i))
+    return null;
+  return { active, family, first, variants };
+}
+
+function syncLiveryControls() {
+  const set = activeLiverySet();
+  $("#duplicate-livery").disabled = !set;
+  $("#import-livery").disabled = !set;
+  $("#remove-livery").disabled = !set || set.variants.length < 2;
+  $("#export-variations").hidden = !liveryVariations?.dirty;
+  $("#livery-status").textContent = set
+    ? `${set.variants.length} ${set.variants.length === 1 ? "livery" : "liveries"} · ${set.family.prefix}`
+    : "Selecione uma livery numerada que o YFT referencia em um YTD externo.";
+}
+
+function editLivery(action, image, expectedKey = activeKey) {
+  const set = activeLiverySet();
+  if (!set || activeKey !== expectedKey || editor.pending())
+    throw Error("Selecione a livery e conclua a ferramenta ativa antes de alterar o YTD.");
+  const { active, variants, first } = set;
+  const removed = action === "remove";
+  if (removed && variants.length < 2) throw Error("Mantenha ao menos uma livery.");
+  const nameFor = (entry, index) => {
+    const old = liveryFamily(entry.name);
+    return entry.name.slice(0, -old.digits) + String(index).padStart(old.digits, "0");
+  };
+  const nextVariant = variants[Math.min(variants.indexOf(active) + 1, variants.length - 1)];
+  const replacement = nextVariant === active ? variants.at(-2) : nextVariant;
+  const entries = nativeTextures.textures
+    .filter((entry) => !removed || entry !== active)
+    .map((entry) => ({
+      entry,
+      name: removed && variants.includes(entry) && liveryFamily(entry.name).index > set.family.index
+        ? nameFor(entry, liveryFamily(entry.name).index - 1)
+        : entry.name,
+    }));
+  if (!removed) {
+    const retainedPixels = [...textureStates].reduce(
+      (sum, [key, state]) => sum + (state.dirty || key === activeKey ? state.canvas.width * state.canvas.height : 0),
+      0,
+    );
+    if (retainedPixels + active.width * active.height > 33554432)
+      throw Error("Limite de memória de texturas atingido. Salve o projeto e reabra o YTD.");
+    const source = image ? document.createElement("canvas") : textureCanvas;
+    if (image) {
+      source.width = active.width;
+      source.height = active.height;
+      if (image.width !== source.width || image.height !== source.height)
+        throw Error(`A imagem para esta livery deve ter ${source.width} × ${source.height} px.`);
+      source.getContext("2d").drawImage(image, 0, 0);
+    }
+    entries.push({
+      entry: active,
+      name: nameFor(variants.at(-1), first + variants.length),
+      pixels: source.getContext("2d").getImageData(0, 0, active.width, active.height).data,
+    });
+  }
+  const names = new Set(entries.map(({ name }) => name.toLowerCase()));
+  const previousNames = new Set(nativeTextures.textures.map(({ name }) => name.toLowerCase()));
+  for (const { shaders } of nativeModel.drawables)
+    for (const shader of shaders)
+      for (const { name } of shader.textures)
+        if (previousNames.has(name.toLowerCase()) && !names.has(name.toLowerCase()))
+          throw Error(`O modelo referencia ${name}. Essa alteração removeria a textura usada pelo material.`);
+
+  const references = new Set(nativeModel.drawables.flatMap(({ shaders }) =>
+    shaders.map(({ liveryName }) => liveryName && liveryFamily(liveryName)?.prefix).filter(Boolean),
+  ));
+  const variations = liveryVariations && (references.size === 1 ? updateLiveryVariations(
+    liveryVariations.xml, modelFilename,
+    { count: variants.length, index: variants.indexOf(active), remove: removed },
+  ) : { compatible: false });
+  const bytes = repackLiveryDictionary(nativeTextures, entries);
+  const next = parseYtd(bytes);
+  const newKeys = new Map(next.textures.map(({ name, key }) => [name, key]));
+  const remap = new Map(entries.filter(({ pixels }) => !pixels).map(
+    ({ entry, name }) => [entry.key, newKeys.get(name)],
+  ));
+  const target = removed ? remap.get(replacement.key) : newKeys.get(entries.at(-1).name);
+  flushTexture();
+  const previousStates = [...textureStates];
+  textureStates.clear();
+  for (const [key, state] of previousStates) {
+    if (remap.has(key)) textureStates.set(remap.get(key), state);
+    else state.map.dispose();
+  }
+  for (const [slot, key] of materialBindings) {
+    if (remap.has(key)) materialBindings.set(slot, remap.get(key));
+    else materialBindings.delete(slot);
+  }
+  if (variations?.changed)
+    liveryVariations = { ...liveryVariations, xml: variations.xml, dirty: true };
+  nativeTextures = next;
+  nativeTextureBuffer = bytes;
+  liveryDictionaryChanged = true;
+  activeKey = null;
+  updateTextureOptions();
+  selectTexture(target, { flush: false });
+  changed = true;
+  const message = removed ? "Livery removida da cópia do YTD." : "Nova livery adicionada à cópia do YTD.";
+  toast(variations?.compatible === false
+    ? message + " Revise manualmente as listas de liveries do carvariations.meta."
+    : message);
+}
+
+const liveryPanel = document.createElement("div");
+liveryPanel.className = "livery-controls";
+liveryPanel.innerHTML = `
+  <label class="control-label">LIVERIES</label>
+  <button id="duplicate-livery" class="full" disabled>Duplicar pintura selecionada</button>
+  <button id="import-livery" class="full" disabled>Adicionar livery de uma imagem</button>
+  <input id="livery-file" type="file" accept="image/png,image/jpeg,image/webp" hidden>
+  <button id="remove-livery" class="full" disabled>Remover livery selecionada</button>
+  <p id="livery-status" class="help"></p>
+  <button id="export-variations" class="full" hidden>Exportar carvariations.meta editado</button>`;
+$("#export-native").before(liveryPanel);
+$("#export-variations").onclick = () => {
+  if (!liveryVariations?.dirty) return;
+  download(liveryVariations.name, new Blob([liveryVariations.xml], { type: "application/xml" }));
+};
+const runLiveryEdit = (action) => {
+  try { editLivery(action); } catch (error) { toast(error.message); }
+};
+$("#duplicate-livery").onclick = () => runLiveryEdit("duplicate");
+$("#remove-livery").onclick = () => runLiveryEdit("remove");
+$("#import-livery").onclick = () => $("#livery-file").click();
+$("#livery-file").onchange = async ({ target }) => {
+  const file = target.files[0];
+  const key = activeKey;
+  const dictionary = nativeTextures;
+  try {
+    if (file) {
+      const image = await readImage(file);
+      if (dictionary !== nativeTextures) throw Error("O YTD ativo foi alterado durante a importação.");
+      editLivery("import", image, key);
+    }
+  } catch (error) {
+    toast(error.message);
+  } finally {
+    target.value = "";
+  }
+};
+
 function setTextureDictionary(doc, buffer, name) {
   const liveryNames =
     nativeModel?.format === "yft"
@@ -825,18 +1003,10 @@ function setTextureDictionary(doc, buffer, name) {
   disposeTextureStates();
   nativeTextures = doc;
   nativeTextureBuffer = buffer;
+  liveryDictionaryChanged = false;
   nativeTextureName = name;
   materialBindings.clear();
-  const select = $("#texture-select");
-  select.replaceChildren();
-  for (const entry of doc.textures) {
-    const option = new Option(
-      `${entry.name} · ${entry.formatName}${entry.supported ? "" : " · não suportado"}`,
-      entry.key,
-    );
-    option.disabled = !entry.supported;
-    select.add(option);
-  }
+  updateTextureOptions();
   $("#native-texture-controls").classList.remove("hidden");
   $("#export-native").textContent = doc.embedded
     ? `Exportar ${(nativeModel?.format || "ydd").toUpperCase()} editado`
@@ -889,7 +1059,7 @@ function buildNativeModel(
     };
     group.add(mesh);
   }
-  installModel(group, name, true);
+  installModel(group, name, true, drawable.vehiclePoints);
   nativeModel = doc;
   $("#asset-type").textContent =
     `${doc.format === "yft" ? "YFT" : "YDD"} NATIVO · UV ATIVO`;
@@ -909,6 +1079,7 @@ function buildNativeModel(
   $("#mesh-info").textContent =
     `${drawable.name} · ${vertices.toLocaleString("pt-BR")} vértices · ${triangles.toLocaleString("pt-BR")} triângulos`;
   resetMaterialOptions();
+  syncLiveryControls();
   const liveryIndex = drawable.shaders.findIndex(
     (s) => doc.format === "yft" && s.liveryName,
   );
@@ -1052,9 +1223,9 @@ $("#export-native").onclick = async () => {
         ? nativeModel?.format || "ydd"
         : "ytd";
     download(
-      nativeTextureName.replace(/\.(yft|ydd|ytd)$/i, "") +
-        "_editado." +
-        extension,
+      liveryDictionaryChanged && !nativeTextures.embedded
+        ? nativeTextureName
+        : nativeTextureName.replace(/\.(yft|ydd|ytd)$/i, "") + "_editado." + extension,
       new Blob([data], { type: "application/octet-stream" }),
     );
     toast(
@@ -1093,6 +1264,8 @@ $("#save-project").onclick = async () => {
       ? bufferToBase64(nativeTextureBuffer)
       : null,
     nativeTextureName,
+    liveryVariations,
+    liveryDictionaryChanged,
     nativeEmbedded: !!nativeTextures?.embedded,
     activeTexture: activeKey,
     bindings: [...materialBindings],
@@ -1240,12 +1413,18 @@ async function restoreProject(p) {
   $("#native-texture-controls").classList.add("hidden");
   modelSource = modelBuffer;
   modelFilename = p.modelName || null;
+  const metadata = p.liveryVariations;
+  liveryVariations = metadata && typeof metadata.xml === "string" &&
+    metadata.xml.length <= 5 * 1024 * 1024 && /^carvariations\.(meta|xml)$/i.test(metadata.name)
+    ? { name: metadata.name, xml: metadata.xml, dirty: metadata.dirty === true }
+    : null;
   if (textureDoc) {
     setTextureDictionary(
       textureDoc,
       textureBuffer,
       p.nativeTextureName || "texturas.ytd",
     );
+    liveryDictionaryChanged = !textureDoc.embedded && p.liveryDictionaryChanged === true;
     for (const item of restored) {
       const state = textureState(
         textureDoc.textures.find((t) => t.key === item.key),
@@ -1333,6 +1512,7 @@ $("#model-file").onchange = async (e) => {
         $("#native-texture-controls").classList.add("hidden");
       }
       materialBindings.clear();
+      liveryVariations = null;
       buildNativeModel(doc, 0, 0, file.name);
       modelSource = buffer;
       modelFilename = file.name;
@@ -1351,6 +1531,8 @@ $("#model-file").onchange = async (e) => {
     } else {
       await loadModel(buffer, file.name);
       nativeModel = null;
+      liveryVariations = null;
+      syncLiveryControls();
       $("#native-model-controls").classList.add("hidden");
       modelSource = buffer;
       modelFilename = file.name;
@@ -1469,6 +1651,7 @@ const viewPanel = document.createElement("div");
 viewPanel.className = "section studio-controls";
 viewPanel.innerHTML = `<label class="section-title" for="camera-view">CÂMERAS / VISTAS</label><select id="camera-view" class="full"><option value="perspective">Perspectiva livre</option><option value="front">Frente · Ortográfica</option><option value="back">Trás · Ortográfica</option><option value="left">Esquerda · Ortográfica</option><option value="right">Direita · Ortográfica</option><option value="top">Topo / Teto · Ortográfica</option></select><div class="camera-buttons"><button data-view="front">Frente</button><button data-view="back">Trás</button><button data-view="left">Esquerda</button><button data-view="right">Direita</button><button data-view="top">Teto</button></div><label class="section-title" for="lighting-select">ILUMINAÇÃO 3D</label><select id="lighting-select" class="full"><option value="studio">Estúdio</option><option value="day">Dia</option><option value="night">Noite</option></select>`;
 $(".right").append(viewPanel);
+const vehicleInspector = new VehicleInspector($(".right"), $(".viewport"), () => view(false));
 const quickViews = document.createElement("div");
 quickViews.className = "quick-studio";
 quickViews.append(viewPanel.querySelector(".camera-buttons"));
@@ -1581,6 +1764,46 @@ renderer.setAnimationLoop((time) => {
   cameraPan.update(delta);
   controls.update();
   renderer.render(scene, camera);
+  vehicleInspector.render(camera, time, !showUV);
 });
 
-attachAssetBatch({host:document.querySelector('aside.left'),readModel:()=>nativeModel,parseTexture:parseYtd,setTextures:setTextureDictionary,notify:toast,openModel:async file=>{const previous=modelSource;await $("#model-file").onchange({target:{files:[file],value:''}});return modelSource!==previous;}});
+attachAssetBatch({
+  host: $("aside.left"),
+  readModel: () => nativeModel,
+  parseTexture: parseYtd,
+  setTextures: setTextureDictionary,
+  notify: toast,
+  openModel: async (file) => {
+    const previous = modelSource;
+    await $("#model-file").onchange({ target: { files: [file], value: "" } });
+    return modelSource !== previous;
+  },
+  onMetadata: async (files, modelFile) => {
+    const carcols = files.filter(({ name }) => /^carcols\.(meta|xml)$/i.test(name));
+    const variations = files.filter(({ name }) => /^carvariations\.(meta|xml)$/i.test(name));
+    const read = (file) => {
+      if (file.size > 5 * 1024 * 1024) throw Error(`${file.name} excede 5 MB.`);
+      return file.text();
+    };
+    try {
+      const profiles = (await Promise.all(carcols.map(read))).flatMap(parseSirenPatterns);
+      const variationFiles = await Promise.all(variations.map(read));
+      liveryVariations = variationFiles.length === 1
+        ? { xml: variationFiles[0], name: variations[0].name, dirty: false }
+        : null;
+      syncLiveryControls();
+      const sirenId = variationFiles
+        .map((xml) => findVehicleSirenId(xml, modelFile.name))
+        .find((id) => id != null);
+      vehicleInspector.setSirenProfiles(profiles, sirenId);
+      const note = $("#batch-status");
+      if (profiles.length)
+        note.textContent += profiles.some(({ id }) => id === sirenId)
+          ? ` Giroflex associado ao perfil ${sirenId}.`
+          : " Perfis do giroflex importados. Confira o ID no painel de inspeção.";
+    } catch (error) {
+      vehicleInspector.setSirenProfiles([]);
+      toast(error.message);
+    }
+  },
+});

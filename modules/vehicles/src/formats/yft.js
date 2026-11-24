@@ -1,5 +1,6 @@
 import { openResource } from "./resource.js";
 import { readDrawable } from "./ydd.js";
+import { readVehiclePoints } from "./vehicle-points.js";
 
 // GTA V Legacy FragType (v162): principal drawable at 0x30,
 // optional drawable array at 0x38; FragDrawable name at 0x130.
@@ -17,6 +18,15 @@ export function parseYft(input) {
     if (p !== null && !pointers.includes(p)) pointers.push(p);
   }
   if (!pointers.length) throw Error("O YFT não contém um modelo visualizável.");
-  const drawables = pointers.map((p, i) => readDrawable(resource, p, i, 0x130));
+  const drawables = pointers.map((p, i) => {
+    const drawable = readDrawable(resource, p, i, 0x130);
+    try {
+      drawable.vehiclePoints = readVehiclePoints(resource, p);
+    } catch {
+      // The model remains paintable if its optional skeleton cannot be read.
+      drawable.vehiclePoints = [];
+    }
+    return drawable;
+  });
   return { resource, drawables, format: "yft" };
 }

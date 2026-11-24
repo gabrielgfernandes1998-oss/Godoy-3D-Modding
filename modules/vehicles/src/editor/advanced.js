@@ -1,9 +1,31 @@
-import { LayerDocument, canvas, copy, floodPatch } from "./layers.js";
+import {
+  LayerDocument,
+  canvas,
+  copy,
+  floodPatch,
+  objectDimensions,
+} from "./layers.js";
 import { meshIsland, findUVFace, uvMask, allFaces } from "./uv.js";
 const $ = (s) => document.querySelector(s),
   value = (id) => $(id).value,
   num = (id) => Number(value(id));
 const editable = (l) => l && l.type !== "raster";
+const textTransforms = {
+  "text-flip-x": "flipX",
+  "text-flip-y": "flipY",
+  "text-reverse": "reverseText",
+  "text-rotation": "rotation",
+  "text-width-percent": "widthPercent",
+  "text-height-percent": "heightPercent",
+};
+const textTransformUnits = {
+  "text-rotation": "°",
+  "text-width-percent": "%",
+  "text-height-percent": "%",
+};
+const textAngle = (angle) =>
+  angle >= 0 && angle <= 360 ? angle : ((angle % 360) + 360) % 360;
+
 export class AdvancedEditor {
   constructor(host) {
     this.host = host;
@@ -68,6 +90,19 @@ export class AdvancedEditor {
       "beforeend",
       `<button id="load-font" class="full">Carregar fonte .ttf / .otf</button><input id="font-file" type="file" accept=".ttf,.otf" hidden><label class="control-label" for="text-stroke">Contorno (px)</label><input id="text-stroke" type="number" min="0" max="32" value="0"><input id="text-stroke-color" type="color" value="#000000" aria-label="Cor do contorno"><label class="control-label" for="text-shadow-blur">Sombra: suavidade (px)</label><input id="text-shadow-blur" type="number" min="0" max="100" value="0"><input id="text-shadow-color" type="color" value="#000000" aria-label="Cor da sombra"><label class="control-label" for="text-shadow-x">Sombra X / Y (px)</label><input id="text-shadow-x" type="number" min="-200" max="200" value="0"><input id="text-shadow-y" type="number" min="-200" max="200" value="0">`,
     );
+    $(".text-controls").insertAdjacentHTML(
+      "beforeend",
+      `<div class="section-title text-transform-title">TRANSFORMAÇÕES DO TEXTO</div>
+      <label class="label-row">Inverter horizontalmente<input id="text-flip-x" type="checkbox"></label>
+      <label class="label-row">Inverter verticalmente<input id="text-flip-y" type="checkbox"></label>
+      <label class="label-row">Inverter ordem das letras<input id="text-reverse" type="checkbox"></label>
+      <div class="label-row"><label for="text-rotation">Rotação</label><output class="value" id="text-rotation-out" for="text-rotation">0°</output></div>
+      <input id="text-rotation" type="range" min="0" max="360" step="0.1" value="0">
+      <div class="label-row"><label for="text-width-percent">Largura</label><output class="value" id="text-width-percent-out" for="text-width-percent">100%</output></div>
+      <input id="text-width-percent" type="range" min="10" max="300" value="100">
+      <div class="label-row"><label for="text-height-percent">Altura</label><output class="value" id="text-height-percent-out" for="text-height-percent">100%</output></div>
+      <input id="text-height-percent" type="range" min="10" max="300" value="100">`,
+    );
     const properties = document.createElement("div");
     properties.className = "object-controls hidden";
     properties.innerHTML = `<div class="section-title">OBJETO SELECIONADO</div><div class="transform-grid"><label>X<input id="object-x" type="number"></label><label>Y<input id="object-y" type="number"></label><label>Largura<input id="object-width" type="number" min="1" max="8192"></label><label>Altura<input id="object-height" type="number" min="1" max="8192"></label><label>Rotação<input id="object-rotation" type="number" min="-360" max="360"></label></div><button id="edit-path" class="full">Editar pontos da curva no UV</button><p class="help">Textos e formas permanecem editáveis após aplicar.</p>`;
@@ -120,6 +155,15 @@ export class AdvancedEditor {
         } else this.doc.edit(patch, id);
       };
 
+    for (const [id, key] of Object.entries(textTransforms)) {
+      const el = $("#" + id);
+      el.oninput = () => {
+        const unit = textTransformUnits[id];
+        this.modifyObject({ [key]: unit ? el.valueAsNumber : el.checked }, id, "text");
+        if (unit) $("#" + id + "-out").value = el.value + unit;
+      };
+    }
+
     const textFields = {
       "text-content": "text",
       "text-font": "font",
@@ -153,7 +197,8 @@ export class AdvancedEditor {
     ])
       $("#" + id).oninput = () => {
         const l = this.draft || this.doc.active;
-        if (!editable(l)) return;
+        if (!editable(l) || (l.type === "text" && !["x", "y"].includes(key)))
+          return;
         let v = num("#" + id);
         if (!Number.isFinite(v) || Math.abs(v) > 100000) return;
         if (key === "width" || key === "height")
@@ -307,7 +352,12 @@ export class AdvancedEditor {
       bold: $("#text-bold").checked,
       color: value("#color"),
       opacity: num("#text-opacity"),
-      rotation: num("#rotation"),
+      rotation: num("#text-rotation"),
+      flipX: $("#text-flip-x").checked,
+      flipY: $("#text-flip-y").checked,
+      reverseText: $("#text-reverse").checked,
+      widthPercent: num("#text-width-percent"),
+      heightPercent: num("#text-height-percent"),
       strokeWidth: num("#text-stroke"),
       strokeColor: value("#text-stroke-color"),
       shadowColor: value("#text-shadow-color"),
@@ -399,8 +449,10 @@ export class AdvancedEditor {
     $("#delete-layer").disabled = !l || l.locked;
     $("#clear-layer-mask").disabled = !l?.mask;
     $("#edit-path").classList.toggle("hidden", l?.type !== "path");
-    $("#object-width").disabled = l?.type === "text";
-    $("#object-height").disabled = l?.type === "text";
+    for (const id of ["object-width", "object-height", "object-rotation"]) {
+      const el = $("#" + id);
+      el.closest("label").hidden = l?.type === "text";
+    }
     if (
       textMode &&
       l?.type === "text" &&
@@ -420,6 +472,14 @@ export class AdvancedEditor {
         "text-shadow-y": "shadowY",
       };
       for (const [id, k] of Object.entries(fields)) sync(id, l[k]);
+      for (const [id, key] of Object.entries(textTransforms)) {
+        const unit = textTransformUnits[id];
+        const el = $("#" + id);
+        if (unit) {
+          el.value = key === "rotation" ? textAngle(l.rotation ?? 0) : l[key] ?? 100;
+          $("#" + id + "-out").value = el.value + unit;
+        } else el.checked = !!l[key];
+      }
     }
     if (
       (l?.type === "shape" || l?.type === "path") &&
@@ -429,8 +489,10 @@ export class AdvancedEditor {
       sync("shape-stroke", l.strokeWidth);
     }
     if (object && this.tool === "select") {
-      sync("rotation", l.rotation || 0);
-      $("#rotation-out").textContent = (l.rotation || 0) + "°";
+      if (l.type !== "text") {
+        sync("rotation", l.rotation || 0);
+        $("#rotation-out").textContent = (l.rotation || 0) + "°";
+      }
       if (l.type === "image") {
         sync(
           "scale",
@@ -881,12 +943,8 @@ export class AdvancedEditor {
       ctx.strokeStyle = "#ff6373";
       ctx.lineWidth = Math.max(1, doc.width / 500);
       ctx.setLineDash([doc.width / 100, doc.width / 150]);
-      ctx.strokeRect(
-        -(l.width || 1) / 2,
-        -(l.height || 1) / 2,
-        l.width || 1,
-        l.height || 1,
-      );
+      const { width, height } = objectDimensions(l);
+      ctx.strokeRect(-width / 2, -height / 2, width, height);
       ctx.setLineDash([]);
       if (l.type === "path") {
         ctx.fillStyle = "#ffffff";
