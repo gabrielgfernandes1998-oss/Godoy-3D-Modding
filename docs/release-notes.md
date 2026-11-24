@@ -1,26 +1,16 @@
-# Godoy 3D Modding 0.11.17 beta
+# Godoy 3D Modding 0.11.18 beta
 
-Esta atualização reúne novas ferramentas no **Editor de pinturas de viaturas** para GTA V Legacy e FiveM.
+## Nova identidade visual
 
-## Texto nas pinturas
-
-- Espelhe o texto na horizontal ou na vertical, gire de 0° a 360° e ajuste largura e altura separadamente.
-- Inverta a ordem dos caracteres em cada linha preservando o formato das letras e os acentos.
-- Combine os ajustes e acompanhe o resultado na prévia. O projeto `.paintfive` mantém o texto editável e as exportações PNG e YTD incluem as transformações.
+- O novo logo aparece na janela principal e nos editores de pintura. O ícone também foi atualizado nas abas e no executável Windows.
 
 ## Assentos e giroflex
 
-- Em **Inspeção da viatura**, veja no 3D os lugares do motorista e dos passageiros identificados no modelo.
-- Ative **Prévia do giroflex** para ver a posição, a cor e a sequência dos canais identificados. Importe o `carcols.meta` para escolher um perfil. Sem esse arquivo, o editor usa uma alternância demonstrativa.
-
-## Importação em lote e liveries
-
-- Em **Abrir arquivos da viatura**, selecione o YFT, os YTDs, o `carcols.meta` e o `carvariations.meta` juntos. O editor usa os metadados disponíveis para associar a textura e o perfil do giroflex.
-- Em um YTD externo com liveries numeradas já referenciadas pelo YFT, selecione uma pintura para editar, duplique-a, importe uma imagem na mesma resolução ou remova uma pintura. A remoção renumera as seguintes.
-- A exportação do YTD com a lista alterada usa o nome original do arquivo. Quando o `carvariations.meta` contém uma lista compatível, também é possível exportar uma cópia atualizada pelo painel **Liveries**.
-
-A disponibilidade dos assentos e canais depende dos pontos do modelo. Confira a iluminação e as pinturas exportadas com o mod carregado no FiveM.
+- Planeje assentos no 3D com ajustes de posição. Os pontos ficam salvos no projeto `.paintfive`.
+- Importe o `carcols.meta` para adicionar ou desativar canais do giroflex e ajustar cor, BPM e sequência das piscadas. A guia mostra a prévia e exporta o XML editado.
+- No aplicativo Windows, use um assento de passageiro existente como base e escolha uma porta já definida no layout. O ZIP grava o novo osso no YFT principal e no `_hi.yft`, quando fornecido, e inclui as cópias atualizadas de `vehicles.meta` e `vehiclelayouts.meta` com os vínculos de acesso e animação.
+- Para exportar, abra o YFT principal, os metadados do layout e o `_hi.yft` se o mod usar esse arquivo. Confira no FiveM a entrada, a ocupação e a saída com os demais assentos ocupados.
 
 ## Windows x64
 
-Extraia todo o ZIP e abra **Godoy3DModding.exe**. O pacote é portátil e inclui o arquivo SHA-256 para conferir o download.
+Extraia todo o ZIP e abra **Godoy3DModding.exe**. O pacote portátil acompanha um arquivo SHA-256 para conferir a integridade do download.

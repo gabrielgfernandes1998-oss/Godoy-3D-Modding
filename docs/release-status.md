@@ -1,3 +1,11 @@
+# Estado da versão 0.11.18 beta
+
+A identidade visual foi atualizada, incluindo o ícone incorporado ao executável Windows. A guia Assentos e giroflex salva pontos no projeto, edita canais e exporta o carcols.meta.
+
+O exportador Windows usa um assento de passageiro e uma porta já definidos no layout. O teste nativo reabre o YFT com o osso novo, confere a posição sob um osso pai rotacionado e compara a geometria e os índices dos LODs. O fluxo de navegador com o helper .NET exportou e reabriu o YFT principal e o _hi.yft de teste, conferindo XML, porta e vínculos de animação. A ocupação real continua sujeita à validação no FiveM.
+
+## Histórico 0.11.17
+
 # Estado da versão 0.11.17 beta
 
 O editor de viaturas ganhou transformações de texto editáveis, inspeção de assentos, prévia dos canais do giroflex e gerenciamento de liveries numeradas em YTD externo. A importação em lote associa o perfil do giroflex pelo `carvariations.meta` quando há uma correspondência. A exportação do YTD mantém as outras texturas; listas compatíveis do `carvariations.meta` podem ser exportadas separadamente.
