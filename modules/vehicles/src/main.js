@@ -299,7 +299,8 @@ for (const surface of [$("#scene"), $("#uv-view")]) {
   const coordinates = (e) =>
     surface.id === "scene" ? sceneHit(e) : { uv: uvHit(e) };
   surface.addEventListener("pointerdown", (e) => {
-    if (e.button !== 0 || tool === "orbit" || !editor) return;
+    if (e.button !== 0 || tool === "orbit" || !editor ||
+      $(".right").classList.contains("vehicle-setup-active")) return;
     try {
       const hit = coordinates(e);
       if (!hit?.uv) return;
@@ -568,7 +569,7 @@ function installModel(imported, name, native = false, points = []) {
   });
   model = group;
   scene.add(model);
-  vehicleInspector.setModel(imported, points);
+  vehicleInspector.setModel(imported, points, name);
   $("#asset-name").textContent = name;
   $("#asset-type").textContent = native
     ? "MODELO NATIVO · UV ATIVO"
@@ -1246,6 +1247,7 @@ $("#save-project").onclick = async () => {
   flushTexture();
   const project = {
     format: "paintfive",
+    vehicleSetup: vehicleInspector.snapshot(),
     version: 3,
     fonts: editor.fonts,
     layers: nativeTextures ? null : await editor.doc.serialize(),
@@ -1413,6 +1415,7 @@ async function restoreProject(p) {
   $("#native-texture-controls").classList.add("hidden");
   modelSource = modelBuffer;
   modelFilename = p.modelName || null;
+  vehicleInspector.restore(p.vehicleSetup);
   const metadata = p.liveryVariations;
   liveryVariations = metadata && typeof metadata.xml === "string" &&
     metadata.xml.length <= 5 * 1024 * 1024 && /^carvariations\.(meta|xml)$/i.test(metadata.name)
@@ -1513,6 +1516,7 @@ $("#model-file").onchange = async (e) => {
       }
       materialBindings.clear();
       liveryVariations = null;
+      vehicleInspector.resetEdits();
       buildNativeModel(doc, 0, 0, file.name);
       modelSource = buffer;
       modelFilename = file.name;
@@ -1651,7 +1655,9 @@ const viewPanel = document.createElement("div");
 viewPanel.className = "section studio-controls";
 viewPanel.innerHTML = `<label class="section-title" for="camera-view">CÂMERAS / VISTAS</label><select id="camera-view" class="full"><option value="perspective">Perspectiva livre</option><option value="front">Frente · Ortográfica</option><option value="back">Trás · Ortográfica</option><option value="left">Esquerda · Ortográfica</option><option value="right">Direita · Ortográfica</option><option value="top">Topo / Teto · Ortográfica</option></select><div class="camera-buttons"><button data-view="front">Frente</button><button data-view="back">Trás</button><button data-view="left">Esquerda</button><button data-view="right">Direita</button><button data-view="top">Teto</button></div><label class="section-title" for="lighting-select">ILUMINAÇÃO 3D</label><select id="lighting-select" class="full"><option value="studio">Estúdio</option><option value="day">Dia</option><option value="night">Noite</option></select>`;
 $(".right").append(viewPanel);
-const vehicleInspector = new VehicleInspector($(".right"), $(".viewport"), () => view(false));
+const vehicleInspector = new VehicleInspector(
+  $(".right"), $(".viewport"), () => view(false), () => { changed = true; }, download,
+);
 const quickViews = document.createElement("div");
 quickViews.className = "quick-studio";
 quickViews.append(viewPanel.querySelector(".camera-buttons"));

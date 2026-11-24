@@ -61,3 +61,53 @@ header{height:124px}.workspace{height:calc(100vh - 156px)}.brand-lockup{align-it
 .livery-controls button {
   margin-bottom: 6px;
 }
+
+.vehicle-tabs {
+  display: flex;
+  gap: 6px;
+  padding: 0 19px 12px;
+}
+.vehicle-tabs button {
+  flex: 1;
+  padding: 7px 5px;
+  font-size: 11px;
+}
+.vehicle-tabs button[aria-pressed="true"] {
+  border-color: var(--accent);
+}
+.right:not(.vehicle-setup-active) > .vehicle-inspector,
+.right.vehicle-setup-active > :not(.panel-head, .vehicle-tabs, .vehicle-inspector) {
+  display: none;
+}
+.vehicle-editor {
+  margin: 14px 0 0;
+  min-width: 0;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 10px;
+}
+.vehicle-editor legend {
+  padding: 0 4px;
+  font-size: 12px;
+  font-weight: 600;
+}
+.vehicle-editor label {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 11px;
+}
+.vehicle-editor .label-row {
+  display: flex;
+}
+.vehicle-editor input:not([type="checkbox"]):not([type="color"]) {
+  display: block;
+  width: 100%;
+  padding: 6px;
+  color: inherit;
+  background: #24262b;
+  border: 1px solid #3c4148;
+  border-radius: 4px;
+}
+.vehicle-editor > button {
+  margin-bottom: 6px;
+}
