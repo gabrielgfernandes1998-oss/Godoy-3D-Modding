@@ -24,7 +24,7 @@ export class VehicleInspector {
     this.screen = new Vector3();
     this.overlay = document.createElement("div");
     this.overlay.className = "vehicle-point-overlay";
-    this.overlay.setAttribute("aria-hidden", "true");
+    this.seatEditing = false;
     viewport.append(this.overlay);
     const section = document.createElement("div");
     section.className = "section vehicle-inspector";
@@ -99,17 +99,75 @@ export class VehicleInspector {
     this.setSirenProfiles([]);
   }
   refreshMarkers() {
-    const planned = this.seatPlan.map((point) => ({ ...point, kind: "seat", planned: true }));
+    this.seatDrag = null;
+    const planned = this.seatPlan.map((point, seatIndex) => ({ ...point, kind: "seat", planned: true, seatIndex }));
     this.markers = [...this.points, ...planned].map((point) => {
-      const element = document.createElement("span");
+      const element = document.createElement(point.planned ? "button" : "span");
       element.className = "vehicle-point vehicle-point-" + point.kind;
       element.hidden = true;
+      if (point.planned) {
+        element.type = "button";
+        element.classList.add("vehicle-point-planned");
+        element.disabled = !this.seatEditing;
+        element.title = "Arrastar para mover o assento";
+      } else element.setAttribute("aria-hidden", "true");
       if (point.kind === "seat") element.textContent = point.planned ? point.label + " · projeto" : point.label;
       else element.textContent = point.channel;
-      return { ...point, element, position: new Vector3(...point.position) };
+      const marker = { ...point, element, position: new Vector3(...point.position) };
+      if (point.planned) this.bindSeatMarker(marker);
+      return marker;
     });
     this.overlay.replaceChildren(...this.markers.map(({ element }) => element));
     this.updateSummary();
+  }
+  setSeatEditing(enabled) {
+    this.seatEditing = enabled;
+    if (enabled && this.seatPlan.length) this.seats.checked = true;
+    this.overlay.classList.toggle("edit-seats", enabled);
+    for (const marker of this.markers)
+      if (marker.planned) marker.element.disabled = !enabled;
+  }
+  selectSeat(index) {
+    for (const marker of this.markers)
+      if (marker.planned) marker.element.setAttribute("aria-pressed", String(marker.seatIndex === index));
+  }
+  bindSeatMarker(marker) {
+    const { element, seatIndex, position } = marker;
+    element.onclick = () => this.onSeatSelect?.(seatIndex);
+    element.onpointerdown = (event) => {
+      if (!this.seatEditing || !this.camera || event.button !== 0 || this.seatDrag) return;
+      this.onSeatSelect?.(seatIndex);
+      const rect = this.overlay.getBoundingClientRect();
+      if (!rect.width || !rect.height) return;
+      this.root.updateWorldMatrix(true, false);
+      const camera = this.camera.clone();
+      const world = position.clone().applyMatrix4(this.root.matrixWorld);
+      const projected = world.clone().project(camera);
+      const startX = event.clientX, startY = event.clientY;
+      const inverse = this.root.matrixWorld.clone().invert();
+      this.seatDrag = { marker, pointer: event.pointerId };
+      element.setPointerCapture(event.pointerId);
+      event.preventDefault();
+      element.onpointermove = (move) => {
+        const drag = this.seatDrag;
+        if (drag?.marker !== marker || drag.pointer !== move.pointerId) return;
+        const dx = move.clientX - startX, dy = move.clientY - startY;
+        if (!drag.moved && Math.hypot(dx, dy) < 3) return;
+        drag.moved = true;
+        position.set(projected.x + 2 * dx / rect.width, projected.y - 2 * dy / rect.height, projected.z)
+          .unproject(camera).applyMatrix4(inverse).clampScalar(-100, 100);
+        const coordinates = position.toArray().map((value) => Math.round(value * 1000) / 1000);
+        position.fromArray(coordinates);
+        this.seatPlan[seatIndex].position = coordinates;
+        this.onSeatMove?.(seatIndex);
+      };
+    };
+    element.onlostpointercapture = (event) => {
+      const drag = this.seatDrag;
+      if (drag?.marker !== marker || drag.pointer !== event.pointerId) return;
+      this.seatDrag = null;
+      if (drag.moved) this.onSeatMoveEnd?.();
+    };
   }
   refreshSirenPreview() {
     this.sirens.checked = true;
@@ -141,6 +199,7 @@ export class VehicleInspector {
       this.profileSelect.onchange();
     }
     this.refreshMarkers();
+    if (this.seatEditing && this.seatPlan.length) this.seats.checked = true;
     this.onModelChange?.();
   }
   updateSummary() {
@@ -160,6 +219,7 @@ export class VehicleInspector {
       : "Nenhum ponto de giroflex identificado no modelo.";
   }
   render(camera, time, visible) {
+    this.camera = camera;
     this.overlay.hidden = !visible || !this.root || (!this.seats.checked && !this.sirens.checked);
     if (this.overlay.hidden) return;
     const profile = this.profiles[this.profileSelect.value];

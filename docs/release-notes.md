@@ -1,16 +1,12 @@
-# Godoy 3D Modding 0.11.18 beta
+# Godoy 3D Modding 0.11.19 beta
 
-## Nova identidade visual
+## Mover assentos no 3D
 
-- O novo logo aparece na janela principal e nos editores de pintura. O ícone também foi atualizado nas abas e no executável Windows.
-
-## Assentos e giroflex
-
-- Planeje assentos no 3D com ajustes de posição. Os pontos ficam salvos no projeto `.paintfive`.
-- Importe o `carcols.meta` para adicionar ou desativar canais do giroflex e ajustar cor, BPM e sequência das piscadas. A guia mostra a prévia e exporta o XML editado.
-- No aplicativo Windows, use um assento de passageiro existente como base e escolha uma porta já definida no layout. O ZIP grava o novo osso no YFT principal e no `_hi.yft`, quando fornecido, e inclui as cópias atualizadas de `vehicles.meta` e `vehiclelayouts.meta` com os vínculos de acesso e animação.
-- Para exportar, abra o YFT principal, os metadados do layout e o `_hi.yft` se o mod usar esse arquivo. Confira no FiveM a entrada, a ocupação e a saída com os demais assentos ocupados.
+- Na guia **Assentos e giroflex**, clique no marcador de um assento do projeto e arraste para reposicioná-lo.
+- Use **Teto** para mover o assento sem alterar a altura, ou uma vista lateral para ajustar a altura.
+- O editor seleciona o assento e atualiza X, Y e Z durante o arraste. A posição vai para o projeto `.paintfive` e para a exportação do assento no YFT.
+- Os campos X, Y e Z continuam disponíveis para ajustes precisos com **Aplicar posição**.
 
 ## Windows x64
 
-Extraia todo o ZIP e abra **Godoy3DModding.exe**. O pacote portátil acompanha um arquivo SHA-256 para conferir a integridade do download.
+Extraia todo o ZIP e abra **Godoy3DModding.exe**. Para assentos exportados, confira a entrada e a saída no FiveM.

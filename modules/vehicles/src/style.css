@@ -111,3 +111,27 @@ header{height:124px}.workspace{height:calc(100vh - 156px)}.brand-lockup{align-it
 .vehicle-editor > button {
   margin-bottom: 6px;
 }
+
+.vehicle-point-planned {
+  display: block;
+}
+.vehicle-point-planned[hidden] {
+  display: none;
+}
+.vehicle-point-planned:disabled {
+  opacity: 1;
+}
+.edit-seats .vehicle-point-planned {
+  pointer-events: auto;
+  cursor: grab;
+  touch-action: none;
+  z-index: 1;
+}
+.edit-seats .vehicle-point-planned:active {
+  cursor: grabbing;
+}
+.edit-seats .vehicle-point-planned[aria-pressed="true"] {
+  border-color: #aae95d;
+  background: #212c1d;
+  z-index: 2;
+}

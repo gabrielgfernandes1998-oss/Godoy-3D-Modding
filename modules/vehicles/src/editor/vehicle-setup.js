@@ -8,6 +8,7 @@ export function attachVehicleSetup(panel, section, inspector, markChanged, downl
   panel.querySelector(".panel-head").after(tabs);
   const switchTab = (setup) => {
     panel.classList.toggle("vehicle-setup-active", setup);
+    inspector.setSeatEditing(setup);
     tabs.querySelector("#vehicle-paint-tab").setAttribute("aria-pressed", String(!setup));
     tabs.querySelector("#vehicle-setup-tab").setAttribute("aria-pressed", String(setup));
   };
@@ -29,7 +30,7 @@ export function attachVehicleSetup(panel, section, inspector, markChanged, downl
       <button id="seat-add" type="button" class="full">Adicionar ponto de assento</button>
       <label>Pontos do projeto<select id="seat-plan" class="full"></select></label>
       <div class="layer-actions"><button id="seat-update" type="button">Aplicar posição</button><button id="seat-remove" type="button">Remover ponto</button></div>
-      <p class="help">Pontos salvos no .paintfive. Para ocupação no jogo, o assento precisa constar no esqueleto e no layout do veículo.</p>
+      <p class="help">Arraste um ponto no 3D ou ajuste X, Y e Z. Use a vista Teto para mover sem alterar a altura. Os pontos ficam salvos no .paintfive. Para ocupação no jogo, o assento precisa constar no esqueleto e no layout do veículo.</p>
     </fieldset>
     <fieldset class="vehicle-editor" id="siren-editor">
       <legend>Editar giroflex</legend>
@@ -84,6 +85,7 @@ export function attachVehicleSetup(panel, section, inspector, markChanged, downl
     seatList.replaceChildren(new Option("Selecionar ponto…", ""), ...inspector.seatPlan.map(({ label }, i) => new Option(label, i)));
     seatList.value = inspector.seatPlan[selection] ? String(selection) : "";
     $("seat-update").disabled = $("seat-remove").disabled = seatList.value === "";
+    inspector.selectSeat(selectedSeat());
   };
   seatList.onchange = () => {
     const seat = inspector.seatPlan[selectedSeat()];
@@ -93,6 +95,14 @@ export function attachVehicleSetup(panel, section, inspector, markChanged, downl
     }
     syncSeats();
   };
+  inspector.onSeatSelect = (index) => {
+    seatList.value = String(index);
+    seatList.onchange();
+  };
+  inspector.onSeatMove = (index) => {
+    axes.forEach((id, axis) => { $(id).value = inspector.seatPlan[index].position[axis]; });
+  };
+  inspector.onSeatMoveEnd = markChanged;
   const seatFromFields = () => {
     const label = $("seat-name").value.trim();
     const position = axes.map((id) => $(id).valueAsNumber);

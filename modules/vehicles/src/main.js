@@ -1771,7 +1771,7 @@ const resize = new ResizeObserver(() => {
 resize.observe($(".viewport"));
 const cameraPan = new CameraPan({
   controls, getCamera: () => camera,
-  enabled: () => !showUV && controls.enabled,
+  enabled: () => !showUV && controls.enabled && !vehicleInspector.seatDrag,
 });
 let previousFrame;
 renderer.setAnimationLoop((time) => {
