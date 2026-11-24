@@ -68,6 +68,25 @@ function registerNativeBridge({app,ipcMain,dialog,getWindow}) {
       await save(config);return {configured:true,version:probe.version};
     } finally {busy=false;}
   });
+  ipcMain.handle('godoy:native-add-vehicle-seat',async(event,request)=> {
+    allowed(event);
+    if(busy)throw Error('Aguarde a operação nativa atual.');
+    if(!(request?.bytes instanceof Uint8Array)||!request.bytes.length||request.bytes.length>80*1024*1024||
+       !/^seat_(dside|pside)_[fmr][0-9]{0,5}$/i.test(request.donor)||
+       !/^seat_(dside|pside)_[fmr][0-9]{1,5}$/i.test(request.name)||
+       typeof request.door!=='string'||!/^[-a-z0-9_]{1,64}$/i.test(request.door)||
+       request.position?.length!==3||!Array.isArray(request.position)||
+       request.position.some(n=>!Number.isFinite(n)||Math.abs(n)>100))
+      throw Error('Dados do assento inválidos.');
+    busy=true;
+    try {
+      const config=await resolveConfig();
+      if(!config.codewalkerDirectory)throw Error('Núcleo CodeWalker ausente. Extraia o portable completo.');
+      const result=await runBridge(executable,{command:'add-vehicle-seat',codewalkerDirectory:config.codewalkerDirectory,
+        data:Buffer.from(request.bytes).toString('base64'),donor:request.donor,name:request.name,door:request.door,position:request.position});
+      return new Uint8Array(Buffer.from(result.data,'base64'));
+    } finally {busy=false;}
+  });
   ipcMain.handle('godoy:native-export-ydd',async(event,request)=> {
     allowed(event);if(busy)throw Error('Aguarde a operação nativa atual.');
     if(!request||!['preserve','pelvis','head','spine'].includes(request.bone)||!Array.isArray(request.matrix)||request.matrix.length!==16||request.matrix.some(n=>typeof n!=='number'||!Number.isFinite(n)||Math.abs(n)>100000))throw Error('Transformação de exportação inválida.');

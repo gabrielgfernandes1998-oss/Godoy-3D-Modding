@@ -2,6 +2,7 @@ import {attachAssetBatch} from '../../../src/asset-batch.js';
 import { CameraPan, isEditingField } from "./editor/camera-pan.js";
 import brandLogo from "../assets/logo.png";
 import { AdvancedEditor } from "./editor/advanced.js";
+import { attachPlayableSeatExport } from "./editor/playable-seat-export.js";
 import { VehicleInspector, pointsFromScene } from "./editor/vehicle-inspector.js";
 import { findVehicleSirenId, parseSirenPatterns } from "./editor/siren-patterns.js";
 import { updateLiveryVariations } from "./editor/livery-variations.js";
@@ -1415,6 +1416,7 @@ async function restoreProject(p) {
   $("#native-texture-controls").classList.add("hidden");
   modelSource = modelBuffer;
   modelFilename = p.modelName || null;
+  playableSeatExport.reset();
   vehicleInspector.restore(p.vehicleSetup);
   const metadata = p.liveryVariations;
   liveryVariations = metadata && typeof metadata.xml === "string" &&
@@ -1520,6 +1522,7 @@ $("#model-file").onchange = async (e) => {
       buildNativeModel(doc, 0, 0, file.name);
       modelSource = buffer;
       modelFilename = file.name;
+      playableSeatExport.reset();
       const embedded = doc.drawables
         .flatMap((d) => d.textures)
         .filter((t, i, a) => a.findIndex((v) => v.pointer === t.pointer) === i);
@@ -1540,6 +1543,7 @@ $("#model-file").onchange = async (e) => {
       $("#native-model-controls").classList.add("hidden");
       modelSource = buffer;
       modelFilename = file.name;
+      playableSeatExport.reset();
       updateNativeMaterials();
       toast(
         "Modelo carregado. Use uma textura correspondente ao UV dessa viatura.",
@@ -1657,6 +1661,12 @@ viewPanel.innerHTML = `<label class="section-title" for="camera-view">CÂMERAS /
 $(".right").append(viewPanel);
 const vehicleInspector = new VehicleInspector(
   $(".right"), $(".viewport"), () => view(false), () => { changed = true; }, download,
+);
+const playableSeatExport = attachPlayableSeatExport(vehicleInspector, () =>
+  nativeModel?.format === "yft" && modelSource && /\.yft$/i.test(modelFilename)
+    ? { name: modelFilename, bytes: modelSource, points: nativeModel.drawables[0].vehiclePoints }
+    : null,
+  download,
 );
 const quickViews = document.createElement("div");
 quickViews.className = "quick-studio";
@@ -1785,6 +1795,9 @@ attachAssetBatch({
     return modelSource !== previous;
   },
   onMetadata: async (files, modelFile) => {
+    await playableSeatExport.accept(files.filter(({ name }) =>
+      /^(vehicles|vehiclelayouts)\.(meta|xml)$/i.test(name) || /_hi\.yft$/i.test(name),
+    ));
     const carcols = files.filter(({ name }) => /^carcols\.(meta|xml)$/i.test(name));
     const variations = files.filter(({ name }) => /^carvariations\.(meta|xml)$/i.test(name));
     const read = (file) => {

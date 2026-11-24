@@ -19,7 +19,7 @@ export function attachAssetBatch({host,openModel,readModel,parseTexture,setTextu
     panel.querySelector('#batch-open').textContent = 'Abrir arquivos da viatura';
     panel.querySelector('#batch-files').accept += ',.meta,.xml';
     panel.querySelector('#batch-status').textContent =
-      'Selecione o YFT, os YTDs, o carcols.meta e o carvariations.meta juntos.';
+      'Selecione o YFT, os YTDs e os arquivos .meta da viatura.';
   }
   host.prepend(panel);
   const $=s=>panel.querySelector(s);let models=[],candidates=[],ranked=[],metadata=[];
@@ -52,8 +52,9 @@ export function attachAssetBatch({host,openModel,readModel,parseTexture,setTextu
         if(expanded>256*1024*1024)throw Error('Dicionários descomprimidos acima de 256 MB. Divida o conjunto.');
         nextCandidates.push({file,buffer,doc});
       }
-      metadata = onMetadata ? files.filter(f => /\.(meta|xml)$/i.test(f.name)) : [];
-      models=nextModels;candidates=nextCandidates;
+      metadata = onMetadata ? files.filter(f => /\.(meta|xml)$|_hi\.yft$/i.test(f.name)) : [];
+      models=onMetadata ? nextModels.sort((a,b)=>Number(/_hi\.yft$/i.test(a.name))-Number(/_hi\.yft$/i.test(b.name))) : nextModels;
+      candidates=nextCandidates;
       $('#batch-model').replaceChildren(...models.map((f,i)=>new Option(f.name,String(i))));await chooseModel();
     } catch(error) {notify(error.message);$('#batch-status').textContent=error.message;}
     finally {e.target.value='';}

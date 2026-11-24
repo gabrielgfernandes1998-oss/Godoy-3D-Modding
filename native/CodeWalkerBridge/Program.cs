@@ -55,6 +55,16 @@ try {
         var saved=FiveMResource.Compact(YddEditor.Export(file,root,donor));
         result=new {ok=true,data=Convert.ToBase64String(saved),ytdData=ytd is null?null:Convert.ToBase64String(ytd)};
         }
+    } else if(command=="add-vehicle-seat") {
+        var bytes=Convert.FromBase64String(Text("data"));
+        if(bytes.Length>80*1024*1024)throw new Exception("YFT acima de 80 MB.");
+        var donor=Text("donor");var name=Text("name");
+        if(!System.Text.RegularExpressions.Regex.IsMatch(donor,@"^seat_(dside|pside)_[fmr][0-9]{0,5}$",System.Text.RegularExpressions.RegexOptions.IgnoreCase)||
+           !System.Text.RegularExpressions.Regex.IsMatch(name,@"^seat_(dside|pside)_[fmr][0-9]{1,5}$",System.Text.RegularExpressions.RegexOptions.IgnoreCase))
+            throw new Exception("Nome de osso do assento inválido.");
+        var position=root.GetProperty("position").EnumerateArray().Select(n=>n.GetSingle()).ToArray();
+        var saved=VehicleSeats.Export(bytes,donor,name,Text("door"),position);
+        result=new{ok=true,data=Convert.ToBase64String(saved)};
     } else if(command=="compact-ydd") {
         var inputFile=Text("inputFile");if(new FileInfo(inputFile).Length>256L*1024*1024)throw new Exception("YDD acima do limite de leitura de 256 MB.");
         var data=File.ReadAllBytes(inputFile);var before=FiveMResource.Size(data);var saved=FiveMResource.Compact(data);var after=FiveMResource.Size(saved);

@@ -26,6 +26,50 @@ YddFile Fixture(bool skin=true,byte bind=0) {
  var file=new YddFile{DrawableDict=new DrawableDictionary{Hashes=new uint[]{123},Drawables=new ResourcePointerArray64<Drawable>{data_items=new[]{drawable}}},Drawables=new[]{drawable}};
  var loaded=new YddFile();loaded.Load(file.Save());return loaded;
 }
+// The vehicle uses a translated and rotated root, plus a fragment bind table.
+{
+ var source=Fixture().Drawables[0];
+ var skeleton=source.Skeleton;
+ var bones=skeleton.Bones.Items;
+ bones[0].Name="chassis";bones[0].Translation=new Vector3(1,2,3);
+ bones[0].Rotation=Quaternion.RotationAxis(Vector3.UnitZ,.4f);
+ bones[1].Name="seat_pside_f";bones[1].Tag=Bone.CalculateBoneHash(bones[1].Name);
+ bones[2].Name="door_pside_f";bones[2].Tag=Bone.CalculateBoneHash(bones[2].Name);
+ skeleton.Bones.Count=(uint)bones.Length;
+ foreach(var bone in bones)bone.ResetAnimTransform();
+ skeleton.BuildBoneTags();skeleton.BuildTransformations();skeleton.BuildBonesMap();
+ var drawable=new FragDrawable{Name="godoy_seat_test",Skeleton=skeleton,ShaderGroup=source.ShaderGroup,
+  DrawableModels=source.DrawableModels,LodDistHigh=999,LodDistLow=999};
+ drawable.DrawableModels.Owner=drawable;
+ drawable.BuildAllModels();drawable.BuildVertexDecls();drawable.BuildRenderMasks();
+ var transforms=bones.Select(bone=>{
+  var t=bone.AbsTransform.TranslationVector;
+  return new Matrix3_s(new[]{1f,0,0,t.X,0,1,0,t.Y,0,0,1,t.Z});
+ }).ToArray();
+ var yft=new YftFile{Fragment=new FragType{Name="godoy_seat_test",Drawable=drawable,
+   Cloths=new ResourcePointerList64<EnvironmentCloth>(),LightAttributes=new ResourceSimpleList64<LightAttributes>(),
+   BoneTransforms=new FragBoneTransforms{Items=transforms,ItemCount1=3,ItemCount2=3}}};
+ var raw=yft.Save();
+ var saved=VehicleSeats.Export(raw,"seat_pside_f","seat_pside_f1","door_pside_f",new[]{-.45f,.65f,.82f});
+ var check=new YftFile();check.Load(saved);
+ var updated=check.Fragment.Drawable;
+ var last=updated.Skeleton.Bones.Items[^1];
+ Check(last.Index==3&&last.ParentIndex==0,"new vehicle seat appended under the donor parent");
+ Near(last.AbsTransform.TranslationVector,new Vector3(-.45f,-.82f,.65f),"seat world position under rotated parent");
+ Check(check.Fragment.BoneTransforms.Items.Length==4,"fragment transform table expanded");
+ var transform=check.Fragment.BoneTransforms.Items[^1];
+ Near(new Vector3(transform.Row1.W,transform.Row2.W,transform.Row3.W),last.AbsTransform.TranslationVector,"fragment bind translation matches the skeleton");
+ Check(updated.Skeleton.Bones.Items.Take(3).Select(b=>b.Name).SequenceEqual(bones.Select(b=>b.Name)),"vehicle bones retain indices");
+ Check(updated.AllModels.Length==drawable.AllModels.Length,"vehicle LODs retained");
+ for(int lod=0;lod<updated.AllModels.Length;lod++){
+  var before=drawable.AllModels[lod].Geometries[0];var after=updated.AllModels[lod].Geometries[0];
+  Check(before.VertexData.VertexBytes.SequenceEqual(after.VertexData.VertexBytes),"vehicle vertices retained");
+  Check(before.IndexBuffer.Indices.SequenceEqual(after.IndexBuffer.Indices),"vehicle indices retained");
+ }
+ try {VehicleSeats.Export(raw,"seat_pside_f","seat_pside_f1","door_dside_r",new[]{0f,0f,0f});throw new Exception("missing door accepted");}
+ catch(InvalidDataException){}
+ Console.WriteLine("Vehicle YFT seat insertion, bind table, rotated parent, geometry preservation and missing access door PASS");
+}
 JsonElement Request(Matrix matrix,string bone)=>JsonSerializer.SerializeToElement(new{matrix=matrix.ToArray(),bone});
 var fixture=Fixture();var original=fixture.Save();
 var m=Matrix.Scaling(2,3,4)*Matrix.RotationZ(.4f)*Matrix.Translation(1,-2,-1);
