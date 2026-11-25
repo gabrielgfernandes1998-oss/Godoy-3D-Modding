@@ -133,7 +133,7 @@ export function attachVehicleSetup(panel, section, inspector, markChanged, downl
   });
   action("seat-update", () => {
     const index = selectedSeat();
-    inspector.seatPlan[index] = seatFromFields();
+    inspector.seatPlan[index] = { ...inspector.seatPlan[index], ...seatFromFields() };
     updateSeats(index);
   });
   action("seat-remove", () => {

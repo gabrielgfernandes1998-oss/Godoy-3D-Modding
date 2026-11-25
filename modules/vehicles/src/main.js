@@ -2,6 +2,7 @@ import {attachAssetBatch} from '../../../src/asset-batch.js';
 import { CameraPan, isEditingField } from "./editor/camera-pan.js";
 import brandLogo from "../assets/logo.png";
 import { AdvancedEditor } from "./editor/advanced.js";
+import { attachPassengerPreview } from "./editor/passenger-preview.js";
 import { attachPlayableSeatExport } from "./editor/playable-seat-export.js";
 import { VehicleInspector, pointsFromScene } from "./editor/vehicle-inspector.js";
 import { findVehicleSirenId, parseSirenPatterns } from "./editor/siren-patterns.js";
@@ -1668,6 +1669,7 @@ const playableSeatExport = attachPlayableSeatExport(vehicleInspector, () =>
     : null,
   download,
 );
+const passengerPreview = attachPassengerPreview(scene, vehicleInspector, () => { changed = true; });
 const quickViews = document.createElement("div");
 quickViews.className = "quick-studio";
 quickViews.append(viewPanel.querySelector(".camera-buttons"));
@@ -1779,6 +1781,7 @@ renderer.setAnimationLoop((time) => {
   previousFrame = time;
   cameraPan.update(delta);
   controls.update();
+  passengerPreview.render(delta, !showUV);
   renderer.render(scene, camera);
   vehicleInspector.render(camera, time, !showUV);
 });
